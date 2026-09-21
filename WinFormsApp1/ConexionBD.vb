@@ -1,0 +1,9 @@
+'importo la clase para conectar a BD
+Imports MySqlConnector
+Module ConexionBD
+    'declaro constante para string de conexion
+    Public Const CADENA As String =
+        "Server=localhost;Port=3306;Database=taller_mecanico;" &
+        "User ID=root;Password=;"
+
+End Module

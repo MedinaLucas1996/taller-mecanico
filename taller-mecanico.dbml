@@ -1,0 +1,346 @@
+// =====================================================================
+// Sistema de Gestión para Taller Mecánico
+// Modelo de datos - MariaDB
+// Generar en: https://dbdiagram.io
+// =====================================================================
+//
+// ALCANCE  (definido con el docente el 27/08)
+//
+// El taller tiene dos actividades: venta de insumos y prestación de
+// servicios. Este sistema cubre UNICAMENTE la actividad de SERVICIOS.
+//
+// Queda fuera del alcance:
+//   - Facturación, comprobantes fiscales y formas de pago
+//   - Venta de insumos, artículos y repuestos
+//   - Control de stock e inventario
+//
+// El documento imprimible del sistema es el PRESUPUESTO, que se emite a
+// partir de la orden de trabajo. El ciclo cubierto es:
+//   recepción -> presupuesto -> aprobación -> ejecución -> cierre -> entrega
+//
+// ESTADO DE NORMALIZACIÓN
+// El modelo cumple 1FN, 2FN y 3FN, con desnormalizaciones controladas
+// que se documentan a continuación para dejar constancia de que son
+// decisiones de diseño y no omisiones.
+//
+// A) Atributos temporales (NO son violaciones de 3FN)
+//    Los datos copiados en el detalle no son redundancia: representan el
+//    valor VIGENTE AL MOMENTO de presupuestar, que es un hecho distinto
+//    del valor actual del dato maestro. No existe dependencia funcional
+//    desde la clave foránea, por lo tanto no hay transitividad.
+//      - ot_detalle.descripcion / precio_unitario
+//      - orden_trabajo.id_cliente (titular al momento de la OT)
+//
+// B) Campos calculados (desnormalización deliberada)
+//    Derivables por cálculo, almacenados por rendimiento y por
+//    reproducibilidad del presupuesto impreso:
+//      - ot_detalle.subtotal = cantidad * precio_unitario
+//      - orden_trabajo.total_presupuestado / total_aprobado
+//
+// =====================================================================
+
+// ---------------------------------------------------------------------
+// ENUMERACIONES
+// ---------------------------------------------------------------------
+
+Enum rol_usuario {
+  ADMINISTRADOR
+  OPERADOR
+  MECANICO
+}
+
+Enum nivel_combustible {
+  VACIO
+  UN_CUARTO
+  MEDIO
+  TRES_CUARTOS
+  LLENO
+}
+
+
+// ---------------------------------------------------------------------
+// SEGURIDAD
+// ---------------------------------------------------------------------
+
+Table usuario {
+  id_usuario int [pk, increment]
+  nombre_usuario varchar(50) [not null, unique]
+  hash_contrasena varchar(255) [not null, note: 'Hash BCrypt. Nunca texto plano']
+  nombre_completo varchar(100) [not null]
+  rol rol_usuario [not null]
+  id_mecanico int [note: 'Solo se completa cuando rol = MECANICO. NULL en los demás casos']
+  activo boolean [not null, default: true]
+  fecha_alta datetime [not null, default: `now()`]
+
+  Note: '''
+  Usuarios del sistema, con tres roles:
+
+  ADMINISTRADOR - Acceso total. Administra usuarios, catálogo de servicios
+                  y precios. Único con acceso a los reportes de gestión y
+                  a la anulación de órdenes.
+
+  OPERADOR      - Recepción de vehículos, ABM de clientes y vehículos,
+                  carga del presupuesto, registro de la aprobación del
+                  cliente y entrega. No modifica precios ni ve reportes
+                  de gestión.
+
+  MECANICO      - Ve únicamente las órdenes que tiene asignadas. Carga
+                  cantidad_real, horas_reales y las observaciones del
+                  cierre técnico. No accede al catálogo de precios.
+
+  El vínculo con la tabla mecanico permite filtrar:
+      orden_trabajo WHERE id_mecanico = usuario.id_mecanico
+  Un mecánico puede existir como dato maestro sin tener usuario asociado.
+  En MariaDB: CHECK ((rol = 'MECANICO' AND id_mecanico IS NOT NULL)
+                  OR (rol <> 'MECANICO' AND id_mecanico IS NULL))
+  '''
+}
+
+
+// ---------------------------------------------------------------------
+// CLIENTES Y VEHÍCULOS
+// ---------------------------------------------------------------------
+
+Table cliente {
+  id_cliente int [pk, increment]
+  razon_social varchar(150) [not null, note: 'Nombre de la persona o de la empresa']
+  documento varchar(20) [not null, unique, note: 'DNI o CUIT, texto libre']
+  domicilio varchar(200)
+  localidad varchar(100)
+  telefono varchar(30)
+  email varchar(100)
+  observaciones text
+  activo boolean [not null, default: true]
+  fecha_alta datetime [not null, default: `now()`]
+
+  indexes {
+    razon_social
+  }
+}
+
+Table marca {
+  id_marca int [pk, increment]
+  descripcion varchar(50) [not null, unique]
+}
+
+Table modelo {
+  id_modelo int [pk, increment]
+  id_marca int [not null]
+  descripcion varchar(80) [not null]
+
+  indexes {
+    (id_marca, descripcion) [unique]
+  }
+
+  Note: 'Jerarquía marca/modelo. Alimenta los combos en cascada del ABM de vehículos'
+}
+
+Table vehiculo {
+  id_vehiculo int [pk, increment]
+  patente varchar(10) [not null, unique, note: 'Clave natural de búsqueda']
+  id_cliente int [not null, note: 'Titular ACTUAL. El titular histórico se guarda en orden_trabajo']
+  id_modelo int [not null]
+  anio smallint
+  color varchar(30)
+  nro_motor varchar(50)
+  nro_chasis varchar(50)
+  km_actual int [not null, default: 0]
+  observaciones text
+  activo boolean [not null, default: true]
+  fecha_alta datetime [not null, default: `now()`]
+}
+
+Table mecanico {
+  id_mecanico int [pk, increment]
+  nombre_completo varchar(100) [not null]
+  especialidad varchar(80)
+  telefono varchar(30)
+  activo boolean [not null, default: true]
+
+  Note: '''
+  Dato maestro. Se usa para asignar órdenes de trabajo y para el reporte
+  de productividad. Puede tener o no un usuario asociado: solo los
+  mecánicos que necesiten cargar su propio trabajo requieren login.
+  '''
+}
+
+
+// ---------------------------------------------------------------------
+// CATÁLOGO DE SERVICIOS
+// ---------------------------------------------------------------------
+
+Table categoria_servicio {
+  id_categoria_servicio int [pk, increment]
+  descripcion varchar(60) [not null, unique, note: 'Mecánica general, Frenos, Suspensión, Electricidad, Refrigeración']
+  activo boolean [not null, default: true]
+
+  Note: 'Agrupa los servicios para los reportes de gestión'
+}
+
+Table servicio {
+  id_servicio int [pk, increment]
+  codigo varchar(30) [not null, unique]
+  descripcion varchar(200) [not null]
+  id_categoria_servicio int [not null]
+  precio decimal(12,2) [not null, default: 0, note: 'Importe final del servicio']
+  tiempo_estimado_horas decimal(5,2) [note: 'Alimenta el cálculo de carga de trabajo']
+  activo boolean [not null, default: true]
+
+  indexes {
+    descripcion
+  }
+
+  Note: 'Mano de obra. El precio aquí es el VIGENTE, no el histórico'
+}
+
+
+// ---------------------------------------------------------------------
+// ORDEN DE TRABAJO Y PRESUPUESTO
+// ---------------------------------------------------------------------
+
+Table estado_ot {
+  id_estado_ot tinyint [pk, increment]
+  codigo varchar(20) [not null, unique, note: 'RECEPCIONADA, PRESUPUESTADA, APROBADA, EN_PROCESO, FINALIZADA, ENTREGADA, RECHAZADA, ANULADA']
+  descripcion varchar(50) [not null]
+  permite_edicion_detalle boolean [not null, default: false]
+  es_estado_final boolean [not null, default: false]
+  orden_flujo tinyint [not null]
+
+  Note: 'Ya no existe el estado FACTURADA: el flujo cierra en ENTREGADA'
+}
+
+Table orden_trabajo {
+  id_orden_trabajo int [pk, increment]
+  nro_orden int [not null, unique, note: 'Número visible del presupuesto']
+  id_vehiculo int [not null]
+  id_cliente int [not null, note: 'Titular AL MOMENTO de la OT. Preserva el histórico ante cambio de dueño']
+  id_mecanico int
+  id_estado_ot tinyint [not null]
+
+  fecha_recepcion datetime [not null, default: `now()`]
+  fecha_finalizacion datetime
+  fecha_entrega datetime
+
+  km_ingreso int [not null, note: 'Validar que no sea menor al km de la última OT del vehículo']
+  nivel_combustible nivel_combustible
+  sintoma_reportado text [not null, note: 'Descripción del cliente, en sus propias palabras']
+  observaciones_recepcion text [note: 'Estado del vehículo al ingresar']
+  observaciones_mecanico text [note: 'Se completa al cerrar técnicamente']
+
+  total_presupuestado decimal(12,2) [not null, default: 0, note: 'Suma de todo el detalle']
+  total_aprobado decimal(12,2) [not null, default: 0, note: 'Suma de las líneas con aprobado=TRUE']
+
+  id_usuario_alta int [not null]
+
+  indexes {
+    fecha_recepcion
+    id_estado_ot
+  }
+
+  Note: '''
+  La OT es también el presupuesto: no son entidades separadas.
+  nro_orden es el número que se imprime en el documento entregado al cliente.
+  '''
+}
+
+Table ot_detalle {
+  id_ot_detalle int [pk, increment]
+  id_orden_trabajo int [not null]
+  id_servicio int [not null, note: 'Solo trazabilidad. El precio NO se lee de acá']
+
+  descripcion varchar(200) [not null, note: 'Copiada del catálogo al presupuestar']
+  cantidad decimal(12,2) [not null, note: 'Cantidad presupuestada del servicio']
+  precio_unitario decimal(12,2) [not null, note: 'CONGELADO al momento del presupuesto']
+  subtotal decimal(12,2) [not null]
+
+  aprobado boolean [not null, default: false, note: 'Permite aprobación PARCIAL del presupuesto']
+  cantidad_real decimal(12,2) [note: 'Cantidad efectivamente ejecutada. Puede diferir de lo presupuestado']
+  horas_reales decimal(5,2) [note: 'Tiempo real insumido, contra tiempo_estimado_horas']
+
+  indexes {
+    id_orden_trabajo
+  }
+
+  Note: '''
+  Líneas del presupuesto. Todas son servicios.
+  DECISIÓN CLAVE: el reporte de presupuesto NUNCA hace JOIN contra
+  servicio para traer el precio o la descripción. Si lo hiciera,
+  actualizar la lista de precios modificaría retroactivamente todos
+  los presupuestos ya emitidos.
+  Solo las líneas con aprobado=TRUE se ejecutan.
+  '''
+}
+
+Table ot_historial_estado {
+  id_ot_historial int [pk, increment]
+  id_orden_trabajo int [not null]
+  id_estado_ot tinyint [not null]
+  fecha_hora datetime [not null, default: `now()`]
+  id_usuario int [not null]
+  observacion varchar(255)
+
+  indexes {
+    id_orden_trabajo
+  }
+
+  Note: 'Trazabilidad completa. Alimenta el reporte de tiempos por etapa sin desarrollo adicional'
+}
+
+
+// =====================================================================
+// RELACIONES
+// =====================================================================
+
+// --- Seguridad ---
+Ref: usuario.id_mecanico > mecanico.id_mecanico
+
+// --- Clientes y vehículos ---
+Ref: modelo.id_marca > marca.id_marca
+Ref: vehiculo.id_cliente > cliente.id_cliente
+Ref: vehiculo.id_modelo > modelo.id_modelo
+
+// --- Catálogo de servicios ---
+Ref: servicio.id_categoria_servicio > categoria_servicio.id_categoria_servicio
+
+// --- Orden de trabajo ---
+Ref: orden_trabajo.id_vehiculo > vehiculo.id_vehiculo
+Ref: orden_trabajo.id_cliente > cliente.id_cliente
+Ref: orden_trabajo.id_mecanico > mecanico.id_mecanico
+Ref: orden_trabajo.id_estado_ot > estado_ot.id_estado_ot
+Ref: orden_trabajo.id_usuario_alta > usuario.id_usuario
+
+Ref: ot_detalle.id_orden_trabajo > orden_trabajo.id_orden_trabajo
+Ref: ot_detalle.id_servicio > servicio.id_servicio
+
+Ref: ot_historial_estado.id_orden_trabajo > orden_trabajo.id_orden_trabajo
+Ref: ot_historial_estado.id_estado_ot > estado_ot.id_estado_ot
+Ref: ot_historial_estado.id_usuario > usuario.id_usuario
+
+
+// =====================================================================
+// AGRUPACIÓN VISUAL
+// =====================================================================
+
+TableGroup Seguridad {
+  usuario
+}
+
+TableGroup Clientes {
+  cliente
+  marca
+  modelo
+  vehiculo
+  mecanico
+}
+
+TableGroup Servicios {
+  categoria_servicio
+  servicio
+}
+
+TableGroup OrdenTrabajo {
+  estado_ot
+  orden_trabajo
+  ot_detalle
+  ot_historial_estado
+}

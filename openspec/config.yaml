@@ -1,0 +1,49 @@
+schema: spec-driven
+
+context: |
+  Project: Taller Mecanico (university assignment) - service management for a mechanic workshop.
+  Tech stack: VB.NET, Windows Forms, .NET 10 (net10.0-windows), MySqlConnector 2.6.2, MariaDB.
+  Architecture: two-tier client/server (WinForms exe + MariaDB). MANDATORY coding paradigm:
+    the professor's event-driven style (reference: D:\PROGRAMACION - BBDD\Biblioteca2026).
+    - Single project; Module ConexionBD with Public Const CADENA
+    - Forms built with the Visual Studio designer (.Designer.vb, WithEvents); handlers use `Handles`
+    - SQL lives inside the form: Using cn / Using cmd, DataTable.Load(reader), dgv.DataSource
+    - Always parameterized (AddWithValue); validation at top of handler (MessageBox + Focus + Exit Sub)
+    - CellClick copies row to textboxes; read-only txtID holds the key; combos use DisplayMember/ValueMember
+    - Transactions via cn.BeginTransaction; data passed between forms with Public fields + ShowDialog
+    - Short Spanish comments explaining each step
+    - NO DAO classes, NO separate Datos project (spec 3.2 is superseded by this rule)
+  Architecture (current): single project WinFormsApp1, UI-only mockups built by code (must be redone in designer).
+  Domain source of truth: taller-mecanico-especificacion.md + taller-mecanico.dbml (12 tables).
+  Testing: none (no test project, no runner).
+  Style: code-built UI (controls created in ConfigurarPantalla), Spanish identifiers and UI copy.
+  VCS: not a git repository yet.
+  Decision (2026-09-21): framework stays .NET 10 + VB.NET. RDLC/ReportViewer (Framework-only) is ruled out;
+    report engine must be .NET-compatible (e.g. QuestPDF or FastReport Open Source) - pending choice.
+  Note: scripts from an earlier chat (25-table model with billing/stock) are obsolete; the 12-table dbml is current.
+
+rules:
+  proposal:
+    - Keep scope aligned with the chair-approved scope (27/08); services only, no billing or stock
+  specs:
+    - Use Given/When/Then for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+    - Trace every requirement to a section of taller-mecanico-especificacion.md
+  design:
+    - Document architecture decisions with rationale
+    - Respect the UI/Datos separation rule
+  tasks:
+    - Group by phase, use hierarchical numbering
+    - Keep tasks completable in one session
+  apply:
+    guidelines:
+      - Follow existing code patterns
+      - Keep Spanish identifiers and UI copy to match the project
+    tdd: false
+    test_command: ""
+  verify:
+    test_command: ""
+    build_command: "dotnet build WinFormsApp1.slnx"
+    coverage_threshold: 0
+  archive:
+    - Warn before merging destructive deltas
