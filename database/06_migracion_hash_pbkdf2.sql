@@ -10,9 +10,14 @@
 -- 32 bytes y salt aleatorio de 16 bytes, ambos guardados en Base64.
 --
 -- Se puede ejecutar más de una vez sin error. Solo actualiza los tres
--- usuarios semilla (admin, operador y rgomez). Cualquier otro usuario
+-- usuarios semilla (admin, operador y mecanico). Cualquier otro usuario
 -- creado a mano queda con salt vacío y no podrá ingresar hasta que se
 -- le cargue un hash y un salt válidos.
+--
+-- El usuario de prueba del mecánico se llamaba rgomez y pasa a llamarse
+-- mecanico. Las contraseñas de prueba son el nombre de usuario seguido
+-- de 123 (ver los encabezados de 02 y 03). Si la base ya se migró con
+-- una versión anterior de este script, alcanza con ejecutarlo de nuevo.
 -- =====================================================================
 
 USE taller_mecanico;
@@ -37,14 +42,17 @@ SET hash_contrasena = 'gMzaPOaHGnFQOEOvssep1VHY1FZwBXgsu5bL14XbFEg=',
 WHERE nombre_usuario = 'admin';
 
 UPDATE usuario
-SET hash_contrasena = '8+4L7BPCiTaxVk19LQq0JnEfCEqojv0W2iSY7lhTVTQ=',
-    salt            = 'FodR9x+nyUeJFsAP9LHUIg=='
+SET hash_contrasena = 'GzGPY5I05QpfaQK94AiSndUBFO8JB5BNmyY/JdAHOQ0=',
+    salt            = 'LqJ28hJo2vcSzu8Kt86Pow=='
 WHERE nombre_usuario = 'operador';
 
+-- El usuario rgomez se renombra a mecanico (funciona con cualquiera
+-- de los dos nombres, según la versión con la que se cargó la base)
 UPDATE usuario
-SET hash_contrasena = 'wGUWEOfk1cVG5hTyXcsYK8S+fzm0JNjcj+E5SSIHCFg=',
-    salt            = 'Qwciw9sDeyLACUbG8/wzhw=='
-WHERE nombre_usuario = 'rgomez';
+SET nombre_usuario  = 'mecanico',
+    hash_contrasena = '9DdtO86SbaBlvt3+BAM/INWOw+t0wa5n8IsTEH5Ocno=',
+    salt            = 'Txt3RwxzEYpp+DqPbRLkJA=='
+WHERE nombre_usuario IN ('rgomez', 'mecanico');
 
 ALTER TABLE usuario
     ALTER COLUMN salt DROP DEFAULT;

@@ -76,10 +76,11 @@ All four tasks done on 2026-10-01 by one delegated writer (T4 was also delegated
 | T2 | done | `ebd9997` | `dotnet build`: 0 warnings, 0 errors. Vector check with the real `Seguridad.vb`: professor vector matches; three seed users verify True; wrong password False; old BCrypt value False without exception; salt is 16 random bytes. |
 | T3 | done | `3c17a95` | `dotnet build`: 0 warnings, 0 errors. The commit also carries the user's pre-existing empty `FrmPrincipal_Load` handler (same file). Login flow NOT exercised: no app run, no database access. |
 | T4 | done | docs commit after `3c17a95` | Docs read back; markers intact; no password values printed. |
+| T5 | done | seed users commit after T4 | Accepted user change (2026-10-01): test users are `admin`, `operador`, `mecanico` (was `rgomez`), each with password = user name + `123`, like the professor's seed. `03_dml_prueba.sql` and script 06 updated; script 06 renames `rgomez` and is safe to re-run. New hashes recomputed and matched; the old shared password no longer verifies. Not executed against a database. |
 
 Pending checks (manual, by the user):
 
-- Run `database/06_migracion_hash_pbkdf2.sql` on each already-loaded local database.
+- Run `database/06_migracion_hash_pbkdf2.sql` again on each already-loaded local database (the user ran the first version on 2026-10-01; the second run renames `rgomez` and sets the new passwords).
 - Run the app and try the acceptance criteria (valid user, wrong password, empty fields).
 
 ## Next step

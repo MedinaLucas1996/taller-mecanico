@@ -3,9 +3,10 @@
 -- 03 - DML: datos de prueba (SOLO DESARROLLO)
 -- Ejecutar después de 01 y 02. No es necesario para la entrega final.
 --
--- Usuarios de prueba (contraseña de ambos: taller123)
---   operador  -> rol OPERADOR
---   rgomez    -> rol MECANICO, vinculado al mecánico Ramón Gómez
+-- Usuarios de prueba (la contraseña es el nombre de usuario seguido de 123)
+--   operador  -> rol OPERADOR   contraseña: operador123
+--   mecanico  -> rol MECANICO   contraseña: mecanico123
+--                (vinculado al mecánico Ramón Gómez)
 -- =====================================================================
 
 USE taller_mecanico;
@@ -26,8 +27,8 @@ VALUES
 
 INSERT INTO usuario (id_usuario, nombre_usuario, hash_contrasena, salt, nombre_completo, rol, id_mecanico)
 VALUES
-    (2, 'operador', '8+4L7BPCiTaxVk19LQq0JnEfCEqojv0W2iSY7lhTVTQ=', 'FodR9x+nyUeJFsAP9LHUIg==', 'Laura Sosa',  'OPERADOR', NULL),
-    (3, 'rgomez',   'wGUWEOfk1cVG5hTyXcsYK8S+fzm0JNjcj+E5SSIHCFg=', 'Qwciw9sDeyLACUbG8/wzhw==', 'Ramón Gómez', 'MECANICO', 1);
+    (2, 'operador', 'GzGPY5I05QpfaQK94AiSndUBFO8JB5BNmyY/JdAHOQ0=', 'LqJ28hJo2vcSzu8Kt86Pow==', 'Laura Sosa',  'OPERADOR', NULL),
+    (3, 'mecanico', '9DdtO86SbaBlvt3+BAM/INWOw+t0wa5n8IsTEH5Ocno=', 'Txt3RwxzEYpp+DqPbRLkJA==', 'Ramón Gómez', 'MECANICO', 1);
 
 -- ---------------------------------------------------------------------
 -- MARCAS Y MODELOS
