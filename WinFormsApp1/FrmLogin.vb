@@ -1,4 +1,14 @@
-﻿Public Class FrmLogin
+Imports System.IO
+Imports System.Runtime.InteropServices
+Imports System.Text
+
+Public Class FrmLogin
+    'uso el reproductor de Windows para el archivo MP3
+    <DllImport("winmm.dll", CharSet:=CharSet.Unicode, EntryPoint:="mciSendStringW")>
+    Private Shared Function EnviarAudio(comando As String, respuesta As StringBuilder, longitud As Integer, ventana As IntPtr) As Integer
+    End Function
+
+    Private musicaAbierta As Boolean = False
 
     Public Sub New()
         InitializeComponent()
@@ -12,6 +22,7 @@
         Me.StartPosition = FormStartPosition.CenterScreen
         Me.FormBorderStyle = FormBorderStyle.FixedSingle
         Me.MaximizeBox = False
+        Me.BackgroundImageLayout = ImageLayout.Stretch
 
         Dim lblTitulo As New Label With {
             .Text = "TALLER MECÁNICO",
@@ -78,11 +89,63 @@
         Dim principal As New FrmPrincipal()
 
         principal.Show()
+        DetenerMusica()
         Me.Hide()
 
     End Sub
 
     Private Sub FrmLogin_Load(sender As Object, e As EventArgs) Handles MyBase.Load
 
+    End Sub
+    Private Sub FrmLogin_Shown(sender As Object, e As EventArgs) Handles MyBase.Shown
+        'cargo el fondo y mantengo legibles los textos
+        Try
+            Dim rutaImagen As String = Path.Combine(AppContext.BaseDirectory, "Recursos", "fondo-login-underground.png")
+            Using imagen As Image = Image.FromFile(rutaImagen)
+                Me.BackgroundImage = New Bitmap(imagen)
+            End Using
+            For Each control As Control In Me.Controls
+                If TypeOf control Is Label Then
+                    control.BackColor = Color.Transparent
+                    control.ForeColor = Color.White
+                End If
+            Next
+        Catch ex As Exception
+            MessageBox.Show("No se pudo cargar el fondo: " & ex.Message)
+        End Try
+
+        Dim rutaMusica As String = Path.Combine(AppContext.BaseDirectory, "Recursos", "musica-login.mp3")
+        If Not File.Exists(rutaMusica) Then
+            MessageBox.Show("No se encontró la música del login.")
+            Exit Sub
+        End If
+
+        Dim resultado As Integer = EnviarAudio("open """ & rutaMusica & """ type mpegvideo alias musicaLogin", Nothing, 0, IntPtr.Zero)
+        If resultado <> 0 Then
+            MessageBox.Show("No se pudo abrir la música del login. Código: " & resultado)
+            Exit Sub
+        End If
+
+        musicaAbierta = True
+        'repito el tema hasta ingresar o cerrar el formulario
+        resultado = EnviarAudio("play musicaLogin repeat", Nothing, 0, IntPtr.Zero)
+        If resultado <> 0 Then
+            DetenerMusica()
+            MessageBox.Show("No se pudo reproducir la música. Código: " & resultado)
+        End If
+    End Sub
+
+    Private Sub DetenerMusica()
+        If Not musicaAbierta Then Exit Sub
+        EnviarAudio("close musicaLogin", Nothing, 0, IntPtr.Zero)
+        musicaAbierta = False
+    End Sub
+
+    Private Sub FrmLogin_FormClosed(sender As Object, e As FormClosedEventArgs) Handles MyBase.FormClosed
+        DetenerMusica()
+        If Me.BackgroundImage IsNot Nothing Then
+            Me.BackgroundImage.Dispose()
+            Me.BackgroundImage = Nothing
+        End If
     End Sub
 End Class
