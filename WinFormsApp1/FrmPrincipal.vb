@@ -79,7 +79,14 @@
         AgregarBotonMenu("Servicios")
         AgregarBotonMenu("Categorías")
         AgregarBotonMenu("Mecánicos")
-        AgregarBotonMenu("Usuarios")
+
+        ' Solo el administrador ve la opción de usuarios.
+        If Sesion.Rol = "ADMINISTRADOR" Then
+            AgregarBotonMenu(
+                "Usuarios",
+                AddressOf BtnUsuarios_Click
+            )
+        End If
 
         ' ------------------------------
         ' REPORTES
@@ -318,6 +325,20 @@
     )
 
         AbrirFormulario(New FrmMarcasModelos())
+
+    End Sub
+
+
+    ' ==========================================
+    ' USUARIOS
+    ' ==========================================
+
+    Private Sub BtnUsuarios_Click(
+        sender As Object,
+        e As EventArgs
+    )
+
+        AbrirFormulario(New FrmUsuarios())
 
     End Sub
 
