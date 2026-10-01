@@ -4,6 +4,7 @@ Module ConexionBD
     'declaro constante para string de conexion
     Public Const CADENA As String =
         "Server=localhost;Port=3306;Database=taller_mecanico;" &
-        "User ID=root;Password=;"
+        "User ID=root;Password=123456;"
 
 End Module
+
