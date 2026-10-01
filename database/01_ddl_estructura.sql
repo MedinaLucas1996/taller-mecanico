@@ -45,7 +45,8 @@ CREATE TABLE mecanico (
 CREATE TABLE usuario (
     id_usuario       INT          NOT NULL AUTO_INCREMENT,
     nombre_usuario   VARCHAR(50)  NOT NULL,
-    hash_contrasena  VARCHAR(255) NOT NULL COMMENT 'Hash BCrypt. Nunca texto plano',
+    hash_contrasena  VARCHAR(255) NOT NULL COMMENT 'Hash PBKDF2-SHA256 en Base64. Nunca texto plano',
+    salt             VARCHAR(100) NOT NULL COMMENT 'Salt aleatorio de 16 bytes en Base64',
     nombre_completo  VARCHAR(100) NOT NULL,
     rol              ENUM('ADMINISTRADOR', 'OPERADOR', 'MECANICO') NOT NULL,
     id_mecanico      INT          NULL COMMENT 'Solo cuando rol = MECANICO',

@@ -42,6 +42,6 @@ VALUES
 -- Usuario: admin   Contraseña: admin123   (cambiarla desde la aplicación)
 -- ---------------------------------------------------------------------
 
-INSERT INTO usuario (id_usuario, nombre_usuario, hash_contrasena, nombre_completo, rol, id_mecanico)
+INSERT INTO usuario (id_usuario, nombre_usuario, hash_contrasena, salt, nombre_completo, rol, id_mecanico)
 VALUES
-    (1, 'admin', '$2a$11$5N4Vi5zZnTmZ0RZvn3XLZ.JNydCkmE9CHxAHPbcwuXdBZ.JzJOSNm', 'Administrador del sistema', 'ADMINISTRADOR', NULL);
+    (1, 'admin', 'gMzaPOaHGnFQOEOvssep1VHY1FZwBXgsu5bL14XbFEg=', 'qeMXCYtoPeTRs4kVyKy4GQ==', 'Administrador del sistema', 'ADMINISTRADOR', NULL);

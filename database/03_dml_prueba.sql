@@ -24,10 +24,10 @@ VALUES
 -- USUARIOS DE PRUEBA
 -- ---------------------------------------------------------------------
 
-INSERT INTO usuario (id_usuario, nombre_usuario, hash_contrasena, nombre_completo, rol, id_mecanico)
+INSERT INTO usuario (id_usuario, nombre_usuario, hash_contrasena, salt, nombre_completo, rol, id_mecanico)
 VALUES
-    (2, 'operador', '$2a$11$zJ6NSkk/9b4Zp473jIH6LezeffqVQn3vpvPDmIwVdKoAlqHg6pxz.', 'Laura Sosa',  'OPERADOR', NULL),
-    (3, 'rgomez',   '$2a$11$zJ6NSkk/9b4Zp473jIH6LezeffqVQn3vpvPDmIwVdKoAlqHg6pxz.', 'Ramón Gómez', 'MECANICO', 1);
+    (2, 'operador', '8+4L7BPCiTaxVk19LQq0JnEfCEqojv0W2iSY7lhTVTQ=', 'FodR9x+nyUeJFsAP9LHUIg==', 'Laura Sosa',  'OPERADOR', NULL),
+    (3, 'rgomez',   'wGUWEOfk1cVG5hTyXcsYK8S+fzm0JNjcj+E5SSIHCFg=', 'Qwciw9sDeyLACUbG8/wzhw==', 'Ramón Gómez', 'MECANICO', 1);
 
 -- ---------------------------------------------------------------------
 -- MARCAS Y MODELOS
