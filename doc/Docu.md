@@ -12,8 +12,9 @@ Repositorio: https://github.com/MedinaLucas1996/taller-mecanico (público).
 
 ## Cómo funciona
 
-- El proyecto de inicio es `FrmLogin` (`MainForm` en `My Project/Application.myapp`). Muestra una imagen de fondo y reproduce música en bucle, ambas desde `WinFormsApp1/Recursos/`. El botón INGRESAR **no valida credenciales**: abre `FrmPrincipal` directamente, detiene la música y oculta el login.
-- `FrmPrincipal` arma su interfaz por código (método `ConfigurarPantalla`): menú lateral, barra superior y un panel de contenido. Las pantallas se abren dentro del panel con `AbrirFormulario` (`TopLevel = False`, `Dock = Fill`). Al cerrar `FrmPrincipal` se llama a `Application.Exit()`. El texto "Usuario: Administrador" de la barra superior es solo visual.
+- El proyecto de inicio es `FrmLogin` (`MainForm` en `My Project/Application.myapp`). Muestra una imagen de fondo y reproduce música en bucle, ambas desde `WinFormsApp1/Recursos/`. El botón INGRESAR (también con Enter) valida que usuario y contraseña no estén vacíos, busca el usuario activo en `usuario` por `nombre_usuario` y verifica la contraseña con `Seguridad.VerificarClave`. Si el usuario no existe, está inactivo o la clave es incorrecta, muestra el mismo mensaje ("Usuario o contraseña incorrectos."), limpia la contraseña y permanece en el login. Si es correcto, completa el `Module Sesion` (`IdUsuario`, `NombreUsuario`, `NombreCompleto`, `Rol`, `IdMecanico`, este último en 0 si el usuario no es mecánico), abre `FrmPrincipal`, detiene la música y oculta el login.
+- `Module Seguridad` implementa el hash de contraseñas con PBKDF2 + SHA256 (100000 iteraciones, hash de 32 bytes, salt aleatorio de 16 bytes, ambos en Base64): `GenerarSalt`, `HashearClave` y `VerificarClave` (comparación en tiempo constante; devuelve `False` si el hash o el salt guardados no son Base64 válido, por ejemplo un hash BCrypt anterior). `Module Sesion` guarda los datos del usuario que inició sesión y tiene `CerrarSesion`.
+- `FrmPrincipal` arma su interfaz por código (método `ConfigurarPantalla`): menú lateral, barra superior y un panel de contenido. Las pantallas se abren dentro del panel con `AbrirFormulario` (`TopLevel = False`, `Dock = Fill`). Al cerrar `FrmPrincipal` se llama a `Application.Exit()`. La barra superior muestra el nombre completo y el rol del usuario de `Sesion`.
 - Cada pantalla terminada abre su propia conexión con `Using cn As New MySqlConnection(CADENA)` dentro del evento correspondiente, ejecuta una consulta parametrizada y vuelca el resultado a la grilla con `DataTable.Load`. `CADENA` es una constante del `Module ConexionBD`.
 - Pantallas terminadas:
   - **Clientes** (`FrmClientes`): alta, modificación y baja lógica (`activo = 0`) con confirmación; búsqueda en vivo por nombre o documento (`txtFiltro_TextChanged`); el error 1062 de MariaDB se traduce al mensaje "Ya existe un cliente con ese documento".
@@ -39,6 +40,8 @@ graph TD
         subgraph Proyecto["WinFormsApp1.vbproj (WinExe, net10.0-windows)"]
             subgraph Acceso["Acceso"]
                 Login["FrmLogin<br/>(MainForm)"]
+                Seguridad["Module Seguridad<br/>(hash PBKDF2)"]
+                Sesion["Module Sesion<br/>(usuario logueado)"]
             end
             subgraph Contenedor["Contenedor"]
                 Principal["FrmPrincipal<br/>(menú y panel de contenido)"]
@@ -59,11 +62,15 @@ graph TD
 
     subgraph Datos["Base de datos"]
         DB[("MariaDB: taller_mecanico<br/>12 tablas")]
-        Scripts["database/<br/>scripts 01 a 05"]
+        Scripts["database/<br/>scripts 01 a 06"]
     end
 
     Login --> Principal
     Login -.-> Recursos
+    Login --> Seguridad
+    Login --> Sesion
+    Login --> Conexion
+    Principal -.-> Sesion
     Principal --> Clientes
     Principal --> Vehiculos
     Principal --> Marcas
@@ -95,7 +102,7 @@ La fuente de verdad del modelo es `taller-mecanico.dbml` (12 tablas). Los script
 
 | Grupo | Tablas |
 |---|---|
-| Seguridad | `usuario` (roles `ADMINISTRADOR`, `OPERADOR`, `MECANICO`; vínculo opcional con `mecanico`) |
+| Seguridad | `usuario` (roles `ADMINISTRADOR`, `OPERADOR`, `MECANICO`; vínculo opcional con `mecanico`; `hash_contrasena` y `salt` en Base64 para PBKDF2) |
 | Clientes y vehículos | `cliente`, `marca`, `modelo`, `vehiculo`, `mecanico` |
 | Catálogo de servicios | `categoria_servicio`, `servicio` |
 | Orden de trabajo y presupuesto | `estado_ot`, `orden_trabajo`, `ot_detalle`, `ot_historial_estado` |
@@ -122,7 +129,7 @@ graph TD
 
 Estados de la orden de trabajo (`database/02_dml_catalogos.sql`): `RECEPCIONADA`, `PRESUPUESTADA`, `APROBADA`, `EN_PROCESO`, `FINALIZADA`, `ENTREGADA`, `RECHAZADA`, `ANULADA`. Los estados llevan ID explícito (1 a 8) porque el código de la aplicación los referenciará por número.
 
-Estado de implementación: la aplicación solo opera hoy sobre `cliente`, `vehiculo`, `marca` y `modelo`. El resto de las tablas (órdenes de trabajo, detalle, historial, servicios, mecánicos, usuarios) existen en la base pero ninguna pantalla las usa todavía.
+Estado de implementación: la aplicación opera hoy sobre `cliente`, `vehiculo`, `marca` y `modelo`, y el login solo lee `usuario`. El resto de las tablas (órdenes de trabajo, detalle, historial, servicios, mecánicos) existen en la base pero ninguna pantalla las usa todavía.
 
 Reglas de negocio relevantes de la especificación (sección 8):
 
@@ -147,9 +154,16 @@ sequenceDiagram
     participant M as ConexionBD
     participant DB as MariaDB
 
-    U->>L: Presiona INGRESAR
-    Note over L: No valida credenciales (pendiente)
-    L->>P: Abre FrmPrincipal y oculta el login
+    U->>L: Escribe usuario y contraseña y presiona INGRESAR
+    L->>DB: SELECT usuario activo por nombre_usuario
+    DB-->>L: Fila con hash_contrasena y salt
+    L->>L: Seguridad.VerificarClave
+    alt Usuario inexistente, inactivo o clave incorrecta
+        L-->>U: "Usuario o contraseña incorrectos." (sigue en el login)
+    else Credenciales correctas
+        L->>L: Completa Sesion con los datos del usuario
+        L->>P: Abre FrmPrincipal y oculta el login
+    end
     U->>P: Clic en "Clientes"
     P->>C: AbrirFormulario(New FrmClientes())
     C->>DB: SELECT clientes activos (CargarClientes)
@@ -188,7 +202,7 @@ sequenceDiagram
 | Música del login con `winmm.dll` (`mciSendStringW`) | Permite reproducir un MP3 sin dependencias adicionales. | `FrmLogin.vb` |
 | Recursos del login copiados al directorio de salida (`CopyToOutputDirectory`) | La imagen y la música se leen desde `AppContext.BaseDirectory\Recursos`. | `WinFormsApp1.vbproj`, `FrmLogin.vb` |
 
-**Decisión abierta: hash de contraseñas.** El comentario de columna del DDL (`hash_contrasena`) y la especificación (11.4) indican BCrypt (`BCrypt.Net-Next`); la referencia de la cátedra usa PBKDF2. Aún no está resuelto y no hay paquete de hashing en el proyecto.
+**Decisión cerrada: hash de contraseñas.** Se adopta PBKDF2 + SHA256 como la referencia de la cátedra (100000 iteraciones, hash de 32 bytes, salt de 16 bytes, ambos en Base64, salt en su propia columna `usuario.salt`), con las clases del propio .NET (`Rfc2898DeriveBytes`), sin paquetes adicionales. La sección 11.4 de `taller-mecanico-especificacion.md` todavía menciona BCrypt (`BCrypt.Net-Next`) y queda reemplazada por esta decisión (el archivo de la especificación no se modificó). Las bases ya cargadas con hashes BCrypt se migran con `database/06_migracion_hash_pbkdf2.sql`; una instalación nueva con los scripts 01 a 03 no la necesita.
 
 **Decisión abierta: motor de reportes.** Se descartó RDLC; la opción .NET compatible (por ejemplo QuestPDF o FastReport Open Source, según `openspec/config.yaml`) queda sin elegir.
 
@@ -219,7 +233,9 @@ Casos manejados en el código:
 
 Riesgos conocidos no cubiertos:
 
-- El login no valida usuario ni contraseña: cualquier persona accede al menú.
+- El login valida credenciales, pero todavía no se aplican permisos por rol: cualquier usuario válido accede a todas las opciones del menú.
+- Un usuario cuyo `salt` esté vacío o cuyo hash no sea Base64 válido (por ejemplo un hash BCrypt de una base sin migrar) no puede ingresar: `VerificarClave` devuelve `False` y se muestra el mensaje genérico. En ese caso hay que ejecutar `database/06_migracion_hash_pbkdf2.sql`.
+- Si la base no responde durante el login se muestra el error de MariaDB en un `MessageBox` y se permanece en el login.
 - Si la base no está disponible, cada pantalla muestra el mensaje de la excepción en un `MessageBox`; no hay reintentos ni registro de errores.
 - La búsqueda en vivo ejecuta una consulta por cada cambio de texto.
 
@@ -260,10 +276,9 @@ Cobertura: no medida.
 
 Pendiente según el estado actual del código y `taller-mecanico-especificacion.md` (sección 13):
 
-1. **Login real**: validar usuario y contraseña contra la tabla `usuario` y aplicar permisos por rol (administrador, operador, mecánico). Depende de la decisión de hash.
-2. **Decisión de hash de contraseñas**: BCrypt (DDL y especificación) o PBKDF2 (referencia de la cátedra).
-3. **ABM restantes**: Servicios, Categorías, Mecánicos, Usuarios.
-4. **Flujo de orden de trabajo**: Recepción, gestión de la orden con transiciones de estado, historial de estados y consulta de historial por patente. La especificación pide transacciones para crear la orden con su primera fila de historial y para cada cambio de estado.
-5. **Reportes**: elegir el motor compatible con .NET 10 y construir primero el presupuesto; después los reportes de gestión (servicios más solicitados, productividad por mecánico, órdenes abiertas, tiempos por etapa).
-6. **Credenciales fuera del repositorio**: cambiar la contraseña de la base de desarrollo y mover la cadena de conexión a configuración local no versionada.
-7. **Pruebas automatizadas**: no hay plan definido. _TODO: completar manualmente_
+1. **Permisos por rol**: el login ya valida usuario y contraseña y deja el rol en `Sesion.Rol`; falta aplicar permisos por rol (administrador, operador, mecánico) en el menú y las pantallas.
+2. **ABM restantes**: Servicios, Categorías, Mecánicos, Usuarios (el ABM de Usuarios debe usar `Seguridad.GenerarSalt` y `Seguridad.HashearClave`).
+3. **Flujo de orden de trabajo**: Recepción, gestión de la orden con transiciones de estado, historial de estados y consulta de historial por patente. La especificación pide transacciones para crear la orden con su primera fila de historial y para cada cambio de estado.
+4. **Reportes**: elegir el motor compatible con .NET 10 y construir primero el presupuesto; después los reportes de gestión (servicios más solicitados, productividad por mecánico, órdenes abiertas, tiempos por etapa).
+5. **Credenciales fuera del repositorio**: cambiar la contraseña de la base de desarrollo y mover la cadena de conexión a configuración local no versionada.
+6. **Pruebas automatizadas**: no hay plan definido. _TODO: completar manualmente_

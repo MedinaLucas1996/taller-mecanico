@@ -65,7 +65,8 @@ Enum nivel_combustible {
 Table usuario {
   id_usuario int [pk, increment]
   nombre_usuario varchar(50) [not null, unique]
-  hash_contrasena varchar(255) [not null, note: 'Hash BCrypt. Nunca texto plano']
+  hash_contrasena varchar(255) [not null, note: 'Hash PBKDF2-SHA256 en Base64. Nunca texto plano']
+  salt varchar(100) [not null, note: 'Salt aleatorio de 16 bytes en Base64']
   nombre_completo varchar(100) [not null]
   rol rol_usuario [not null]
   id_mecanico int [note: 'Solo se completa cuando rol = MECANICO. NULL en los demás casos']
