@@ -1,7 +1,7 @@
 # Feature: login
 
 Locator: `odd/tasks/login.md` — Engram mirror: `odd/login/tasks`
-Branch: `feature/login` (branched from `main` at `be0fdd8`)
+Branch: `feature/TM-0002` (branched from `main` at `be0fdd8`; named `feature/login` locally before the first push)
 
 ## Objective
 
@@ -85,4 +85,4 @@ Pending checks (manual, by the user):
 
 ## Next step
 
-The user runs script 06 and tests the login manually; then decides push / PR for `feature/login`.
+The user runs script 06 and tests the login manually; then decides PR for `feature/TM-0002` (pushed on 2026-10-01).
