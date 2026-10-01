@@ -1,6 +1,7 @@
 Imports System.IO
 Imports System.Runtime.InteropServices
 Imports System.Text
+Imports MySqlConnector
 
 Public Class FrmLogin
     'uso el reproductor de Windows para el archivo MP3
@@ -9,6 +10,10 @@ Public Class FrmLogin
     End Function
 
     Private musicaAbierta As Boolean = False
+
+    'campos del formulario para leerlos desde el boton
+    Private txtUsuario As TextBox
+    Private txtPassword As TextBox
 
     Public Sub New()
         InitializeComponent()
@@ -44,7 +49,7 @@ Public Class FrmLogin
             .AutoSize = True
         }
 
-        Dim txtUsuario As New TextBox With {
+        txtUsuario = New TextBox With {
             .Name = "txtUsuario",
             .Location = New Point(90, 195),
             .Size = New Size(300, 30)
@@ -56,7 +61,7 @@ Public Class FrmLogin
             .AutoSize = True
         }
 
-        Dim txtPassword As New TextBox With {
+        txtPassword = New TextBox With {
             .Name = "txtPassword",
             .Location = New Point(90, 270),
             .Size = New Size(300, 30),
@@ -72,6 +77,9 @@ Public Class FrmLogin
 
         AddHandler btnIngresar.Click, AddressOf BtnIngresar_Click
 
+        'con Enter se presiona INGRESAR
+        Me.AcceptButton = btnIngresar
+
         Me.Controls.AddRange({
             lblTitulo,
             lblSubtitulo,
@@ -85,6 +93,73 @@ Public Class FrmLogin
     End Sub
 
     Private Sub BtnIngresar_Click(sender As Object, e As EventArgs)
+
+        'valido que no haya campos vacios
+        If txtUsuario.Text.Trim = "" Then
+            MessageBox.Show("Falta el usuario")
+            txtUsuario.Focus()
+            Exit Sub
+        End If
+
+        If txtPassword.Text = "" Then
+            MessageBox.Show("Falta la contraseña")
+            txtPassword.Focus()
+            Exit Sub
+        End If
+
+        Try
+            Using cn As New MySqlConnection(CADENA)
+                cn.Open()
+                'busco el usuario, solo entre los activos
+                Dim consulta As String =
+                    "SELECT id_usuario, nombre_usuario, hash_contrasena, salt, " &
+                    "nombre_completo, rol, id_mecanico " &
+                    "FROM usuario " &
+                    "WHERE nombre_usuario = @nombre_usuario AND activo = 1;"
+
+                Using cmd As New MySqlCommand(consulta, cn)
+                    'evito SQL Injection usando parametros
+                    cmd.Parameters.AddWithValue("@nombre_usuario", txtUsuario.Text.Trim)
+
+                    Dim tabla As New DataTable
+                    Using lector As MySqlDataReader = cmd.ExecuteReader
+                        tabla.Load(lector)
+                    End Using
+
+                    'uso el mismo mensaje si el usuario no existe o la clave es incorrecta
+                    If tabla.Rows.Count = 0 Then
+                        MessageBox.Show("Usuario o contraseña incorrectos.")
+                        txtPassword.Clear()
+                        txtPassword.Focus()
+                        Exit Sub
+                    End If
+
+                    Dim fila As DataRow = tabla.Rows(0)
+
+                    If Not VerificarClave(txtPassword.Text, fila("hash_contrasena").ToString, fila("salt").ToString) Then
+                        MessageBox.Show("Usuario o contraseña incorrectos.")
+                        txtPassword.Clear()
+                        txtPassword.Focus()
+                        Exit Sub
+                    End If
+
+                    'guardo los datos del usuario en la sesion
+                    Sesion.IdUsuario = Convert.ToInt32(fila("id_usuario"))
+                    Sesion.NombreUsuario = fila("nombre_usuario").ToString
+                    Sesion.NombreCompleto = fila("nombre_completo").ToString
+                    Sesion.Rol = fila("rol").ToString
+                    'id_mecanico es NULL cuando el usuario no es mecanico
+                    If IsDBNull(fila("id_mecanico")) Then
+                        Sesion.IdMecanico = 0
+                    Else
+                        Sesion.IdMecanico = Convert.ToInt32(fila("id_mecanico"))
+                    End If
+                End Using
+            End Using
+        Catch ex As MySqlException
+            MessageBox.Show("Error al iniciar sesión: " & ex.Message)
+            Exit Sub
+        End Try
 
         Dim principal As New FrmPrincipal()
 

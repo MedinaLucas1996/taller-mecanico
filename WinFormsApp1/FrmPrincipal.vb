@@ -106,9 +106,9 @@
             .Location = New Point(25, 20)
         }
 
-        ' Esto es solamente visual por ahora.
+        ' Muestro el usuario que inició sesión.
         Dim lblUsuario As New Label With {
-            .Text = "Usuario: Administrador",
+            .Text = "Usuario: " & Sesion.NombreCompleto & " (" & Sesion.Rol & ")",
             .Font = New Font("Segoe UI", 10),
             .AutoSize = True,
             .Anchor = AnchorStyles.Top Or AnchorStyles.Right
@@ -321,4 +321,7 @@
 
     End Sub
 
+    Private Sub FrmPrincipal_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+
+    End Sub
 End Class
