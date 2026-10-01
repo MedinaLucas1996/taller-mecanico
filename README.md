@@ -12,7 +12,7 @@ Aplicación de escritorio para gestionar los servicios de un taller mecánico (t
 
 Aplicación Windows Forms en VB.NET que administra el ciclo de atención de un taller mecánico sobre una base MariaDB: clientes, vehículos y, a futuro, recepción, presupuesto, órdenes de trabajo y reportes. Cubre únicamente la actividad de **servicios**: queda fuera la facturación, los pagos, la venta de insumos y el control de stock.
 
-Estado actual: están terminadas las pantallas de **Clientes**, **Vehículos** y **Marcas y modelos**. El login muestra imagen de fondo y música, pero **todavía no valida credenciales**. El resto de las opciones del menú no tiene pantalla (ver [Estado](#estado)).
+Estado actual: están terminadas las pantallas de **Clientes**, **Vehículos** y **Marcas y modelos**. El login muestra imagen de fondo y música y **valida usuario y contraseña** contra la tabla `usuario` (hash PBKDF2); el usuario que ingresó se muestra en la barra superior. El resto de las opciones del menú no tiene pantalla (ver [Estado](#estado)).
 
 El código sigue de forma deliberada el estilo de la cátedra de programación orientada a eventos (SQL dentro de los formularios, sin capa de acceso a datos). No es una arquitectura por capas.
 
@@ -40,6 +40,8 @@ graph TD
             Marcas["FrmMarcasModelos"]
         end
         Conexion["Module ConexionBD<br/>(Const CADENA)"]
+        Seguridad["Module Seguridad<br/>(hash PBKDF2)"]
+        Sesion["Module Sesion<br/>(usuario logueado)"]
         Recursos["Recursos/<br/>(imagen y música del login)"]
     end
 
@@ -49,6 +51,10 @@ graph TD
 
     Login -->|"abre"| Principal
     Login -.->|"lee"| Recursos
+    Login -->|"verifica clave"| Seguridad
+    Login -->|"usa CADENA"| Conexion
+    Login -->|"guarda usuario"| Sesion
+    Principal -.->|"muestra usuario"| Sesion
     Principal -->|"abre en panel"| Clientes
     Principal -->|"abre en panel"| Vehiculos
     Principal -->|"abre en panel"| Marcas
@@ -82,6 +88,7 @@ graph TD
    | `03_dml_prueba.sql` | Datos de prueba (mecánicos, usuarios, marcas, modelos, clientes, vehículos y servicios). **Solo desarrollo.** |
    | `04_consultas_verificacion.sql` | Consultas de verificación (cantidad de tablas, filas por tabla, etc.). Opcional. |
    | `05_consultas_basicas.sql` | Consultas de práctica de solo lectura. Opcional. |
+   | `06_migracion_hash_pbkdf2.sql` | Migración para bases ya cargadas con una versión anterior de 01 a 03: agrega la columna `salt` y reemplaza los hashes de los usuarios semilla. **Una instalación nueva con 01 a 03 no la necesita.** |
 
 2. Ajustar la cadena de conexión: editar `Server`, `Port`, `User ID` y `Password=` en `WinFormsApp1/ConexionBD.vb` según la instalación local de MariaDB.
 3. Abrir `WinFormsApp1.slnx` en Visual Studio y ejecutar, o desde una terminal:
@@ -90,7 +97,7 @@ graph TD
 dotnet run --project WinFormsApp1
 ```
 
-> No hay pruebas automatizadas que ejecutar. Los usuarios del sistema están definidos en `database/02_dml_catalogos.sql` y `database/03_dml_prueba.sql`; el login actual no los valida.
+> No hay pruebas automatizadas que ejecutar. Los usuarios del sistema están definidos en `database/02_dml_catalogos.sql` y `database/03_dml_prueba.sql`, y el login los valida (las contraseñas de prueba figuran en los comentarios de esos scripts). Las contraseñas se guardan con PBKDF2 + SHA256 (100000 iteraciones, hash de 32 bytes, salt de 16 bytes, ambos en Base64); el salt está en la columna `usuario.salt`.
 
 ---
 
@@ -162,9 +169,9 @@ No aplica: aplicación de escritorio WinForms. No expone endpoints.
 - **Versión:** _TODO: completar manualmente_ (el proyecto no define versión en `WinFormsApp1.vbproj`).
 - **Status:** En desarrollo (trabajo práctico universitario).
   - Terminado: Clientes (ABM, baja lógica, búsqueda en vivo), Vehículos (ABM con combos de titular y marca/modelo en cascada, baja lógica), Marcas y modelos (maestro-detalle).
-  - Parcial: Login (imagen y música; no valida credenciales, el botón abre `FrmPrincipal` directamente).
+  - Terminado: Login (imagen y música; valida usuario activo y contraseña contra `usuario`, con un mensaje único para usuario inexistente o clave incorrecta; guarda el usuario en `Sesion` y la barra superior de `FrmPrincipal` muestra nombre y rol). Aún no se aplican permisos por rol.
   - Sin pantalla todavía (botones del menú sin evento): Recepción, Órdenes de trabajo, Historial, Servicios, Categorías, Mecánicos, Usuarios y Reportes.
-  - Decisión abierta: algoritmo de hash de contraseñas (el DDL y la especificación mencionan BCrypt; la referencia de la cátedra usa PBKDF2).
+  - Decisión cerrada: hash de contraseñas con PBKDF2 + SHA256, igual que la referencia de la cátedra (reemplaza la mención de BCrypt de la especificación). Las bases ya cargadas deben ejecutar `database/06_migracion_hash_pbkdf2.sql`.
 
 <!-- @tsg-docs:auto-end -->
 
