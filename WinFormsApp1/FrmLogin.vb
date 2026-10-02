@@ -189,6 +189,23 @@ Public Class FrmLogin
             MessageBox.Show("No se pudo cargar el fondo: " & ex.Message)
         End Try
 
+        IniciarMusica()
+    End Sub
+
+    'dejo el login vacio y a la vista para que ingrese otro usuario
+    'se llama desde el menu principal al cerrar sesion
+    Public Sub PrepararNuevoIngreso()
+        txtUsuario.Clear()
+        txtPassword.Clear()
+        Me.Show()
+        IniciarMusica()
+        txtUsuario.Focus()
+    End Sub
+
+    Private Sub IniciarMusica()
+        'si la musica ya esta sonando no la abro de nuevo
+        If musicaAbierta Then Exit Sub
+
         Dim rutaMusica As String = Path.Combine(AppContext.BaseDirectory, "Recursos", "musica-login.mp3")
         If Not File.Exists(rutaMusica) Then
             MessageBox.Show("No se encontró la música del login.")

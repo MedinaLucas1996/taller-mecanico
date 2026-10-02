@@ -4,6 +4,9 @@
     Private panelSuperior As Panel
     Private panelContenido As Panel
 
+    'indica que el formulario se cierra por cerrar sesion y no por salir del sistema
+    Private cerrandoSesion As Boolean = False
+
     Public Sub New()
         InitializeComponent()
         ConfigurarPantalla()
@@ -79,7 +82,14 @@
         AgregarBotonMenu("Servicios")
         AgregarBotonMenu("Categorías")
         AgregarBotonMenu("Mecánicos")
-        AgregarBotonMenu("Usuarios")
+
+        ' Solo el administrador ve la opción de usuarios.
+        If Sesion.Rol = "ADMINISTRADOR" Then
+            AgregarBotonMenu(
+                "Usuarios",
+                AddressOf BtnUsuarios_Click
+            )
+        End If
 
         ' ------------------------------
         ' REPORTES
@@ -96,7 +106,8 @@
         panelSuperior = New Panel With {
             .Dock = DockStyle.Top,
             .Height = 65,
-            .BackColor = Color.White
+            .BackColor = Color.White,
+            .Padding = New Padding(0, 14, 20, 14)
         }
 
         Dim lblSistema As New Label With {
@@ -110,14 +121,34 @@
         Dim lblUsuario As New Label With {
             .Text = "Usuario: " & Sesion.NombreCompleto & " (" & Sesion.Rol & ")",
             .Font = New Font("Segoe UI", 10),
-            .AutoSize = True,
-            .Anchor = AnchorStyles.Top Or AnchorStyles.Right
+            .AutoSize = False,
+            .Width = 420,
+            .Dock = DockStyle.Right,
+            .TextAlign = ContentAlignment.MiddleRight,
+            .Padding = New Padding(0, 0, 15, 0)
         }
 
-        lblUsuario.Location = New Point(650, 23)
+        ' Botón para cerrar la sesión y volver al login.
+        Dim btnCerrarSesion As New Button With {
+            .Text = "Cerrar sesión",
+            .Dock = DockStyle.Right,
+            .Width = 140,
+            .FlatStyle = FlatStyle.Flat,
+            .BackColor = Color.FromArgb(30, 39, 46),
+            .ForeColor = Color.White,
+            .Font = New Font("Segoe UI", 10),
+            .Cursor = Cursors.Hand
+        }
 
+        btnCerrarSesion.FlatAppearance.BorderSize = 0
+
+        AddHandler btnCerrarSesion.Click, AddressOf BtnCerrarSesion_Click
+
+        ' El último control agregado queda más a la derecha:
+        ' primero el usuario y al final el botón.
         panelSuperior.Controls.Add(lblSistema)
         panelSuperior.Controls.Add(lblUsuario)
+        panelSuperior.Controls.Add(btnCerrarSesion)
 
         ' ==============================
         ' ÁREA CENTRAL
@@ -274,9 +305,42 @@
     ' ==========================================
 
     Private Sub FrmPrincipal_FormClosed(sender As Object, e As FormClosedEventArgs) Handles MyBase.FormClosed
+        'si se esta cerrando la sesion, el login ya quedo a la vista y la aplicacion sigue
+        If cerrandoSesion Then Exit Sub
+
         'el login queda oculto al abrir el menu principal,
         'por eso al cerrar el menu termino toda la aplicacion
         Application.Exit()
+    End Sub
+
+
+    ' ==========================================
+    ' CERRAR SESIÓN
+    ' ==========================================
+
+    Private Sub BtnCerrarSesion_Click(
+        sender As Object,
+        e As EventArgs
+    )
+
+        'pido confirmacion antes de cerrar la sesion
+        Dim respuesta As DialogResult = MessageBox.Show(
+            "¿Cerrar la sesión de " & Sesion.NombreUsuario & "?",
+            "Cerrar sesión",
+            MessageBoxButtons.YesNo,
+            MessageBoxIcon.Question)
+
+        If respuesta = DialogResult.No Then Exit Sub
+
+        'limpio los datos del usuario que estaba logueado
+        Sesion.CerrarSesion()
+
+        'muestro el login vacio, listo para que ingrese otro usuario
+        cerrandoSesion = True
+        FrmLogin.PrepararNuevoIngreso()
+
+        Me.Close()
+
     End Sub
 
 
@@ -318,6 +382,20 @@
     )
 
         AbrirFormulario(New FrmMarcasModelos())
+
+    End Sub
+
+
+    ' ==========================================
+    ' USUARIOS
+    ' ==========================================
+
+    Private Sub BtnUsuarios_Click(
+        sender As Object,
+        e As EventArgs
+    )
+
+        AbrirFormulario(New FrmUsuarios())
 
     End Sub
 
