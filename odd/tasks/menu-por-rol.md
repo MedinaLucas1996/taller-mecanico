@@ -23,7 +23,9 @@ Requested by the user on 2026-10-02, after pulling the professor's class 06 (`Bi
 - `FrmPrincipal_Load` shows the menu options by role.
 - Docs: role matrix in `README.md` and `doc/Docu.md`.
 
-Out of scope: `FrmLogin` to the designer, renaming `Seguridad` / `Sesion` members, PBKDF2 iteration count, per-button permissions inside each form, new screens (the buttons without a screen keep doing nothing).
+Added on 2026-10-02 at the user's request, once the menu was tested: `FrmLogin` is also built in the designer (task T3).
+
+Out of scope: renaming `Seguridad` / `Sesion` members, PBKDF2 iteration count, per-button permissions inside each form, new screens (the buttons without a screen keep doing nothing).
 
 ## Role matrix
 
@@ -64,6 +66,10 @@ Mode: disabled. Source: no test project or runner exists in the solution. Checks
 - [x] **T2 — Role matrix in `FrmPrincipal_Load`, with docs** (route: delegated writer, same writer)
   - `WinFormsApp1/FrmPrincipal.vb`, `WinFormsApp1/FrmPrincipal.Designer.vb` (default `Visible = False`), `README.md`, `doc/Docu.md`.
   - Checks: `dotnet build` with 0 errors; `Load` read back against the matrix above.
+- [x] **T3 — Move `FrmLogin` to the designer, no behavior change** (route: inline; one designer file plus a mechanical deletion in `FrmLogin.vb`)
+  - `WinFormsApp1/FrmLogin.Designer.vb`, `WinFormsApp1/FrmLogin.vb`.
+  - The background image, the music and the validation against the database are not touched.
+  - Checks: `dotnet build` with 0 errors; no `New Label` / `New TextBox` / `New Button` / `AddHandler` left in `FrmLogin.vb`.
 
 ## Acceptance criteria
 
@@ -89,16 +95,22 @@ Both tasks done on 2026-10-02 by one delegated writer. The parent read back `Frm
 | T1 | done | `7060bc8` | `dotnet build WinFormsApp1.slnx --no-incremental`: 0 warnings, 0 errors. No `New Button` / `New Label` / `New Panel` / `AddHandler` left in `FrmPrincipal.vb` (404 lines down to 107). `panelMenu.Controls.Add` runs from `btnReportes` to `panelLogo`, the reverse of the visual order. |
 | T2 | done | `b92e9d5` | Build as above. `Load` read back: three `If Sesion.Rol = ...` blocks that match the role matrix; every menu button and section title is `Visible = False` in the designer, so an unknown role sees no option. Docs keep their five `@tsg-docs:auto` markers each. |
 
-Size: 548 insertions and 364 deletions in total; `FrmPrincipal.Designer.vb` accounts for 450 of the insertions.
+| T3 | done | `c72440f` | Build as above. `FrmLogin.vb` went from 243 to 162 lines with no code-built control left; seven controls declared `Friend WithEvents`; `btnIngresar_Click` uses `Handles btnIngresar.Click`. The form size changed from an outer 500x500 to the equivalent `ClientSize` of 484x461. |
 
-Review: native assessment of `61c5930..d2659cb` gave risk `medium` (`slice_budget_reached`, executable change in `FrmPrincipal.Designer.vb`). The user declined the review for this candidate on 2026-10-02, so no review record exists. Verification of record is the writer's build plus the parent's read-back and rebuild.
+Size: T1 and T2 add up to 548 insertions and 364 deletions (`FrmPrincipal.Designer.vb` is 450 of the insertions); T3 adds 95 insertions and 86 deletions.
 
-Not verified (no app run, no Visual Studio designer):
+Review: the user declined the review of T1 and T2 alone. After T3, the review of the whole branch (base `61c5930`, 7 files, risk `medium`) was granted, approved by the reliability lens and acknowledged on 2026-10-02. It left three non-blocking notes: the login and the role matrix had no recorded runtime check (both tested by the user, see below), and an unknown role gets an empty menu with no message (accepted: `usuario.rol` is an `ENUM` with the three exact values).
 
-- The form opens in the Visual Studio designer. Positions and sizes of docked controls were written by hand; Visual Studio will rewrite them when the form is saved, so a designer diff is expected.
-- The look and the menu order at runtime, and every per-role acceptance criterion.
-- "Cerrar sesión", now wired with `Handles`.
+Verified by the user at runtime on 2026-10-02:
+
+- Menu of `admin`, `operador` and `mecanico`, and "Cerrar sesión".
+- Login: looks and behaves as before the migration.
+
+Not verified:
+
 - Display scaling above 100%: controls are now created inside `InitializeComponent`, so WinForms auto-scaling applies to them, which it did not when they were added after it.
+
+Note: positions and sizes in both designer files were written by hand; Visual Studio rewrites them when a form is saved, so a designer diff is expected the first time.
 
 Known gap, out of scope: only the menu is filtered. Screens other than `FrmUsuarios` do not re-check the role when they open.
 
@@ -106,4 +118,4 @@ Changed on purpose: menu buttons now have `TabIndex` values from top to bottom (
 
 ## Next step
 
-The user opens `WinFormsApp1.slnx`, checks `FrmPrincipal` in the designer, and logs in as `admin`, `operador` and `mecanico` to test the acceptance criteria; then decides push / PR for `feature/TM-0004`.
+Branch `feature/TM-0004` pushed on 2026-10-02 at the user's request; the user opens and merges the PR on GitHub. Next feature in the roadmap: Recepción.
