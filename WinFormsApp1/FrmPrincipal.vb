@@ -63,6 +63,10 @@
         AbrirFormulario(New FrmRecepcion())
     End Sub
 
+    Private Sub btnOrdenes_Click(sender As Object, e As EventArgs) Handles btnOrdenes.Click
+        AbrirFormulario(New FrmOrdenes())
+    End Sub
+
     Private Sub btnClientes_Click(sender As Object, e As EventArgs) Handles btnClientes.Click
         AbrirFormulario(New FrmClientes())
     End Sub
