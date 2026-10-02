@@ -12,9 +12,29 @@ Aplicación de escritorio para gestionar los servicios de un taller mecánico (t
 
 Aplicación Windows Forms en VB.NET que administra el ciclo de atención de un taller mecánico sobre una base MariaDB: clientes, vehículos y, a futuro, recepción, presupuesto, órdenes de trabajo y reportes. Cubre únicamente la actividad de **servicios**: queda fuera la facturación, los pagos, la venta de insumos y el control de stock.
 
-Estado actual: están terminadas las pantallas de **Clientes**, **Vehículos**, **Marcas y modelos** y **Usuarios** (esta última solo visible para el administrador). El login muestra imagen de fondo y música y **valida usuario y contraseña** contra la tabla `usuario` (hash PBKDF2); el usuario que ingresó se muestra en la barra superior. El resto de las opciones del menú no tiene pantalla (ver [Estado](#estado)).
+Estado actual: están terminadas las pantallas de **Clientes**, **Vehículos**, **Marcas y modelos** y **Usuarios** (esta última solo visible para el administrador). El login muestra imagen de fondo y música y **valida usuario y contraseña** contra la tabla `usuario` (hash PBKDF2); el usuario que ingresó se muestra en la barra superior. El menú principal **se filtra por rol** (ver [Menú por rol](#menú-por-rol)). El resto de las opciones del menú no tiene pantalla (ver [Estado](#estado)).
 
 El código sigue de forma deliberada el estilo de la cátedra de programación orientada a eventos (SQL dentro de los formularios, sin capa de acceso a datos). No es una arquitectura por capas.
+
+### Menú por rol
+
+El menú principal muestra a cada usuario solo las opciones de su rol. Los botones están ocultos por defecto en el diseñador y `FrmPrincipal_Load` muestra los que corresponden según `Sesion.Rol`; un rol desconocido no ve ninguna opción.
+
+| Opción del menú | ADMINISTRADOR | OPERADOR | MECANICO |
+|---|---|---|---|
+| Recepción | Sí | Sí | No |
+| Órdenes de trabajo | Sí | Sí | No |
+| Historial | Sí | Sí | Sí |
+| Clientes | Sí | Sí | No |
+| Vehículos | Sí | Sí | No |
+| Marcas y modelos | Sí | Sí | No |
+| Servicios | Sí | No | No |
+| Categorías | Sí | No | No |
+| Mecánicos | Sí | No | No |
+| Usuarios | Sí | No | No |
+| Reportes | Sí | No | No |
+
+Los títulos de sección siguen la misma regla: "OPERACIONES" se muestra a todos los roles, "DATOS MAESTROS" al administrador y al operador, y "REPORTES" solo al administrador.
 
 ---
 
@@ -173,8 +193,9 @@ No aplica: aplicación de escritorio WinForms. No expone endpoints.
 
 - **Versión:** _TODO: completar manualmente_ (el proyecto no define versión en `WinFormsApp1.vbproj`).
 - **Status:** En desarrollo (trabajo práctico universitario).
-  - Terminado: Clientes (ABM, baja lógica, búsqueda en vivo), Vehículos (ABM con combos de titular y marca/modelo en cascada, baja lógica), Marcas y modelos (maestro-detalle), Usuarios (ABM con baja lógica; contraseña guardada con PBKDF2 al crear o modificar; el rol MECANICO exige elegir un mecánico; el administrador no puede darse de baja ni cambiar su propio rol; el botón del menú solo se agrega para el rol ADMINISTRADOR).
-  - Terminado: Login (imagen y música; valida usuario activo y contraseña contra `usuario`, con un mensaje único para usuario inexistente o clave incorrecta; guarda el usuario en `Sesion` y la barra superior de `FrmPrincipal` muestra nombre y rol; el botón "Cerrar sesión" de esa barra vuelve al login vacío para que ingrese otro usuario). Aún no se aplican permisos por rol en las demás pantallas; la única restricción actual es el botón Usuarios del menú.
+  - Terminado: Clientes (ABM, baja lógica, búsqueda en vivo), Vehículos (ABM con combos de titular y marca/modelo en cascada, baja lógica), Marcas y modelos (maestro-detalle), Usuarios (ABM con baja lógica; contraseña guardada con PBKDF2 al crear o modificar; el rol MECANICO exige elegir un mecánico; el administrador no puede darse de baja ni cambiar su propio rol; el botón del menú solo se muestra para el rol ADMINISTRADOR).
+  - Terminado: Login (imagen y música; valida usuario activo y contraseña contra `usuario`, con un mensaje único para usuario inexistente o clave incorrecta; guarda el usuario en `Sesion` y la barra superior de `FrmPrincipal` muestra nombre y rol; el botón "Cerrar sesión" de esa barra vuelve al login vacío para que ingrese otro usuario).
+  - Terminado: Menú por rol (`FrmPrincipal` está armado en el diseñador y muestra en `FrmPrincipal_Load` solo las opciones del rol que ingresó; ver [Menú por rol](#menú-por-rol)). Aún no se aplican permisos por rol dentro de cada pantalla, salvo en Usuarios.
   - Sin pantalla todavía (botones del menú sin evento): Recepción, Órdenes de trabajo, Historial, Servicios, Categorías, Mecánicos y Reportes.
   - Decisión cerrada: hash de contraseñas con PBKDF2 + SHA256, igual que la referencia de la cátedra (reemplaza la mención de BCrypt de la especificación). Las bases ya cargadas deben ejecutar `database/06_migracion_hash_pbkdf2.sql`.
 

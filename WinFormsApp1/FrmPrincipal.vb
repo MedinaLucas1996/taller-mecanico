@@ -7,9 +7,42 @@
         'muestro el usuario que inicio sesion
         lblUsuario.Text = "Usuario: " & Sesion.NombreCompleto & " (" & Sesion.Rol & ")"
 
-        'solo el administrador ve la opcion de usuarios
+        'las opciones del menu arrancan ocultas, muestro las que corresponden a cada rol
+
+        'el administrador ve todo el menu
         If Sesion.Rol = "ADMINISTRADOR" Then
+            lblTituloOperaciones.Visible = True
+            btnRecepcion.Visible = True
+            btnOrdenes.Visible = True
+            btnHistorial.Visible = True
+            lblTituloDatosMaestros.Visible = True
+            btnClientes.Visible = True
+            btnVehiculos.Visible = True
+            btnMarcasModelos.Visible = True
+            btnServicios.Visible = True
+            btnCategorias.Visible = True
+            btnMecanicos.Visible = True
             btnUsuarios.Visible = True
+            lblTituloReportes.Visible = True
+            btnReportes.Visible = True
+        End If
+
+        'el operador ve las operaciones y los datos de clientes y vehiculos
+        If Sesion.Rol = "OPERADOR" Then
+            lblTituloOperaciones.Visible = True
+            btnRecepcion.Visible = True
+            btnOrdenes.Visible = True
+            btnHistorial.Visible = True
+            lblTituloDatosMaestros.Visible = True
+            btnClientes.Visible = True
+            btnVehiculos.Visible = True
+            btnMarcasModelos.Visible = True
+        End If
+
+        'el mecanico solo ve el historial
+        If Sesion.Rol = "MECANICO" Then
+            lblTituloOperaciones.Visible = True
+            btnHistorial.Visible = True
         End If
     End Sub
 

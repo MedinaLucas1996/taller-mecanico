@@ -93,6 +93,7 @@ Partial Class FrmPrincipal
         btnReportes.Text = "   Reportes"
         btnReportes.TextAlign = ContentAlignment.MiddleLeft
         btnReportes.UseVisualStyleBackColor = False
+        btnReportes.Visible = False
         '
         ' lblTituloReportes
         '
@@ -105,6 +106,7 @@ Partial Class FrmPrincipal
         lblTituloReportes.Size = New Size(230, 40)
         lblTituloReportes.TabIndex = 13
         lblTituloReportes.Text = "REPORTES"
+        lblTituloReportes.Visible = False
         '
         ' btnUsuarios
         '
@@ -142,6 +144,7 @@ Partial Class FrmPrincipal
         btnMecanicos.Text = "   Mecánicos"
         btnMecanicos.TextAlign = ContentAlignment.MiddleLeft
         btnMecanicos.UseVisualStyleBackColor = False
+        btnMecanicos.Visible = False
         '
         ' btnCategorias
         '
@@ -160,6 +163,7 @@ Partial Class FrmPrincipal
         btnCategorias.Text = "   Categorías"
         btnCategorias.TextAlign = ContentAlignment.MiddleLeft
         btnCategorias.UseVisualStyleBackColor = False
+        btnCategorias.Visible = False
         '
         ' btnServicios
         '
@@ -178,6 +182,7 @@ Partial Class FrmPrincipal
         btnServicios.Text = "   Servicios"
         btnServicios.TextAlign = ContentAlignment.MiddleLeft
         btnServicios.UseVisualStyleBackColor = False
+        btnServicios.Visible = False
         '
         ' btnMarcasModelos
         '
@@ -196,6 +201,7 @@ Partial Class FrmPrincipal
         btnMarcasModelos.Text = "   Marcas y modelos"
         btnMarcasModelos.TextAlign = ContentAlignment.MiddleLeft
         btnMarcasModelos.UseVisualStyleBackColor = False
+        btnMarcasModelos.Visible = False
         '
         ' btnVehiculos
         '
@@ -214,6 +220,7 @@ Partial Class FrmPrincipal
         btnVehiculos.Text = "   Vehículos"
         btnVehiculos.TextAlign = ContentAlignment.MiddleLeft
         btnVehiculos.UseVisualStyleBackColor = False
+        btnVehiculos.Visible = False
         '
         ' btnClientes
         '
@@ -232,6 +239,7 @@ Partial Class FrmPrincipal
         btnClientes.Text = "   Clientes"
         btnClientes.TextAlign = ContentAlignment.MiddleLeft
         btnClientes.UseVisualStyleBackColor = False
+        btnClientes.Visible = False
         '
         ' lblTituloDatosMaestros
         '
@@ -244,6 +252,7 @@ Partial Class FrmPrincipal
         lblTituloDatosMaestros.Size = New Size(230, 40)
         lblTituloDatosMaestros.TabIndex = 5
         lblTituloDatosMaestros.Text = "DATOS MAESTROS"
+        lblTituloDatosMaestros.Visible = False
         '
         ' btnHistorial
         '
@@ -262,6 +271,7 @@ Partial Class FrmPrincipal
         btnHistorial.Text = "   Historial"
         btnHistorial.TextAlign = ContentAlignment.MiddleLeft
         btnHistorial.UseVisualStyleBackColor = False
+        btnHistorial.Visible = False
         '
         ' btnOrdenes
         '
@@ -280,6 +290,7 @@ Partial Class FrmPrincipal
         btnOrdenes.Text = "   Órdenes de trabajo"
         btnOrdenes.TextAlign = ContentAlignment.MiddleLeft
         btnOrdenes.UseVisualStyleBackColor = False
+        btnOrdenes.Visible = False
         '
         ' btnRecepcion
         '
@@ -298,6 +309,7 @@ Partial Class FrmPrincipal
         btnRecepcion.Text = "   Recepción"
         btnRecepcion.TextAlign = ContentAlignment.MiddleLeft
         btnRecepcion.UseVisualStyleBackColor = False
+        btnRecepcion.Visible = False
         '
         ' lblTituloOperaciones
         '
@@ -310,6 +322,7 @@ Partial Class FrmPrincipal
         lblTituloOperaciones.Size = New Size(230, 40)
         lblTituloOperaciones.TabIndex = 1
         lblTituloOperaciones.Text = "OPERACIONES"
+        lblTituloOperaciones.Visible = False
         '
         ' panelLogo
         '
