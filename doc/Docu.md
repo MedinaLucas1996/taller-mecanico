@@ -14,7 +14,8 @@ Repositorio: https://github.com/MedinaLucas1996/taller-mecanico (público).
 
 - El proyecto de inicio es `FrmLogin` (`MainForm` en `My Project/Application.myapp`). Muestra una imagen de fondo y reproduce música en bucle, ambas desde `WinFormsApp1/Recursos/`. El botón INGRESAR (también con Enter) valida que usuario y contraseña no estén vacíos, busca el usuario activo en `usuario` por `nombre_usuario` y verifica la contraseña con `Seguridad.VerificarClave`. Si el usuario no existe, está inactivo o la clave es incorrecta, muestra el mismo mensaje ("Usuario o contraseña incorrectos."), limpia la contraseña y permanece en el login. Si es correcto, completa el `Module Sesion` (`IdUsuario`, `NombreUsuario`, `NombreCompleto`, `Rol`, `IdMecanico`, este último en 0 si el usuario no es mecánico), abre `FrmPrincipal`, detiene la música y oculta el login.
 - `Module Seguridad` implementa el hash de contraseñas con PBKDF2 + SHA256 (100000 iteraciones, hash de 32 bytes, salt aleatorio de 16 bytes, ambos en Base64): `GenerarSalt`, `HashearClave` y `VerificarClave` (comparación en tiempo constante; devuelve `False` si el hash o el salt guardados no son Base64 válido, por ejemplo un hash BCrypt anterior). `Module Sesion` guarda los datos del usuario que inició sesión y tiene `CerrarSesion`.
-- `FrmPrincipal` arma su interfaz por código (método `ConfigurarPantalla`): menú lateral, barra superior y un panel de contenido. Las pantallas se abren dentro del panel con `AbrirFormulario` (`TopLevel = False`, `Dock = Fill`). Al cerrar `FrmPrincipal` se llama a `Application.Exit()`, salvo cuando se cierra por el botón "Cerrar sesión". La barra superior muestra el nombre completo y el rol del usuario de `Sesion`, y a su derecha el botón "Cerrar sesión": pide confirmación, limpia `Sesion` con `CerrarSesion()`, llama a `FrmLogin.PrepararNuevoIngreso()` (vacía usuario y contraseña, vuelve a mostrar el login y reinicia la música) y cierra `FrmPrincipal`. Al ingresar otro usuario se crea un `FrmPrincipal` nuevo, por lo que el menú se arma según el rol de ese usuario. El botón "Usuarios" del menú solo se agrega cuando `Sesion.Rol = "ADMINISTRADOR"`; para los demás roles no existe.
+- `FrmPrincipal` está armado en el diseñador (`FrmPrincipal.Designer.vb`), con manejadores `Handles`: menú lateral, barra superior y un panel de contenido. Las pantallas se abren dentro del panel con `AbrirFormulario` (`TopLevel = False`, `Dock = Fill`). Al cerrar `FrmPrincipal` se llama a `Application.Exit()`, salvo cuando se cierra por el botón "Cerrar sesión". La barra superior muestra el nombre completo y el rol del usuario de `Sesion`, y a su derecha el botón "Cerrar sesión": pide confirmación, limpia `Sesion` con `CerrarSesion()`, llama a `FrmLogin.PrepararNuevoIngreso()` (vacía usuario y contraseña, vuelve a mostrar el login y reinicia la música) y cierra `FrmPrincipal`. Al ingresar otro usuario se crea un `FrmPrincipal` nuevo, por lo que el menú se muestra según el rol de ese usuario.
+- El menú se filtra por rol. Los botones del menú y los tres títulos de sección tienen `Visible = False` en el diseñador, y `FrmPrincipal_Load` muestra los que corresponden con un bloque `If Sesion.Rol = "..." Then` por rol (ver [Menú por rol](#menú-por-rol)). Un rol desconocido no ve ninguna opción del menú.
 - Cada pantalla terminada abre su propia conexión con `Using cn As New MySqlConnection(CADENA)` dentro del evento correspondiente, ejecuta una consulta parametrizada y vuelca el resultado a la grilla con `DataTable.Load`. `CADENA` es una constante del `Module ConexionBD`.
 - Pantallas terminadas:
   - **Clientes** (`FrmClientes`): alta, modificación y baja lógica (`activo = 0`) con confirmación; búsqueda en vivo por nombre o documento (`txtFiltro_TextChanged`); el error 1062 de MariaDB se traduce al mensaje "Ya existe un cliente con ese documento".
@@ -22,6 +23,26 @@ Repositorio: https://github.com/MedinaLucas1996/taller-mecanico (público).
   - **Marcas y modelos** (`FrmMarcasModelos`): maestro-detalle (grilla de marcas con cantidad de modelos y grilla de modelos de la marca elegida); la baja es **física** (`DELETE`) y el error 1451 de clave foránea se traduce a un mensaje ("la marca tiene modelos cargados" o "hay vehículos cargados con ese modelo").
   - **Usuarios** (`FrmUsuarios`, solo administrador): alta, modificación y baja lógica (`activo = 0`) con confirmación; la grilla lista solo usuarios activos (con el nombre del mecánico asociado, si lo hay) y nunca lee `hash_contrasena` ni `salt`; búsqueda en vivo por usuario o nombre completo. Al crear, la contraseña es obligatoria y se guarda con `Seguridad.GenerarSalt` + `Seguridad.HashearClave`; al modificar, una contraseña vacía conserva la actual y una contraseña escrita genera un salt y un hash nuevos. El combo de rol (`ADMINISTRADOR`, `OPERADOR`, `MECANICO`) habilita el combo de mecánico solo para `MECANICO` y ese rol exige elegir un mecánico; para los demás roles `id_mecanico` se guarda como NULL (regla 8.6, respaldada por el CHECK `val_usuario_rol_mecanico`). El error 1062 se traduce al mensaje de nombre de usuario duplicado, que puede corresponder a un usuario dado de baja. Reglas de autoprotección: el usuario logueado no puede darse de baja ni cambiar su propio rol, y si modifica su propio usuario se actualizan `Sesion.NombreUsuario` y `Sesion.NombreCompleto`. Como respaldo del menú, al abrirse con un rol distinto de `ADMINISTRADOR` muestra un aviso y deshabilita el formulario.
 - Opciones de menú sin pantalla (el botón existe pero no tiene evento): Recepción, Órdenes de trabajo, Historial, Servicios, Categorías, Mecánicos y Reportes.
+
+### Menú por rol
+
+Opciones del menú principal que ve cada rol (`FrmPrincipal_Load`):
+
+| Opción del menú | ADMINISTRADOR | OPERADOR | MECANICO |
+|---|---|---|---|
+| Recepción | Sí | Sí | No |
+| Órdenes de trabajo | Sí | Sí | No |
+| Historial | Sí | Sí | Sí |
+| Clientes | Sí | Sí | No |
+| Vehículos | Sí | Sí | No |
+| Marcas y modelos | Sí | Sí | No |
+| Servicios | Sí | No | No |
+| Categorías | Sí | No | No |
+| Mecánicos | Sí | No | No |
+| Usuarios | Sí | No | No |
+| Reportes | Sí | No | No |
+
+Los títulos de sección siguen la misma regla: "OPERACIONES" se muestra a todos los roles, "DATOS MAESTROS" al administrador y al operador, y "REPORTES" solo al administrador. Como las opciones ocultas no ocupan lugar, el menú de cada rol queda sin huecos.
 
 ## Por qué existe
 
@@ -243,7 +264,7 @@ Casos manejados en el código:
 
 Riesgos conocidos no cubiertos:
 
-- El login valida credenciales, pero los permisos por rol se aplican solo al botón Usuarios (visible únicamente para el administrador): cualquier usuario válido accede al resto de las opciones del menú.
+- Los permisos por rol se aplican solo en el menú, ocultando opciones (ver [Menú por rol](#menú-por-rol)). Las pantallas no vuelven a comprobar el rol al abrirse, salvo `FrmUsuarios`, y dentro de cada pantalla no hay permisos por botón.
 - Un usuario cuyo `salt` esté vacío o cuyo hash no sea Base64 válido (por ejemplo un hash BCrypt de una base sin migrar) no puede ingresar: `VerificarClave` devuelve `False` y se muestra el mensaje genérico. En ese caso hay que ejecutar `database/06_migracion_hash_pbkdf2.sql`.
 - Si la base no responde durante el login se muestra el error de MariaDB en un `MessageBox` y se permanece en el login.
 - Si la base no está disponible, cada pantalla muestra el mensaje de la excepción en un `MessageBox`; no hay reintentos ni registro de errores.
@@ -286,7 +307,7 @@ Cobertura: no medida.
 
 Pendiente según el estado actual del código y `taller-mecanico-especificacion.md` (sección 13):
 
-1. **Permisos por rol**: el login ya valida usuario y contraseña y deja el rol en `Sesion.Rol`; solo el botón Usuarios del menú está restringido al administrador; falta aplicar permisos por rol (administrador, operador, mecánico) en las demás opciones del menú y pantallas.
+1. **Permisos por rol**: el login ya valida usuario y contraseña y deja el rol en `Sesion.Rol`, y el menú principal ya se filtra por rol; falta aplicar permisos por rol (administrador, operador, mecánico) dentro de cada pantalla.
 2. **ABM restantes**: Servicios, Categorías, Mecánicos (el ABM de Usuarios ya está terminado).
 3. **Flujo de orden de trabajo**: Recepción, gestión de la orden con transiciones de estado, historial de estados y consulta de historial por patente. La especificación pide transacciones para crear la orden con su primera fila de historial y para cada cambio de estado.
 4. **Reportes**: elegir el motor compatible con .NET 10 y construir primero el presupuesto; después los reportes de gestión (servicios más solicitados, productividad por mecánico, órdenes abiertas, tiempos por etapa).
