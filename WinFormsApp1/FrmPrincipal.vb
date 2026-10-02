@@ -59,6 +59,10 @@
         formulario.Show()
     End Sub
 
+    Private Sub btnRecepcion_Click(sender As Object, e As EventArgs) Handles btnRecepcion.Click
+        AbrirFormulario(New FrmRecepcion())
+    End Sub
+
     Private Sub btnClientes_Click(sender As Object, e As EventArgs) Handles btnClientes.Click
         AbrirFormulario(New FrmClientes())
     End Sub
