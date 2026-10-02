@@ -91,6 +91,8 @@ Both tasks done on 2026-10-02 by one delegated writer. The parent read back `Frm
 
 Size: 548 insertions and 364 deletions in total; `FrmPrincipal.Designer.vb` accounts for 450 of the insertions.
 
+Review: native assessment of `61c5930..d2659cb` gave risk `medium` (`slice_budget_reached`, executable change in `FrmPrincipal.Designer.vb`). The user declined the review for this candidate on 2026-10-02, so no review record exists. Verification of record is the writer's build plus the parent's read-back and rebuild.
+
 Not verified (no app run, no Visual Studio designer):
 
 - The form opens in the Visual Studio designer. Positions and sizes of docked controls were written by hand; Visual Studio will rewrite them when the form is saved, so a designer diff is expected.
