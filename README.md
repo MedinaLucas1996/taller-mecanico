@@ -44,7 +44,11 @@ Los títulos de sección siguen la misma regla: "OPERACIONES" se muestra a todos
 
 Las tres pantallas están disponibles para el administrador y el operador.
 
-**Recepción** (`FrmRecepcion`) abre la orden de trabajo con un asistente de cuatro pasos. Se puede volver a un paso anterior sin perder lo cargado.
+**Recepción** (`FrmRecepcion`) abre la orden de trabajo con un asistente de cuatro pasos que ocupa todo el ancho de la ventana. Se puede volver a un paso anterior sin perder lo cargado.
+
+- Una barra muestra los cuatro pasos: el actual resaltado, los completos con una marca y los que faltan atenuados. Un clic en un paso completo vuelve a él; hacia adelante solo se avanza con "Siguiente".
+- A la derecha, la tarjeta "Resumen de la recepción" está siempre a la vista y se completa a medida que se avanza: vehículo, cliente, kilometraje, combustible, mecánico, fecha prometida, cantidad de fotos y síntoma.
+- Al pie quedan siempre en el mismo lugar "Cancelar", "Anterior" y el botón principal, que dice "Siguiente" en los pasos 1 a 3 y "Confirmar recepción" en el paso 4.
 
 | Paso | Qué se hace |
 |---|---|

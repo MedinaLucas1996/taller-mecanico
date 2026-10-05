@@ -137,6 +137,8 @@ Known gaps, accepted for now:
 - Specification section 5.1 still says an unknown vehicle is created on the spot; the wizard sends the operator to Vehículos.
 - The forms do not use `Anchor`, so on a maximized window they keep their designed size.
 
+Layout redesign on 2026-10-05 (branch `feature/TM-0007`), asked by the user after using the wizard: step bar with clickable completed steps, a permanent summary card, a fixed footer (Cancelar, Anterior, Siguiente / Confirmar recepción), photo tiles, Lucide icons, and anchors so the form follows the window. Data, validations, photo processing and the save transaction are unchanged (the diff shows no SQL or transaction line touched). Build 0 warnings, 0 errors, re-run by the parent. Not seen on screen by the agent.
+
 ## Next step
 
 The user runs `database/07_recepcion_fotos.sql` on the local database, opens both forms in the Visual Studio designer and tests the acceptance criteria as `operador`; then decides push / PR for `feature/TM-0005`. The user must tell the professor about the 13th table. Next feature: budget lines and state changes in the work orders screen.

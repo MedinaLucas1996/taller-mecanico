@@ -18,9 +18,158 @@ Public Class FrmRecepcion
     'kilometraje minimo que acepta la orden nueva
     Private kmMinimo As Integer = 0
 
-    'fuentes para marcar el paso actual en la fila de pasos
-    Private fuentePasoActual As New Font("Segoe UI", 10.0F, FontStyle.Bold)
-    Private fuentePasoNormal As New Font("Segoe UI", 10.0F, FontStyle.Regular)
+    'paso mas avanzado al que se llego, decide que datos ya figuran en el resumen
+    Private pasoAlcanzado As Integer = 1
+
+    'iconos que se usan mas de una vez: la marca de paso completo y la camara del cuadro vacio
+    Private iconoCheck As Image
+    Private iconoCamara As Image
+
+    Function LeerIcono(archivo As String) As Image
+        'leo un icono de la carpeta Recursos\iconos que esta junto al ejecutable
+        Try
+            Dim ruta As String = Path.Combine(AppContext.BaseDirectory, "Recursos", "iconos", archivo)
+            Using imagen As Image = Image.FromFile(ruta)
+                'copio el icono a un bitmap nuevo para no dejar el archivo abierto
+                Return New Bitmap(imagen)
+            End Using
+        Catch ex As Exception
+            'si el archivo falta o no se puede leer, el control queda sin icono y el sistema sigue
+            Return Nothing
+        End Try
+    End Function
+
+    Sub CargarIconos()
+        'pongo los iconos de los botones, de las fotos y de las filas del resumen
+        btnBuscar.Image = LeerIcono("buscar.png")
+        btnCancelar.Image = LeerIcono("cancelar-oscuro.png")
+        btnAnterior.Image = LeerIcono("anterior-oscuro.png")
+        btnSiguiente.Image = LeerIcono("siguiente.png")
+        btnConfirmar.Image = LeerIcono("confirmar.png")
+
+        btnCargarFrente.Image = LeerIcono("foto-agregar-oscuro.png")
+        btnCargarTrasera.Image = LeerIcono("foto-agregar-oscuro.png")
+        btnCargarLateralIzq.Image = LeerIcono("foto-agregar-oscuro.png")
+        btnCargarLateralDer.Image = LeerIcono("foto-agregar-oscuro.png")
+        btnCargarTablero.Image = LeerIcono("foto-agregar-oscuro.png")
+        btnQuitarFrente.Image = LeerIcono("quitar-oscuro.png")
+        btnQuitarTrasera.Image = LeerIcono("quitar-oscuro.png")
+        btnQuitarLateralIzq.Image = LeerIcono("quitar-oscuro.png")
+        btnQuitarLateralDer.Image = LeerIcono("quitar-oscuro.png")
+        btnQuitarTablero.Image = LeerIcono("quitar-oscuro.png")
+
+        picResVehiculo.Image = LeerIcono("vehiculo-oscuro.png")
+        picResCliente.Image = LeerIcono("cliente-oscuro.png")
+        picResKm.Image = LeerIcono("km-oscuro.png")
+        picResCombustible.Image = LeerIcono("combustible-oscuro.png")
+        picResMecanico.Image = LeerIcono("mecanico-oscuro.png")
+        picResFecha.Image = LeerIcono("calendario-oscuro.png")
+        picResFotos.Image = LeerIcono("camara-oscuro.png")
+        picResSintoma.Image = LeerIcono("sintoma-oscuro.png")
+
+        iconoCheck = LeerIcono("check-oscuro.png")
+        iconoCamara = LeerIcono("camara-oscuro.png")
+    End Sub
+
+    Sub PintarPaso(celda As Panel, numero As Label, nombre As Label, paso As Integer)
+        'dibujo una celda de la barra de pasos segun sea el paso actual, uno completo o uno que falta
+        numero.Image = Nothing
+        numero.Text = paso.ToString()
+
+        If paso = pasoActual Then
+            'paso actual: resaltado en oscuro
+            celda.BackColor = Color.FromArgb(30, 39, 46)
+            numero.ForeColor = Color.White
+            nombre.ForeColor = Color.White
+            celda.Cursor = Cursors.Default
+        ElseIf paso < pasoActual Then
+            'paso completo: lleva la marca en lugar del numero y se puede volver a el con un click
+            celda.BackColor = Color.White
+            numero.ForeColor = Color.SeaGreen
+            nombre.ForeColor = Color.FromArgb(30, 39, 46)
+            celda.Cursor = Cursors.Hand
+            If iconoCheck IsNot Nothing Then
+                numero.Image = iconoCheck
+                numero.Text = ""
+            Else
+                numero.Text = "✓"
+            End If
+        Else
+            'paso que falta: apagado, no responde al click
+            celda.BackColor = Color.White
+            numero.ForeColor = Color.Silver
+            nombre.ForeColor = Color.Silver
+            celda.Cursor = Cursors.Default
+        End If
+    End Sub
+
+    Sub LimpiarVistasPrevias()
+        'las miniaturas del paso 4 muestran las mismas fotos del paso 3: las suelto sin liberarlas
+        picVistaFrente.Image = Nothing
+        picVistaTrasera.Image = Nothing
+        picVistaLateralIzq.Image = Nothing
+        picVistaLateralDer.Image = Nothing
+        picVistaTablero.Image = Nothing
+    End Sub
+
+    Function ContarFotos() As Integer
+        'cuento cuantos de los cinco angulos tienen foto cargada
+        Dim cantidad As Integer = 0
+        If picFrente.Image IsNot Nothing Then cantidad = cantidad + 1
+        If picTrasera.Image IsNot Nothing Then cantidad = cantidad + 1
+        If picLateralIzq.Image IsNot Nothing Then cantidad = cantidad + 1
+        If picLateralDer.Image IsNot Nothing Then cantidad = cantidad + 1
+        If picTablero.Image IsNot Nothing Then cantidad = cantidad + 1
+        Return cantidad
+    End Function
+
+    Sub ActualizarFotos()
+        'despues de cargar o quitar una foto acomodo los cuadros del paso 3 y el resumen
+        lblAyudaFotos.Text = "Son opcionales. Cargadas " & ContarFotos() & " de 5."
+
+        '"Quitar" solo se ve en los angulos que tienen foto
+        btnQuitarFrente.Visible = (picFrente.Image IsNot Nothing)
+        btnQuitarTrasera.Visible = (picTrasera.Image IsNot Nothing)
+        btnQuitarLateralIzq.Visible = (picLateralIzq.Image IsNot Nothing)
+        btnQuitarLateralDer.Visible = (picLateralDer.Image IsNot Nothing)
+        btnQuitarTablero.Visible = (picTablero.Image IsNot Nothing)
+
+        ActualizarResumen()
+    End Sub
+
+    Sub ActualizarResumen()
+        'lleno la tarjeta de resumen con lo cargado hasta ahora, lo que falta queda con un guion
+
+        'el vehiculo y su titular figuran desde que se encuentra la patente
+        If idVehiculo <> 0 Then
+            lblResVehiculo.Text = txtPatente.Text.Trim & " - " & txtMarcaModelo.Text
+            lblResCliente.Text = txtTitular.Text
+        Else
+            lblResVehiculo.Text = "-"
+            lblResCliente.Text = "-"
+        End If
+
+        'los datos de ingreso figuran una vez que se paso el paso 2
+        If pasoAlcanzado >= 3 Then
+            lblResKm.Text = CInt(nudKmIngreso.Value).ToString("N0") & " km"
+            lblResCombustible.Text = cboCombustible.Text
+            lblResMecanico.Text = cboMecanico.Text
+            If dtpFechaPrometida.Checked Then
+                lblResFecha.Text = dtpFechaPrometida.Value.ToString("dd/MM/yyyy")
+            Else
+                lblResFecha.Text = "Sin fecha"
+            End If
+            lblResSintoma.Text = txtSintoma.Text.Trim
+        Else
+            lblResKm.Text = "-"
+            lblResCombustible.Text = "-"
+            lblResMecanico.Text = "-"
+            lblResFecha.Text = "-"
+            lblResSintoma.Text = "-"
+        End If
+
+        lblResFotos.Text = ContarFotos() & " de 5"
+    End Sub
 
     Sub CargarComboMecanicos()
         'cargo los mecanicos activos en el combo
@@ -55,9 +204,20 @@ Public Class FrmRecepcion
     Sub MostrarPaso(paso As Integer)
         'muestro el panel del paso pedido y acomodo los botones
         pasoActual = paso
+        If paso > pasoAlcanzado Then pasoAlcanzado = paso
+        lblSubtitulo.Text = "Paso " & paso & " de 4"
 
-        'el resumen se arma de nuevo cada vez que se llega al paso 4
-        If paso = 4 Then ArmarResumen()
+        'el detalle se arma de nuevo cada vez que se llega al paso 4, con las miniaturas de las fotos
+        If paso = 4 Then
+            ArmarResumen()
+            picVistaFrente.Image = picFrente.Image
+            picVistaTrasera.Image = picTrasera.Image
+            picVistaLateralIzq.Image = picLateralIzq.Image
+            picVistaLateralDer.Image = picLateralDer.Image
+            picVistaTablero.Image = picTablero.Image
+        Else
+            LimpiarVistasPrevias()
+        End If
 
         'oculto todos los paneles y dejo visible solo el del paso actual
         pnlPaso1.Visible = False
@@ -69,33 +229,14 @@ Public Class FrmRecepcion
         If paso = 3 Then pnlPaso3.Visible = True
         If paso = 4 Then pnlPaso4.Visible = True
 
-        'dejo todas las etiquetas de paso en gris...
-        lblPaso1.Font = fuentePasoNormal
-        lblPaso1.ForeColor = Color.Gray
-        lblPaso2.Font = fuentePasoNormal
-        lblPaso2.ForeColor = Color.Gray
-        lblPaso3.Font = fuentePasoNormal
-        lblPaso3.ForeColor = Color.Gray
-        lblPaso4.Font = fuentePasoNormal
-        lblPaso4.ForeColor = Color.Gray
+        'dibujo la barra de pasos: el actual resaltado, los completos con su marca y los que faltan apagados
+        PintarPaso(pnlBarra1, lblNumPaso1, lblNomPaso1, 1)
+        PintarPaso(pnlBarra2, lblNumPaso2, lblNomPaso2, 2)
+        PintarPaso(pnlBarra3, lblNumPaso3, lblNomPaso3, 3)
+        PintarPaso(pnlBarra4, lblNumPaso4, lblNomPaso4, 4)
 
-        '...y marco en negrita y oscuro la del paso actual
-        If paso = 1 Then
-            lblPaso1.Font = fuentePasoActual
-            lblPaso1.ForeColor = Color.FromArgb(30, 39, 46)
-        End If
-        If paso = 2 Then
-            lblPaso2.Font = fuentePasoActual
-            lblPaso2.ForeColor = Color.FromArgb(30, 39, 46)
-        End If
-        If paso = 3 Then
-            lblPaso3.Font = fuentePasoActual
-            lblPaso3.ForeColor = Color.FromArgb(30, 39, 46)
-        End If
-        If paso = 4 Then
-            lblPaso4.Font = fuentePasoActual
-            lblPaso4.ForeColor = Color.FromArgb(30, 39, 46)
-        End If
+        'al dejar un paso el resumen y los cuadros de fotos quedan al dia
+        ActualizarFotos()
 
         'en el primer paso no hay a donde volver
         If paso = 1 Then
@@ -131,10 +272,23 @@ Public Class FrmRecepcion
         txtDocumento.Clear()
         dgvAnteriores.DataSource = Nothing
         lblKmMinimo.Text = "Mínimo: 0 km"
+
+        'sin vehiculo se ve la ayuda en lugar de la tarjeta con sus datos y sus ordenes anteriores
+        pnlVehiculo.Visible = False
+        lblAnteriores.Visible = False
+        dgvAnteriores.Visible = False
+        lblAyudaPatente.Visible = True
+
+        'los datos de ingreso eran de ese vehiculo: salen del resumen hasta volver a pasar por el paso 2
+        pasoAlcanzado = 1
+        ActualizarResumen()
     End Sub
 
     Sub ReiniciarAsistente()
         'dejo todo vacio y vuelvo al paso 1
+
+        'las miniaturas del paso 4 dejan de apuntar a las fotos antes de liberarlas
+        LimpiarVistasPrevias()
 
         'paso 1
         txtPatente.Clear()
@@ -360,6 +514,7 @@ Public Class FrmRecepcion
         'libero la foto anterior antes de reemplazarla
         QuitarFoto(pic)
         pic.Image = foto
+        ActualizarFotos()
     End Sub
 
     Sub QuitarFoto(pic As PictureBox)
@@ -369,17 +524,22 @@ Public Class FrmRecepcion
         Dim anterior As Image = pic.Image
         pic.Image = Nothing
         anterior.Dispose()
+        ActualizarFotos()
     End Sub
 
     Private Sub FrmRecepcion_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         'solo el administrador y el operador recepcionan vehiculos (el menu ya oculta el boton)
         If Sesion.Rol <> "ADMINISTRADOR" AndAlso Sesion.Rol <> "OPERADOR" Then
             MessageBox.Show("Solo el administrador y el operador pueden recepcionar vehículos.")
+            tlpPasos.Enabled = False
             pnlTarjeta.Enabled = False
             btnCancelar.Enabled = False
             btnSiguiente.Enabled = False
             Exit Sub
         End If
+
+        'cargo los iconos, si alguno falta ese control queda sin icono
+        CargarIconos()
 
         'cargo el combo y arranco en el paso 1 con todo vacio
         CargarComboMecanicos()
@@ -538,6 +698,13 @@ Public Class FrmRecepcion
                 'recien ahora el vehiculo queda cargado y se puede avanzar
                 idCliente = idClienteEncontrado
                 idVehiculo = idVehiculoEncontrado
+
+                'muestro la tarjeta del vehiculo con sus ordenes anteriores y lo paso al resumen
+                lblAyudaPatente.Visible = False
+                pnlVehiculo.Visible = True
+                lblAnteriores.Visible = True
+                dgvAnteriores.Visible = True
+                ActualizarResumen()
             End Using
         Catch ex As Exception
             'si algo fallo a mitad de camino no dejo un vehiculo a medio cargar
@@ -584,6 +751,57 @@ Public Class FrmRecepcion
 
     Private Sub btnQuitarTablero_Click(sender As Object, e As EventArgs) Handles btnQuitarTablero.Click
         QuitarFoto(picTablero)
+    End Sub
+
+    Private Sub Foto_Click(sender As Object, e As EventArgs) Handles _
+        picFrente.Click, picTrasera.Click, picLateralIzq.Click, picLateralDer.Click, picTablero.Click
+
+        'un click en un cuadro vacio hace lo mismo que su boton "Cargar foto"
+        Dim pic As PictureBox = CType(sender, PictureBox)
+        If pic.Image Is Nothing Then CargarFoto(pic)
+    End Sub
+
+    Private Sub Foto_Paint(sender As Object, e As PaintEventArgs) Handles _
+        picFrente.Paint, picTrasera.Paint, picLateralIzq.Paint, picLateralDer.Paint, picTablero.Paint
+
+        'un cuadro sin foto se dibuja como un lugar para cargarla: borde punteado, camara y texto
+        Dim pic As PictureBox = CType(sender, PictureBox)
+        If pic.Image IsNot Nothing Then Exit Sub
+
+        ControlPaint.DrawBorder(e.Graphics, pic.ClientRectangle, Color.DarkGray, ButtonBorderStyle.Dashed)
+
+        'la camara va centrada, un poco mas arriba que el texto
+        Dim centroX As Integer = pic.ClientSize.Width \ 2
+        Dim centroY As Integer = pic.ClientSize.Height \ 2
+        If iconoCamara IsNot Nothing Then
+            e.Graphics.DrawImage(iconoCamara, centroX - iconoCamara.Width \ 2, centroY - iconoCamara.Height - 2)
+        End If
+
+        Dim zonaTexto As New Rectangle(0, centroY + 2, pic.ClientSize.Width, 20)
+        TextRenderer.DrawText(e.Graphics, "Cargar foto", pic.Font, zonaTexto, Color.Gray,
+                              TextFormatFlags.HorizontalCenter Or TextFormatFlags.Top)
+    End Sub
+
+    Private Sub BarraPaso_Click(sender As Object, e As EventArgs) Handles _
+        pnlBarra1.Click, lblNumPaso1.Click, lblNomPaso1.Click,
+        pnlBarra2.Click, lblNumPaso2.Click, lblNomPaso2.Click,
+        pnlBarra3.Click, lblNumPaso3.Click, lblNomPaso3.Click,
+        pnlBarra4.Click, lblNumPaso4.Click, lblNomPaso4.Click
+
+        'un click en un paso ya completo vuelve a ese paso sin perder nada de lo cargado
+        'hacia adelante no se salta: siempre se avanza con "Siguiente", que valida cada paso
+
+        'el click puede venir de la celda o de una de sus dos etiquetas
+        Dim origen As Control = CType(sender, Control)
+        If TypeOf origen Is Label Then origen = origen.Parent
+
+        Dim paso As Integer = 0
+        If origen Is pnlBarra1 Then paso = 1
+        If origen Is pnlBarra2 Then paso = 2
+        If origen Is pnlBarra3 Then paso = 3
+        If origen Is pnlBarra4 Then paso = 4
+
+        If paso >= 1 AndAlso paso < pasoActual Then MostrarPaso(paso)
     End Sub
 
     Private Sub btnSiguiente_Click(sender As Object, e As EventArgs) Handles btnSiguiente.Click
