@@ -166,6 +166,8 @@ Review of the whole branch (`f90c074..5053a48`, asked by the stop hook): medium,
 
 Follow-up after the user ran the form on 2026-10-05 (the whole flow worked as `operador`): commit `64bcf2b` makes the dialog 1064 x 916 with `AutoScroll`, both grids 216 high (about six rows), buttons 34 high, and the history grid not sortable and scrolled to its newest row. Build 0 errors; not seen on screen by the agent. Review: medium, 97 lines, under budget, pending in the slice.
 
+Verified by the user at runtime on 2026-10-05 ("funciona todo"): the order flow as `operador`, the taller grids, the Mecánicos ABM (`a19a5b4`, admin only, logical baja refused with open orders, reactivation) and the redesigned board (`3cdfae3`, plus `5614dc2` so a row click always opens the detail). The agent did not observe any of it. The native review of the board opened one correction and then stopped at `captured_artifacts_unverifiable` (upstream issue 4772, occurrence reported with the user's consent), so `5614dc2` has no review approval.
+
 ## Next step
 
-The user opens `FrmOrdenGestion` in the Visual Studio designer and tests the acceptance criteria as `operador` and `admin` (script 07 must be applied first); then decides push / PR for `feature/TM-0006`. Next feature in the roadmap: "Mis órdenes asignadas" (mechanic screen).
+The user decides push / PR for `feature/TM-0006` and what to do with the uncommitted `FrmPrincipal` edits made by Visual Studio. Next feature in the roadmap: "Mis órdenes asignadas" (mechanic screen). Open review findings above remain as later work.
