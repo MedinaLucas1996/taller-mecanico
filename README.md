@@ -40,6 +40,16 @@ Los iconos son archivos PNG de [Lucide](https://lucide.dev) (licencia ISC, en `W
 
 Los títulos de sección siguen la misma regla: "OPERACIONES" se muestra a todos los roles, "DATOS MAESTROS" al administrador y al operador, y "REPORTES" solo al administrador.
 
+### Clientes
+
+**Clientes** (`FrmClientes`) es la pantalla modelo de los datos maestros: la lista a la izquierda y el registro a la derecha, usando toda la ventana.
+
+- **Lista**: búsqueda por nombre o documento mientras se escribe, casilla "Mostrar dados de baja" y grilla con nombre, documento, teléfono y localidad. Los clientes dados de baja se listan al final, en gris. El subtítulo cuenta lo listado.
+- **Registro**: al elegir un cliente, con el mouse o con el teclado, se cargan sus datos, una etiqueta con su estado ("Activo" o "Dado de baja") y una línea con su cantidad de vehículos y la fecha desde la que es cliente. Sin nada elegido, la tarjeta solo muestra una ayuda.
+- **Acciones según el caso**: "Nuevo cliente" (arriba a la derecha) abre un registro en blanco con "Guardar" y "Cancelar"; un cliente existente muestra "Guardar cambios" y "Dar de baja", o "Reactivar" si está dado de baja. Si hay cambios sin guardar, se pregunta antes de descartarlos.
+
+El número interno del cliente no se muestra. Las reglas no cambiaron: nombre y documento obligatorios, documento único, y un cliente con vehículos activos no se da de baja.
+
 ### Recepción y órdenes de trabajo
 
 Las tres pantallas están disponibles para el administrador y el operador.
