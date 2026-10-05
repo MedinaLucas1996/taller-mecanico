@@ -237,7 +237,11 @@ Public Class FrmOrdenes
         End If
 
         'si ya no esta en la lista, el detalle vuelve a mostrar solo la ayuda
-        If Not sigueListada Then OcultarDetalle()
+        'y ninguna fila queda marcada, asi no parece elegida una orden que no se esta mostrando
+        If Not sigueListada Then
+            OcultarDetalle()
+            dgvOrdenes.ClearSelection()
+        End If
 
         cargandoOrdenes = False
     End Sub
@@ -477,6 +481,24 @@ Public Class FrmOrdenes
         'si ya se esta mostrando esa orden no vuelvo a traer sus fotos
         If idOrden = idOrdenSeleccionada Then Exit Sub
 
+        idOrdenSeleccionada = idOrden
+        MostrarDatosOrden(fila)
+        CargarFotos(idOrden)
+    End Sub
+
+    Private Sub dgvOrdenes_CellClick(sender As Object, e As DataGridViewCellEventArgs) Handles dgvOrdenes.CellClick
+        'un clic sobre una fila siempre muestra su detalle, aunque la grilla ya la tuviera marcada
+        'sin esto, la fila que queda marcada sola despues de recargar no se podia abrir
+        If e.RowIndex < 0 Then Exit Sub
+        If cargandoOrdenes Then Exit Sub
+
+        Dim fila As DataGridViewRow = dgvOrdenes.Rows(e.RowIndex)
+        Dim idOrden As Integer = CInt(fila.Cells("id_orden_trabajo").Value)
+
+        'si ya se esta mostrando esa orden no vuelvo a traer sus fotos
+        If idOrden = idOrdenSeleccionada Then Exit Sub
+
+        fila.Selected = True
         idOrdenSeleccionada = idOrden
         MostrarDatosOrden(fila)
         CargarFotos(idOrden)
