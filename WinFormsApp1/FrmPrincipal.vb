@@ -79,6 +79,10 @@
         AbrirFormulario(New FrmMarcasModelos())
     End Sub
 
+    Private Sub btnMecanicos_Click(sender As Object, e As EventArgs) Handles btnMecanicos.Click
+        AbrirFormulario(New FrmMecanicos())
+    End Sub
+
     Private Sub btnUsuarios_Click(sender As Object, e As EventArgs) Handles btnUsuarios.Click
         AbrirFormulario(New FrmUsuarios())
     End Sub
