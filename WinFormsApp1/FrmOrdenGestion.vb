@@ -10,6 +10,88 @@ Public Class FrmOrdenGestion
     Private permiteEdicion As Boolean = False
     Private esEstadoFinal As Boolean = True
 
+    'mecanico que la orden tiene guardado, 0 si no tiene
+    Private idMecanicoOrden As Integer = 0
+
+    'etapa mas avanzada del flujo a la que llego la orden (1 a 6), sale del historial
+    Private etapaAlcanzada As Integer = 0
+    'motivo con el que se rechazo o anulo la orden, sale del historial
+    Private motivoCierre As String = ""
+
+    'queda en True mientras se cargan los datos, para no tomar esos cambios como del usuario
+    Private cargando As Boolean = False
+    'queda en True cuando hay cantidades, horas u observaciones escritas y todavia sin guardar
+    Private avanceSinGuardar As Boolean = False
+
+    'fuente del primer renglon de cada fila del historial
+    Private fuenteNegrita As Font
+
+    'iconos que cambian segun el estado o la linea
+    Private iconoCheckVerde As Image
+    Private iconoPendiente As Image
+    Private iconoReloj As Image
+    Private iconoMecanico As Image
+    Private iconoPresupuestar As Image
+    Private iconoConfirmar As Image
+    Private iconoIniciar As Image
+    Private iconoFinalizar As Image
+    Private iconoEntregar As Image
+    Private iconoRechazar As Image
+    Private iconoGuardar As Image
+
+    Function ColorEstado(codigo As String) As Color
+        'color de fondo de cada estado, los mismos que usa el tablero de ordenes
+        If codigo = "RECEPCIONADA" Then Return Color.Lavender
+        If codigo = "PRESUPUESTADA" Then Return Color.LightBlue
+        If codigo = "APROBADA" Then Return Color.LightSkyBlue
+        If codigo = "EN_PROCESO" Then Return Color.Khaki
+        If codigo = "FINALIZADA" Then Return Color.PaleTurquoise
+        If codigo = "ENTREGADA" Then Return Color.LightGreen
+        If codigo = "RECHAZADA" Then Return Color.LightPink
+        If codigo = "ANULADA" Then Return Color.Gainsboro
+        Return Color.White
+    End Function
+
+    Function OrdenEtapa(codigo As String) As Integer
+        'lugar de cada estado en la barra de etapas, 0 para los que no estan en la barra
+        If codigo = "RECEPCIONADA" Then Return 1
+        If codigo = "PRESUPUESTADA" Then Return 2
+        If codigo = "APROBADA" Then Return 3
+        If codigo = "EN_PROCESO" Then Return 4
+        If codigo = "FINALIZADA" Then Return 5
+        If codigo = "ENTREGADA" Then Return 6
+        Return 0
+    End Function
+
+    Sub CargarIconos()
+        'cargo los iconos, si alguno falta ese control queda sin icono y el sistema sigue
+        iconoCheckVerde = LeerIcono("check-verde.png")
+        iconoPendiente = LeerIcono("pendiente-gris.png")
+        iconoReloj = LeerIcono("reloj-ambar.png")
+        iconoMecanico = LeerIcono("mecanico-oscuro.png")
+        iconoPresupuestar = LeerIcono("presupuestar.png")
+        iconoConfirmar = LeerIcono("confirmar.png")
+        iconoIniciar = LeerIcono("iniciar.png")
+        iconoFinalizar = LeerIcono("finalizar.png")
+        iconoEntregar = LeerIcono("entregar.png")
+        iconoRechazar = LeerIcono("rechazar-rojo.png")
+        iconoGuardar = LeerIcono("guardar-oscuro.png")
+
+        btnAgregar.Image = LeerIcono("agregar.png")
+        btnActualizar.Image = LeerIcono("editar-oscuro.png")
+        btnQuitar.Image = LeerIcono("quitar-oscuro.png")
+        btnGuardarMecanico.Image = LeerIcono("guardar-oscuro.png")
+        btnAnular.Image = LeerIcono("anular-rojo.png")
+
+        picMecanico.Image = iconoMecanico
+        picKm.Image = LeerIcono("km-oscuro.png")
+        picRecepcion.Image = LeerIcono("calendario-oscuro.png")
+        picFinalizacion.Image = LeerIcono("check-oscuro.png")
+        picEntrega.Image = LeerIcono("vehiculo-oscuro.png")
+        picSintoma.Image = LeerIcono("sintoma-oscuro.png")
+        picHistorial.Image = LeerIcono("historial-oscuro.png")
+    End Sub
+
     Sub CargarComboMecanicos()
         'cargo los mecanicos activos en el combo
         Try
@@ -83,7 +165,7 @@ Public Class FrmOrdenGestion
     End Sub
 
     Sub CargarDetalle()
-        'cargo la grilla con las lineas del presupuesto de la orden
+        'cargo la grilla con las lineas de la orden y la acomodo segun la etapa
         Try
             Using cn As New MySqlConnection(CADENA)
                 cn.Open()
@@ -91,8 +173,15 @@ Public Class FrmOrdenGestion
                     "SELECT id_ot_detalle, descripcion, cantidad, precio_unitario, subtotal, aprobado, " &
                     "cantidad_real, horas_reales " &
                     "FROM ot_detalle " &
-                    "WHERE id_orden_trabajo = @id_orden_trabajo " &
-                    "ORDER BY id_ot_detalle;"
+                    "WHERE id_orden_trabajo = @id_orden_trabajo "
+
+                'desde que el trabajo se inicia solo cuentan las lineas que aprobo el cliente
+                If codigoEstado = "EN_PROCESO" OrElse codigoEstado = "FINALIZADA" OrElse codigoEstado = "ENTREGADA" Then
+                    consulta = consulta & "AND aprobado = 1 "
+                End If
+
+                consulta = consulta & "ORDER BY id_ot_detalle;"
+
                 Using cmd As New MySqlCommand(consulta, cn)
                     cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
 
@@ -101,62 +190,65 @@ Public Class FrmOrdenGestion
                         tabla.Load(lector)
                     End Using
 
+                    'las columnas de la grilla estan declaradas en el disenador, cada una con su campo
                     dgvDetalle.DataSource = tabla
-
-                    'la clave de la linea se usa al seleccionar la fila, no se muestra
-                    dgvDetalle.Columns("id_ot_detalle").Visible = False
-
-                    'pongo titulos legibles en las columnas
-                    dgvDetalle.Columns("descripcion").HeaderText = "Descripción"
-                    dgvDetalle.Columns("cantidad").HeaderText = "Cantidad"
-                    dgvDetalle.Columns("cantidad").DefaultCellStyle.Format = "N2"
-                    dgvDetalle.Columns("precio_unitario").HeaderText = "Precio"
-                    dgvDetalle.Columns("precio_unitario").DefaultCellStyle.Format = "C2"
-                    dgvDetalle.Columns("subtotal").HeaderText = "Subtotal"
-                    dgvDetalle.Columns("subtotal").DefaultCellStyle.Format = "C2"
-                    dgvDetalle.Columns("aprobado").HeaderText = "Aprobado"
-                    dgvDetalle.Columns("cantidad_real").HeaderText = "Cant. real"
-                    dgvDetalle.Columns("cantidad_real").DefaultCellStyle.Format = "N2"
-                    dgvDetalle.Columns("horas_reales").HeaderText = "Horas"
-                    dgvDetalle.Columns("horas_reales").DefaultCellStyle.Format = "N2"
-
-                    'los numeros van alineados a la derecha
-                    dgvDetalle.Columns("cantidad").DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight
-                    dgvDetalle.Columns("precio_unitario").DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight
-                    dgvDetalle.Columns("subtotal").DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight
-                    dgvDetalle.Columns("cantidad_real").DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight
-                    dgvDetalle.Columns("horas_reales").DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight
-
-                    'las columnas de datos cortos se ajustan al contenido, la descripcion ocupa el resto
-                    dgvDetalle.Columns("cantidad").AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells
-                    dgvDetalle.Columns("precio_unitario").AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells
-                    dgvDetalle.Columns("subtotal").AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells
-                    dgvDetalle.Columns("aprobado").AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells
-                    dgvDetalle.Columns("cantidad_real").AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells
-                    dgvDetalle.Columns("horas_reales").AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells
-
-                    'la aprobacion se marca linea por linea solo con la orden presupuestada,
-                    'el resto de las columnas nunca se edita en la grilla
-                    dgvDetalle.ReadOnly = (codigoEstado <> "PRESUPUESTADA")
-                    If codigoEstado = "PRESUPUESTADA" Then
-                        For Each columna As DataGridViewColumn In dgvDetalle.Columns
-                            columna.ReadOnly = (columna.Name <> "aprobado")
-                        Next
-                    End If
                 End Using
             End Using
         Catch ex As Exception
-            MessageBox.Show("Error al cargar el presupuesto: " & ex.Message)
+            MessageBox.Show("Error al cargar las líneas de la orden: " & ex.Message)
         End Try
+
+        'en proceso y en los resumenes se ve lo presupuestado contra lo real
+        Dim conEjecucion As Boolean =
+            (codigoEstado = "EN_PROCESO" OrElse codigoEstado = "FINALIZADA" OrElse codigoEstado = "ENTREGADA")
+
+        'la marca de listo o pendiente es solo para cargar la ejecucion
+        colMarca.Visible = (codigoEstado = "EN_PROCESO")
+
+        If conEjecucion Then
+            colCantidad.HeaderText = "Presup."
+        Else
+            colCantidad.HeaderText = "Cantidad"
+        End If
+
+        'con el trabajo en proceso los importes no hacen falta, se cargan cantidades y horas
+        colPrecio.Visible = (codigoEstado <> "EN_PROCESO")
+        colSubtotal.Visible = (codigoEstado <> "EN_PROCESO")
+
+        'la aprobacion por linea se ve mientras se decide y en las ordenes que no siguieron
+        colAprobado.Visible = (codigoEstado = "PRESUPUESTADA" OrElse codigoEstado = "APROBADA" OrElse
+                               codigoEstado = "RECHAZADA" OrElse codigoEstado = "ANULADA")
+
+        'lo real se ve desde que el trabajo se inicia, y en una orden anulada por si llego a cargarse
+        colReal.Visible = (conEjecucion OrElse codigoEstado = "ANULADA")
+        colHoras.Visible = (conEjecucion OrElse codigoEstado = "ANULADA")
+
+        'en la grilla se edita solo la aprobacion (presupuestada) o lo real (en proceso)
+        dgvDetalle.ReadOnly = Not (codigoEstado = "PRESUPUESTADA" OrElse codigoEstado = "EN_PROCESO")
+        colMarca.ReadOnly = True
+        colDescripcion.ReadOnly = True
+        colCantidad.ReadOnly = True
+        colPrecio.ReadOnly = True
+        colSubtotal.ReadOnly = True
+        colAprobado.ReadOnly = (codigoEstado <> "PRESUPUESTADA")
+        colReal.ReadOnly = (codigoEstado <> "EN_PROCESO")
+        colHoras.ReadOnly = (codigoEstado <> "EN_PROCESO")
     End Sub
 
     Sub CargarHistorial()
-        'cargo la grilla con los cambios de estado de la orden, el mas nuevo primero
+        'cargo la lista con los cambios de estado de la orden, el mas nuevo primero
+        etapaAlcanzada = 0
+        motivoCierre = ""
+
         Try
             Using cn As New MySqlConnection(CADENA)
                 cn.Open()
+                'titulo es el primer renglon de cada fila de la lista y detalle el segundo
                 Dim consulta As String =
-                    "SELECT h.fecha_hora, e.descripcion AS estado, u.nombre_completo AS usuario, h.observacion " &
+                    "SELECT e.descripcion AS titulo, " &
+                    "CONCAT(DATE_FORMAT(h.fecha_hora, '%d/%m/%Y %H:%i'), ' · ', u.nombre_completo, " &
+                    "COALESCE(CONCAT(' · ', h.observacion), '')) AS detalle, " &
+                    "e.codigo, h.observacion " &
                     "FROM ot_historial_estado AS h " &
                     "JOIN estado_ot AS e ON e.id_estado_ot = h.id_estado_ot " &
                     "JOIN usuario AS u ON u.id_usuario = h.id_usuario " &
@@ -170,24 +262,18 @@ Public Class FrmOrdenGestion
                         tabla.Load(lector)
                     End Using
 
-                    dgvHistorial.DataSource = tabla
+                    For Each registro As DataRow In tabla.Rows
+                        'la etapa mas avanzada por la que paso la orden marca la barra de etapas
+                        Dim etapa As Integer = OrdenEtapa(registro("codigo").ToString())
+                        If etapa > etapaAlcanzada Then etapaAlcanzada = etapa
 
-                    'pongo titulos legibles en las columnas
-                    dgvHistorial.Columns("fecha_hora").HeaderText = "Fecha y hora"
-                    dgvHistorial.Columns("fecha_hora").DefaultCellStyle.Format = "dd/MM/yyyy HH:mm"
-                    dgvHistorial.Columns("estado").HeaderText = "Estado"
-                    dgvHistorial.Columns("usuario").HeaderText = "Usuario"
-                    dgvHistorial.Columns("observacion").HeaderText = "Observación"
-
-                    'la fecha y el estado se ajustan al contenido, la observacion ocupa mas lugar
-                    dgvHistorial.Columns("fecha_hora").AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells
-                    dgvHistorial.Columns("estado").AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells
-                    dgvHistorial.Columns("observacion").FillWeight = 200
-
-                    'el historial queda siempre en el orden de la consulta: no se reordena con un click en el titulo
-                    For Each columna As DataGridViewColumn In dgvHistorial.Columns
-                        columna.SortMode = DataGridViewColumnSortMode.NotSortable
+                        'la fila mas nueva del estado actual trae el motivo del rechazo o de la anulacion
+                        If motivoCierre = "" AndAlso registro("codigo").ToString() = codigoEstado Then
+                            motivoCierre = registro("observacion").ToString()
+                        End If
                     Next
+
+                    dgvHistorial.DataSource = tabla
                 End Using
             End Using
         Catch ex As Exception
@@ -195,18 +281,204 @@ Public Class FrmOrdenGestion
         End Try
     End Sub
 
+    Sub PintarEtapa(celda As Panel, marca As Label, nombre As Label, etapa As Integer)
+        'dibujo una celda de la barra: etapa cumplida, etapa actual o etapa que falta
+        Dim etapaActual As Integer = OrdenEtapa(codigoEstado)
+
+        marca.Image = Nothing
+        marca.Text = ""
+
+        If etapaActual > 0 AndAlso etapa = etapaActual Then
+            'etapa actual: resaltada en oscuro, con su numero
+            celda.BackColor = Color.FromArgb(30, 39, 46)
+            marca.ForeColor = Color.White
+            nombre.ForeColor = Color.White
+            marca.Text = etapa.ToString()
+        ElseIf etapa <= etapaAlcanzada Then
+            'etapa cumplida: con la marca verde
+            celda.BackColor = Color.White
+            marca.ForeColor = Color.SeaGreen
+            nombre.ForeColor = Color.FromArgb(30, 39, 46)
+            If iconoCheckVerde IsNot Nothing Then
+                marca.Image = iconoCheckVerde
+            Else
+                marca.Text = "✓"
+            End If
+        Else
+            'etapa que falta: apagada
+            celda.BackColor = Color.White
+            marca.ForeColor = Color.Silver
+            nombre.ForeColor = Color.Silver
+            If iconoPendiente IsNot Nothing Then
+                marca.Image = iconoPendiente
+            Else
+                marca.Text = etapa.ToString()
+            End If
+        End If
+    End Sub
+
+    Sub MostrarEtapa()
+        'acomodo la barra de etapas, el area de trabajo y los botones del pie segun el estado de la orden
+
+        PintarEtapa(pnlEtapa1, lblMarcaEtapa1, lblNomEtapa1, 1)
+        PintarEtapa(pnlEtapa2, lblMarcaEtapa2, lblNomEtapa2, 2)
+        PintarEtapa(pnlEtapa3, lblMarcaEtapa3, lblNomEtapa3, 3)
+        PintarEtapa(pnlEtapa4, lblMarcaEtapa4, lblNomEtapa4, 4)
+        PintarEtapa(pnlEtapa5, lblMarcaEtapa5, lblNomEtapa5, 5)
+        PintarEtapa(pnlEtapa6, lblMarcaEtapa6, lblNomEtapa6, 6)
+
+        'una orden rechazada o anulada lo dice debajo de la barra, con su motivo si lo tiene
+        lblCierre.Text = ""
+        If codigoEstado = "RECHAZADA" Then lblCierre.Text = "Orden rechazada"
+        If codigoEstado = "ANULADA" Then lblCierre.Text = "Orden anulada"
+        If lblCierre.Text <> "" AndAlso motivoCierre <> "" Then
+            lblCierre.Text = lblCierre.Text & ": " & motivoCierre
+        End If
+
+        'partes del area de trabajo: cada etapa muestra solo las que usa
+        pnlEditor.Visible = permiteEdicion
+        btnActualizar.Visible = permiteEdicion
+        btnQuitar.Visible = permiteEdicion
+        pnlAvisoMecanico.Visible = (codigoEstado = "APROBADA")
+        pnlNotas.Visible = (codigoEstado = "EN_PROCESO" OrElse codigoEstado = "FINALIZADA" OrElse
+                            codigoEstado = "ENTREGADA" OrElse codigoEstado = "ANULADA")
+        txtNotasTecnicas.ReadOnly = (codigoEstado <> "EN_PROCESO")
+        lblTotalAprobado.Visible = (codigoEstado <> "RECEPCIONADA")
+
+        'el mecanico se cambia mientras el estado no sea final, despues solo se lee
+        cboMecanico.Visible = Not esEstadoFinal
+        btnGuardarMecanico.Visible = Not esEstadoFinal
+        lblMecanico.Visible = esEstadoFinal
+
+        'en el pie hay un solo boton principal, con el nombre del proximo paso
+        lblProximo.Visible = Not esEstadoFinal
+        btnSecundario.Visible = False
+        btnSecundario.ForeColor = Color.Black
+        btnPrimario.Image = Nothing
+
+        If codigoEstado = "RECEPCIONADA" Then
+            lblEtapaTitulo.Text = "Armar el presupuesto"
+            lblEtapaAyuda.Text = "Agregá los servicios que necesita el vehículo y, cuando esté completo, presupuestá la orden."
+            btnPrimario.Text = " Presupuestar"
+            btnPrimario.Image = iconoPresupuestar
+        End If
+
+        If codigoEstado = "PRESUPUESTADA" Then
+            lblEtapaTitulo.Text = "Aprobación del cliente"
+            lblEtapaAyuda.Text = "Tildá las líneas que el cliente aprueba. Todavía podés ajustar el presupuesto."
+            btnPrimario.Text = " Registrar aprobación"
+            btnPrimario.Image = iconoConfirmar
+            btnSecundario.Visible = True
+            btnSecundario.Text = " Rechazar"
+            btnSecundario.Image = iconoRechazar
+            btnSecundario.ForeColor = Color.Firebrick
+        End If
+
+        If codigoEstado = "APROBADA" Then
+            lblEtapaTitulo.Text = "Listo para iniciar"
+            lblEtapaAyuda.Text = "El cliente aprobó el presupuesto. Revisá el mecánico asignado e iniciá el trabajo."
+            btnPrimario.Text = " Iniciar trabajo"
+            btnPrimario.Image = iconoIniciar
+
+            'el mecanico es obligatorio para iniciar: lo digo claro, y aviso si falta
+            If idMecanicoOrden = 0 Then
+                lblAvisoMecanico.Text = "Falta asignar un mecánico: elegilo en ""Datos de la orden"" y guardalo."
+                lblAvisoMecanico.ForeColor = Color.Firebrick
+                picAvisoMecanico.Image = iconoReloj
+            Else
+                lblAvisoMecanico.Text = "Mecánico asignado: " & cboMecanico.Text
+                lblAvisoMecanico.ForeColor = Color.FromArgb(30, 39, 46)
+                picAvisoMecanico.Image = iconoMecanico
+            End If
+        End If
+
+        If codigoEstado = "EN_PROCESO" Then
+            lblEtapaTitulo.Text = "Trabajo en proceso"
+            lblEtapaAyuda.Text = "Cargá la cantidad y las horas reales de cada servicio aprobado."
+            btnPrimario.Text = " Finalizar trabajo"
+            btnPrimario.Image = iconoFinalizar
+            btnSecundario.Visible = True
+            btnSecundario.Text = " Guardar avance"
+            btnSecundario.Image = iconoGuardar
+        End If
+
+        If codigoEstado = "FINALIZADA" Then
+            lblEtapaTitulo.Text = "Trabajo finalizado"
+            lblEtapaAyuda.Text = "El vehículo está listo. Entregalo al cliente para cerrar la orden."
+            btnPrimario.Text = " Entregar vehículo"
+            btnPrimario.Image = iconoEntregar
+        End If
+
+        If esEstadoFinal Then
+            lblEtapaTitulo.Text = "Resumen de la orden"
+            lblEtapaAyuda.Text = "La orden está cerrada. Estos datos son solo de consulta."
+            btnPrimario.Text = "Cerrar"
+        End If
+
+        'la anulacion es solo del administrador y vale en cualquier estado que no sea final
+        btnAnular.Visible = (Sesion.Rol = "ADMINISTRADOR" AndAlso Not esEstadoFinal)
+
+        ActualizarConteo()
+    End Sub
+
+    Sub ActualizarConteo()
+        'actualizo el contador de la etapa: aprobadas (presupuestada) o pendientes de ejecucion (en proceso)
+        lblConteo.Text = ""
+
+        If codigoEstado = "PRESUPUESTADA" Then
+            'cuento las lineas tildadas y sumo su importe, todavia sin guardar
+            Dim aprobadas As Integer = 0
+            Dim total As Decimal = 0D
+            For Each fila As DataGridViewRow In dgvDetalle.Rows
+                If Convert.ToBoolean(fila.Cells("colAprobado").Value) Then
+                    aprobadas = aprobadas + 1
+                    total = total + CDec(fila.Cells("colSubtotal").Value)
+                End If
+            Next
+            lblConteo.Text = "Aprobadas " & aprobadas & " de " & dgvDetalle.Rows.Count
+            lblTotalAprobado.Text = "Total aprobado: " & total.ToString("C2")
+        End If
+
+        If codigoEstado = "EN_PROCESO" Then
+            'una linea esta lista cuando tiene cantidad real y horas reales
+            Dim faltan As Integer = 0
+            For Each fila As DataGridViewRow In dgvDetalle.Rows
+                If IsDBNull(fila.Cells("colReal").Value) OrElse IsDBNull(fila.Cells("colHoras").Value) Then
+                    faltan = faltan + 1
+                End If
+            Next
+            If faltan = 0 Then
+                lblConteo.Text = "Completas " & dgvDetalle.Rows.Count & " de " & dgvDetalle.Rows.Count
+            Else
+                lblConteo.Text = "Faltan " & faltan & " de " & dgvDetalle.Rows.Count
+            End If
+        End If
+    End Sub
+
     Sub CargarOrden()
-        'cargo los datos de la orden y habilito los controles segun su estado actual
+        'cargo los datos de la orden y muestro el area de trabajo de su estado actual
         'se llama al abrir el formulario y despues de cada guardado
+
+        'si la orden estaba presupuestada, recuerdo las lineas tildadas para no perderlas al recargar
+        Dim tildadas As New List(Of Integer)
+        If codigoEstado = "PRESUPUESTADA" Then
+            dgvDetalle.EndEdit()
+            For Each fila As DataGridViewRow In dgvDetalle.Rows
+                If Convert.ToBoolean(fila.Cells("colAprobado").Value) Then
+                    tildadas.Add(CInt(fila.Cells("colIdDetalle").Value))
+                End If
+            Next
+        End If
+
+        cargando = True
 
         'hasta leer el estado, la orden se trata como cerrada: no se puede tocar nada
         codigoEstado = ""
         permiteEdicion = False
         esEstadoFinal = True
+        idMecanicoOrden = 0
 
         Dim encontrada As Boolean = False
-        Dim idMecanico As Integer = 0
-        Dim notasGuardadas As String = ""
 
         Try
             Using cn As New MySqlConnection(CADENA)
@@ -219,6 +491,7 @@ Public Class FrmOrdenGestion
                     "ot.id_mecanico, ot.total_presupuestado, ot.total_aprobado, v.patente, " &
                     "CONCAT(ma.descripcion, ' ', mo.descripcion) AS vehiculo, " &
                     "c.razon_social AS cliente, " &
+                    "COALESCE(m.nombre_completo, 'Sin asignar') AS mecanico, " &
                     "e.codigo, e.descripcion AS estado, e.permite_edicion_detalle, e.es_estado_final " &
                     "FROM orden_trabajo AS ot " &
                     "JOIN vehiculo AS v ON v.id_vehiculo = ot.id_vehiculo " &
@@ -226,6 +499,7 @@ Public Class FrmOrdenGestion
                     "JOIN marca AS ma ON ma.id_marca = mo.id_marca " &
                     "JOIN cliente AS c ON c.id_cliente = ot.id_cliente " &
                     "JOIN estado_ot AS e ON e.id_estado_ot = ot.id_estado_ot " &
+                    "LEFT JOIN mecanico AS m ON m.id_mecanico = ot.id_mecanico " &
                     "WHERE ot.id_orden_trabajo = @id_orden_trabajo;"
                 Using cmd As New MySqlCommand(consulta, cn)
                     cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
@@ -233,40 +507,49 @@ Public Class FrmOrdenGestion
                         If lector.Read() Then
                             encontrada = True
 
-                            'datos de cabecera, solo lectura
-                            lblNroOrden.Text = "N.º " & lector("nro_orden").ToString()
+                            'cabecera: numero, patente y vehiculo, con el estado a la derecha
+                            lblTitulo.Text = "Orden N.º " & lector("nro_orden").ToString() & " · " &
+                                             lector("patente").ToString() & " " & lector("vehiculo").ToString()
                             lblEstado.Text = lector("estado").ToString()
-                            lblVehiculo.Text = lector("patente").ToString() & " - " & lector("vehiculo").ToString()
-                            lblCliente.Text = lector("cliente").ToString()
-                            lblFechaRecepcion.Text = CDate(lector("fecha_recepcion")).ToString("dd/MM/yyyy HH:mm")
-                            lblKmIngreso.Text = CInt(lector("km_ingreso")).ToString("N0")
+                            lblEstado.BackColor = ColorEstado(lector("codigo").ToString())
+
+                            'subtitulo: cliente y fecha prometida, que es opcional
+                            Dim prometida As String = "sin fecha"
+                            If Not IsDBNull(lector("fecha_prometida")) Then
+                                prometida = CDate(lector("fecha_prometida")).ToString("dd/MM/yyyy")
+                            End If
+                            lblSubtitulo.Text = "Cliente: " & lector("cliente").ToString() &
+                                                " · Entrega prometida: " & prometida
+
+                            'datos de la orden, solo lectura
+                            lblKm.Text = CInt(lector("km_ingreso")).ToString("N0") & " km"
+                            lblRecepcion.Text = CDate(lector("fecha_recepcion")).ToString("dd/MM/yyyy HH:mm")
                             txtSintoma.Text = lector("sintoma_reportado").ToString()
                             txtObsRecepcion.Text = lector("observaciones_recepcion").ToString()
+                            lblMecanico.Text = lector("mecanico").ToString()
 
-                            'la fecha prometida es opcional
-                            If IsDBNull(lector("fecha_prometida")) Then
-                                lblFechaPrometida.Text = "Sin fecha"
-                            Else
-                                lblFechaPrometida.Text = CDate(lector("fecha_prometida")).ToString("dd/MM/yyyy")
+                            'las fechas de cierre y de entrega se muestran recien cuando existen
+                            Dim finalizada As Boolean = Not IsDBNull(lector("fecha_finalizacion"))
+                            picFinalizacion.Visible = finalizada
+                            lblFinalizacionTit.Visible = finalizada
+                            lblFinalizacion.Visible = finalizada
+                            If finalizada Then
+                                lblFinalizacion.Text = CDate(lector("fecha_finalizacion")).ToString("dd/MM/yyyy HH:mm")
                             End If
 
-                            'las fechas de cierre y de entrega existen recien cuando la orden llega a esos estados
-                            If IsDBNull(lector("fecha_finalizacion")) Then
-                                lblFechaFinalizacion.Text = "-"
-                            Else
-                                lblFechaFinalizacion.Text = CDate(lector("fecha_finalizacion")).ToString("dd/MM/yyyy HH:mm")
-                            End If
-                            If IsDBNull(lector("fecha_entrega")) Then
-                                lblFechaEntrega.Text = "-"
-                            Else
-                                lblFechaEntrega.Text = CDate(lector("fecha_entrega")).ToString("dd/MM/yyyy HH:mm")
+                            Dim entregada As Boolean = Not IsDBNull(lector("fecha_entrega"))
+                            picEntrega.Visible = entregada
+                            lblEntregaTit.Visible = entregada
+                            lblEntrega.Visible = entregada
+                            If entregada Then
+                                lblEntrega.Text = CDate(lector("fecha_entrega")).ToString("dd/MM/yyyy HH:mm")
                             End If
 
                             'la orden puede no tener mecanico asignado
-                            If Not IsDBNull(lector("id_mecanico")) Then idMecanico = CInt(lector("id_mecanico"))
+                            If Not IsDBNull(lector("id_mecanico")) Then idMecanicoOrden = CInt(lector("id_mecanico"))
 
-                            'observaciones del mecanico, se guardan al finalizar
-                            notasGuardadas = lector("observaciones_mecanico").ToString()
+                            'observaciones del mecanico: se guardan con el avance y al finalizar
+                            txtNotasTecnicas.Text = lector("observaciones_mecanico").ToString()
 
                             'totales guardados en la cabecera de la orden
                             lblTotalPresupuestado.Text = "Total presupuestado: " & CDec(lector("total_presupuestado")).ToString("C2")
@@ -286,77 +569,73 @@ Public Class FrmOrdenGestion
 
         If encontrada Then
             'marco en el combo al mecanico de la orden, la clave 0 es "(sin asignar)"
-            If cboMecanico.DataSource IsNot Nothing Then cboMecanico.SelectedValue = idMecanico
-
-            'con el trabajo en proceso las observaciones se estan escribiendo y todavia no se guardaron:
-            'no las piso con lo que hay en la base
-            If codigoEstado <> "EN_PROCESO" Then txtNotasTecnicas.Text = notasGuardadas
+            If cboMecanico.DataSource IsNot Nothing Then cboMecanico.SelectedValue = idMecanicoOrden
 
             CargarDetalle()
+
+            'vuelvo a tildar las lineas que estaban tildadas antes de recargar, si la orden sigue presupuestada
+            If codigoEstado = "PRESUPUESTADA" Then
+                For Each fila As DataGridViewRow In dgvDetalle.Rows
+                    If tildadas.Contains(CInt(fila.Cells("colIdDetalle").Value)) Then
+                        fila.Cells("colAprobado").Value = True
+                    End If
+                Next
+            End If
+
             CargarHistorial()
         End If
 
-        'el mecanico se puede cambiar mientras el estado no sea final
-        cboMecanico.Enabled = Not esEstadoFinal
-        btnGuardarMecanico.Enabled = Not esEstadoFinal
+        MostrarEtapa()
 
-        'el presupuesto se edita solo en los estados que lo permiten
-        cboServicio.Enabled = permiteEdicion
-        nudCantidad.Enabled = permiteEdicion
-        btnAgregar.Enabled = permiteEdicion
-        btnActualizar.Enabled = permiteEdicion
-        btnQuitar.Enabled = permiteEdicion
-
-        'la ejecucion real y las observaciones del mecanico se cargan con el trabajo en proceso
-        nudCantidadReal.Enabled = (codigoEstado = "EN_PROCESO")
-        nudHorasReales.Enabled = (codigoEstado = "EN_PROCESO")
-        btnGuardarEjecucion.Enabled = (codigoEstado = "EN_PROCESO")
-        txtNotasTecnicas.ReadOnly = (codigoEstado <> "EN_PROCESO")
-
-        'cada boton de cambio de estado se habilita solo en su estado de origen
-        btnPresupuestar.Enabled = (codigoEstado = "RECEPCIONADA")
-        btnAprobar.Enabled = (codigoEstado = "PRESUPUESTADA")
-        btnRechazar.Enabled = (codigoEstado = "PRESUPUESTADA")
-        btnIniciar.Enabled = (codigoEstado = "APROBADA")
-        btnFinalizar.Enabled = (codigoEstado = "EN_PROCESO")
-        btnEntregar.Enabled = (codigoEstado = "FINALIZADA")
-
-        'la anulacion es solo del administrador y vale en cualquier estado que no sea final
-        txtMotivoAnulacion.Visible = (Sesion.Rol = "ADMINISTRADOR")
-        btnAnular.Visible = (Sesion.Rol = "ADMINISTRADOR")
-        txtMotivoAnulacion.Enabled = Not esEstadoFinal
-        btnAnular.Enabled = Not esEstadoFinal
+        'lo que se ve es lo que esta guardado
+        avanceSinGuardar = False
+        cargando = False
     End Sub
 
-    Function PermiteEditarDetalle(cn As MySqlConnection, transaccion As MySqlTransaction) As Boolean
+    Function LeerCodigoEstado(cn As MySqlConnection, transaccion As MySqlTransaction) As String
         'vuelvo a leer el estado de la orden dentro de la transaccion: otro puesto pudo cambiarlo
-        'FOR UPDATE bloquea la orden hasta terminar, asi nadie le cambia el estado en el medio
+        'FOR UPDATE bloquea solo la fila de la orden hasta terminar, asi nadie le cambia el estado en el medio
+        Dim idEstado As Integer = 0
         Dim consulta As String =
-            "SELECT e.permite_edicion_detalle " &
-            "FROM orden_trabajo AS ot " &
-            "JOIN estado_ot AS e ON e.id_estado_ot = ot.id_estado_ot " &
-            "WHERE ot.id_orden_trabajo = @id_orden_trabajo FOR UPDATE;"
+            "SELECT id_estado_ot FROM orden_trabajo WHERE id_orden_trabajo = @id_orden_trabajo FOR UPDATE;"
         Using cmd As New MySqlCommand(consulta, cn, transaccion)
             cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
+            Dim resultado As Object = cmd.ExecuteScalar()
+            If resultado Is Nothing Then Return ""
+            idEstado = Convert.ToInt32(resultado)
+        End Using
+
+        'el codigo se lee aparte, sin bloquear el catalogo de estados
+        consulta = "SELECT codigo FROM estado_ot WHERE id_estado_ot = @id_estado_ot;"
+        Using cmd As New MySqlCommand(consulta, cn, transaccion)
+            cmd.Parameters.AddWithValue("@id_estado_ot", idEstado)
+            Dim resultado As Object = cmd.ExecuteScalar()
+            If resultado Is Nothing Then Return ""
+            Return resultado.ToString()
+        End Using
+    End Function
+
+    Function PermiteEditarDetalle(cn As MySqlConnection, transaccion As MySqlTransaction) As Boolean
+        'bloqueo la orden y miro si su estado actual deja editar el presupuesto
+        Dim codigoActual As String = LeerCodigoEstado(cn, transaccion)
+
+        Dim consulta As String = "SELECT permite_edicion_detalle FROM estado_ot WHERE codigo = @codigo;"
+        Using cmd As New MySqlCommand(consulta, cn, transaccion)
+            cmd.Parameters.AddWithValue("@codigo", codigoActual)
             Dim resultado As Object = cmd.ExecuteScalar()
             If resultado Is Nothing Then Return False
             Return Convert.ToBoolean(resultado)
         End Using
     End Function
 
-    Function LeerCodigoEstado(cn As MySqlConnection, transaccion As MySqlTransaction) As String
-        'vuelvo a leer el codigo del estado de la orden dentro de la transaccion: otro puesto pudo cambiarlo
-        'FOR UPDATE bloquea la orden hasta terminar, asi nadie le cambia el estado en el medio
-        Dim consulta As String =
-            "SELECT e.codigo " &
-            "FROM orden_trabajo AS ot " &
-            "JOIN estado_ot AS e ON e.id_estado_ot = ot.id_estado_ot " &
-            "WHERE ot.id_orden_trabajo = @id_orden_trabajo FOR UPDATE;"
+    Function EstadoEsFinal(cn As MySqlConnection, transaccion As MySqlTransaction, codigo As String) As Boolean
+        'indica si un estado es final; un codigo que no existe se trata como final
+        Dim consulta As String = "SELECT es_estado_final FROM estado_ot WHERE codigo = @codigo;"
         Using cmd As New MySqlCommand(consulta, cn, transaccion)
-            cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
+            cmd.Parameters.AddWithValue("@codigo", codigo)
             Dim resultado As Object = cmd.ExecuteScalar()
-            If resultado Is Nothing Then Return ""
-            Return resultado.ToString()
+            If resultado Is Nothing Then Return True
+            Return Convert.ToBoolean(resultado)
         End Using
     End Function
 
@@ -413,6 +692,48 @@ Public Class FrmOrdenGestion
         End Using
     End Sub
 
+    Sub GuardarEjecucion(cn As MySqlConnection, transaccion As MySqlTransaction, notas As String)
+        'guardo lo que esta en pantalla del trabajo en proceso: lo real de cada linea aprobada y las observaciones
+        'lo usan "Guardar avance" y "Finalizar trabajo", cada uno dentro de su transaccion
+
+        Dim consulta As String =
+            "UPDATE ot_detalle SET cantidad_real = @cantidad_real, horas_reales = @horas_reales " &
+            "WHERE id_ot_detalle = @id_ot_detalle AND id_orden_trabajo = @id_orden_trabajo AND aprobado = 1;"
+
+        For Each fila As DataGridViewRow In dgvDetalle.Rows
+            'una celda vacia se guarda como NULL, las demas con dos decimales
+            Dim cantidadReal As Object = DBNull.Value
+            If Not IsDBNull(fila.Cells("colReal").Value) Then
+                cantidadReal = Math.Round(CDec(fila.Cells("colReal").Value), 2, MidpointRounding.AwayFromZero)
+            End If
+
+            Dim horasReales As Object = DBNull.Value
+            If Not IsDBNull(fila.Cells("colHoras").Value) Then
+                horasReales = Math.Round(CDec(fila.Cells("colHoras").Value), 2, MidpointRounding.AwayFromZero)
+            End If
+
+            Using cmd As New MySqlCommand(consulta, cn, transaccion)
+                cmd.Parameters.AddWithValue("@cantidad_real", cantidadReal)
+                cmd.Parameters.AddWithValue("@horas_reales", horasReales)
+                cmd.Parameters.AddWithValue("@id_ot_detalle", CInt(fila.Cells("colIdDetalle").Value))
+                cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
+                cmd.ExecuteNonQuery()
+            End Using
+        Next
+
+        'las observaciones vacias se guardan como NULL
+        Dim observaciones As Object = DBNull.Value
+        If notas <> "" Then observaciones = notas
+
+        consulta = "UPDATE orden_trabajo SET observaciones_mecanico = @observaciones_mecanico " &
+                   "WHERE id_orden_trabajo = @id_orden_trabajo;"
+        Using cmd As New MySqlCommand(consulta, cn, transaccion)
+            cmd.Parameters.AddWithValue("@observaciones_mecanico", observaciones)
+            cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
+            cmd.ExecuteNonQuery()
+        End Using
+    End Sub
+
     Private Sub FrmOrdenGestion_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         'solo el administrador y el operador gestionan las ordenes
         If Sesion.Rol <> "ADMINISTRADOR" AndAlso Sesion.Rol <> "OPERADOR" Then
@@ -428,6 +749,31 @@ Public Class FrmOrdenGestion
             Exit Sub
         End If
 
+        CargarIconos()
+        fuenteNegrita = New Font(dgvHistorial.Font, FontStyle.Bold)
+
+        'las grillas usan las columnas declaradas en el disenador, no las arman solas
+        dgvDetalle.AutoGenerateColumns = False
+        dgvHistorial.AutoGenerateColumns = False
+
+        'formato de las columnas numericas, alineadas a la derecha
+        colCantidad.DefaultCellStyle.Format = "N2"
+        colCantidad.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight
+        colPrecio.DefaultCellStyle.Format = "C2"
+        colPrecio.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight
+        colSubtotal.DefaultCellStyle.Format = "C2"
+        colSubtotal.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight
+        colReal.DefaultCellStyle.Format = "N2"
+        colReal.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight
+        colHoras.DefaultCellStyle.Format = "N2"
+        colHoras.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight
+        'una linea sin marca no muestra el dibujo de imagen faltante
+        colMarca.DefaultCellStyle.NullValue = Nothing
+
+        'el historial es una lista de consulta: la fila elegida no se resalta
+        dgvHistorial.DefaultCellStyle.SelectionBackColor = Color.White
+        dgvHistorial.DefaultCellStyle.SelectionForeColor = Color.Black
+
         'cargo los combos y despues la orden, que marca su mecanico en el combo
         CargarComboMecanicos()
         CargarComboServicios()
@@ -440,12 +786,128 @@ Public Class FrmOrdenGestion
         End If
     End Sub
 
+    Private Sub FrmOrdenGestion_FormClosing(sender As Object, e As FormClosingEventArgs) Handles MyBase.FormClosing
+        'si hay avance del trabajo sin guardar, aviso antes de cerrar para no perderlo
+        If Not avanceSinGuardar Then Exit Sub
+
+        Dim respuesta As DialogResult = MessageBox.Show(
+            "Hay cantidades, horas u observaciones sin guardar." & vbCrLf &
+            "¿Cerrar igual? Para conservarlas, elija No y use ""Guardar avance"".",
+            "Avance sin guardar",
+            MessageBoxButtons.YesNo,
+            MessageBoxIcon.Warning)
+
+        If respuesta = DialogResult.No Then e.Cancel = True
+    End Sub
+
     Private Sub dgvDetalle_DataBindingComplete(sender As Object, e As DataGridViewBindingCompleteEventArgs) Handles dgvDetalle.DataBindingComplete
         'al cargar o reordenar la grilla no dejo ninguna linea marcada: hay que elegirla
         'al tildar una aprobacion la grilla tambien pasa por aca, ahi la seleccion no se toca
         If e.ListChangedType = System.ComponentModel.ListChangedType.Reset Then
             dgvDetalle.ClearSelection()
         End If
+    End Sub
+
+    Private Sub dgvDetalle_SelectionChanged(sender As Object, e As EventArgs) Handles dgvDetalle.SelectionChanged
+        'traigo la cantidad de la linea elegida con el mouse o con el teclado para poder cambiarla
+        'al recargar la grilla el foco esta en otro control y el campo no se toca
+        If Not permiteEdicion Then Exit Sub
+        If Not dgvDetalle.Focused Then Exit Sub
+        If dgvDetalle.SelectedRows.Count = 0 Then Exit Sub
+
+        Dim cantidad As Decimal = CDec(dgvDetalle.SelectedRows(0).Cells("colCantidad").Value)
+        If cantidad <= nudCantidad.Maximum Then nudCantidad.Value = cantidad
+    End Sub
+
+    Private Sub dgvDetalle_CellFormatting(sender As Object, e As DataGridViewCellFormattingEventArgs) Handles dgvDetalle.CellFormatting
+        'la primera columna marca cada linea como lista o pendiente segun tenga cargado lo real
+        If e.RowIndex < 0 Then Exit Sub
+        If dgvDetalle.Columns(e.ColumnIndex) IsNot colMarca Then Exit Sub
+
+        Dim fila As DataGridViewRow = dgvDetalle.Rows(e.RowIndex)
+        If IsDBNull(fila.Cells("colReal").Value) OrElse IsDBNull(fila.Cells("colHoras").Value) Then
+            e.Value = iconoReloj
+        Else
+            e.Value = iconoCheckVerde
+        End If
+        e.FormattingApplied = True
+    End Sub
+
+    Private Sub dgvDetalle_CurrentCellDirtyStateChanged(sender As Object, e As EventArgs) Handles dgvDetalle.CurrentCellDirtyStateChanged
+        'una tilde de aprobacion queda en la grilla apenas se hace, sin esperar a salir de la celda
+        If dgvDetalle.CurrentCell Is Nothing Then Exit Sub
+        If dgvDetalle.CurrentCell.OwningColumn IsNot colAprobado Then Exit Sub
+
+        If dgvDetalle.IsCurrentCellDirty Then dgvDetalle.CommitEdit(DataGridViewDataErrorContexts.Commit)
+    End Sub
+
+    Private Sub dgvDetalle_CellValidating(sender As Object, e As DataGridViewCellValidatingEventArgs) Handles dgvDetalle.CellValidating
+        'valido lo que se escribe en "Real" y "Horas" antes de que quede en la grilla
+        If codigoEstado <> "EN_PROCESO" Then Exit Sub
+        If Not dgvDetalle.IsCurrentCellDirty Then Exit Sub
+
+        Dim columna As DataGridViewColumn = dgvDetalle.Columns(e.ColumnIndex)
+        If columna IsNot colReal AndAlso columna IsNot colHoras Then Exit Sub
+
+        'una celda vacia es valida: la linea queda pendiente
+        Dim texto As String = e.FormattedValue.ToString().Trim
+        If texto = "" Then Exit Sub
+
+        'el separador de miles no se acepta: con la configuracion regional en español
+        'un "1.5" se leeria como 15 sin avisar
+        Dim formato As Globalization.NumberFormatInfo = Globalization.CultureInfo.CurrentCulture.NumberFormat
+
+        Dim aviso As String = ""
+        Dim valor As Decimal
+        If formato.NumberGroupSeparator <> "" AndAlso texto.Contains(formato.NumberGroupSeparator) Then
+            aviso = "Escriba el número sin separador de miles. Para los decimales use """ &
+                    formato.NumberDecimalSeparator & """."
+        ElseIf Not Decimal.TryParse(texto, valor) Then
+            aviso = "Ingrese un número, con hasta dos decimales."
+        ElseIf valor < 0 Then
+            aviso = "El valor no puede ser negativo."
+        ElseIf columna Is colHoras AndAlso valor > 999.99D Then
+            aviso = "Las horas reales no pueden superar 999,99."
+        ElseIf columna Is colReal AndAlso valor > 9999999999.99D Then
+            aviso = "La cantidad real es demasiado grande."
+        End If
+
+        If aviso <> "" Then
+            'rechazo lo escrito: la celda vuelve al valor que tenia
+            MessageBox.Show(aviso)
+            dgvDetalle.CancelEdit()
+            e.Cancel = True
+        End If
+    End Sub
+
+    Private Sub dgvDetalle_DataError(sender As Object, e As DataGridViewDataErrorEventArgs) Handles dgvDetalle.DataError
+        'la grilla no pudo convertir lo escrito al tipo de la columna: aviso y dejo el valor anterior
+        MessageBox.Show("El valor escrito no es válido para esa columna. Se conserva el valor anterior.")
+        dgvDetalle.CancelEdit()
+        e.ThrowException = False
+    End Sub
+
+    Private Sub dgvDetalle_CellValueChanged(sender As Object, e As DataGridViewCellEventArgs) Handles dgvDetalle.CellValueChanged
+        'al tildar una aprobacion o cargar un valor real actualizo el contador de la etapa
+        If cargando Then Exit Sub
+        If e.RowIndex < 0 Then Exit Sub
+
+        Dim columna As DataGridViewColumn = dgvDetalle.Columns(e.ColumnIndex)
+
+        If codigoEstado = "EN_PROCESO" AndAlso (columna Is colReal OrElse columna Is colHoras) Then
+            'hay avance escrito que todavia no se guardo
+            avanceSinGuardar = True
+            'vuelvo a dibujar la fila para que cambie su marca de lista o pendiente
+            dgvDetalle.InvalidateRow(e.RowIndex)
+        End If
+
+        ActualizarConteo()
+    End Sub
+
+    Private Sub txtNotasTecnicas_TextChanged(sender As Object, e As EventArgs) Handles txtNotasTecnicas.TextChanged
+        'las observaciones escritas con el trabajo en proceso cuentan como avance sin guardar
+        If cargando Then Exit Sub
+        If codigoEstado = "EN_PROCESO" Then avanceSinGuardar = True
     End Sub
 
     Private Sub dgvHistorial_DataBindingComplete(sender As Object, e As DataGridViewBindingCompleteEventArgs) Handles dgvHistorial.DataBindingComplete
@@ -458,25 +920,70 @@ Public Class FrmOrdenGestion
         End If
     End Sub
 
-    Private Sub dgvDetalle_SelectionChanged(sender As Object, e As EventArgs) Handles dgvDetalle.SelectionChanged
-        'traigo los valores de la linea elegida con el mouse o con el teclado para poder cambiarlos
-        'al recargar la grilla el foco esta en otro control y los campos no se tocan
-        If Not dgvDetalle.Focused Then Exit Sub
-        If dgvDetalle.SelectedRows.Count = 0 Then Exit Sub
+    Private Sub dgvHistorial_CellPainting(sender As Object, e As DataGridViewCellPaintingEventArgs) Handles dgvHistorial.CellPainting
+        'cada fila del historial se dibuja en dos renglones: el estado, y debajo fecha, usuario y nota en gris
+        If e.RowIndex < 0 OrElse e.ColumnIndex < 0 Then Exit Sub
 
-        Dim fila As DataGridViewRow = dgvDetalle.SelectedRows(0)
+        Dim vista As DataRowView = TryCast(dgvHistorial.Rows(e.RowIndex).DataBoundItem, DataRowView)
+        If vista Is Nothing Then Exit Sub
 
-        Dim cantidad As Decimal = CDec(fila.Cells("cantidad").Value)
-        If cantidad <= nudCantidad.Maximum Then nudCantidad.Value = cantidad
+        e.PaintBackground(e.CellBounds, False)
 
-        'si la linea todavia no tiene cantidad real propongo la presupuestada
-        Dim cantidadReal As Decimal = cantidad
-        If Not IsDBNull(fila.Cells("cantidad_real").Value) Then cantidadReal = CDec(fila.Cells("cantidad_real").Value)
-        If cantidadReal <= nudCantidadReal.Maximum Then nudCantidadReal.Value = cantidadReal
+        Dim mitad As Integer = e.CellBounds.Height \ 2
+        Dim renglon1 As New Rectangle(e.CellBounds.X + 2, e.CellBounds.Y + 2, e.CellBounds.Width - 4, mitad - 2)
+        Dim renglon2 As New Rectangle(e.CellBounds.X + 2, e.CellBounds.Y + mitad, e.CellBounds.Width - 4, mitad - 2)
+        Dim formato As TextFormatFlags = TextFormatFlags.Left Or TextFormatFlags.VerticalCenter Or TextFormatFlags.EndEllipsis
 
-        Dim horasReales As Decimal = 0D
-        If Not IsDBNull(fila.Cells("horas_reales").Value) Then horasReales = CDec(fila.Cells("horas_reales").Value)
-        If horasReales <= nudHorasReales.Maximum Then nudHorasReales.Value = horasReales
+        TextRenderer.DrawText(e.Graphics, vista("titulo").ToString(), fuenteNegrita, renglon1, Color.FromArgb(30, 39, 46), formato)
+        TextRenderer.DrawText(e.Graphics, vista("detalle").ToString(), dgvHistorial.Font, renglon2, Color.Gray, formato)
+
+        e.Handled = True
+    End Sub
+
+    Private Sub dgvHistorial_CellToolTipTextNeeded(sender As Object, e As DataGridViewCellToolTipTextNeededEventArgs) Handles dgvHistorial.CellToolTipTextNeeded
+        'el texto completo de la fila se ve al pasar el mouse, por si la nota no entra en el ancho
+        If e.RowIndex < 0 Then Exit Sub
+
+        Dim vista As DataRowView = TryCast(dgvHistorial.Rows(e.RowIndex).DataBoundItem, DataRowView)
+        If vista Is Nothing Then Exit Sub
+
+        e.ToolTipText = vista("titulo").ToString() & vbCrLf & vista("detalle").ToString()
+    End Sub
+
+    Private Sub btnPrimario_Click(sender As Object, e As EventArgs) Handles btnPrimario.Click
+        'el boton principal hace el proximo paso de la orden, segun su estado
+        If esEstadoFinal Then
+            Me.Close()
+            Exit Sub
+        End If
+
+        'tomo el estado que se ve en pantalla al hacer clic: cada paso recarga la orden y cambia
+        'codigoEstado, y un clic tiene que hacer un solo paso, nunca encadenar el siguiente
+        Dim estadoAlClic As String = codigoEstado
+
+        If estadoAlClic = "RECEPCIONADA" Then
+            Presupuestar()
+        ElseIf estadoAlClic = "PRESUPUESTADA" Then
+            RegistrarAprobacion()
+        ElseIf estadoAlClic = "APROBADA" Then
+            IniciarTrabajo()
+        ElseIf estadoAlClic = "EN_PROCESO" Then
+            FinalizarTrabajo()
+        ElseIf estadoAlClic = "FINALIZADA" Then
+            EntregarVehiculo()
+        End If
+    End Sub
+
+    Private Sub btnSecundario_Click(sender As Object, e As EventArgs) Handles btnSecundario.Click
+        'el boton secundario es la otra accion de la etapa: rechazar el presupuesto o guardar el avance
+        'igual que en el principal, un clic hace una sola accion
+        Dim estadoAlClic As String = codigoEstado
+
+        If estadoAlClic = "PRESUPUESTADA" Then
+            RechazarPresupuesto()
+        ElseIf estadoAlClic = "EN_PROCESO" Then
+            GuardarAvance()
+        End If
     End Sub
 
     Private Sub btnGuardarMecanico_Click(sender As Object, e As EventArgs) Handles btnGuardarMecanico.Click
@@ -485,6 +992,12 @@ Public Class FrmOrdenGestion
         'si el combo no se pudo cargar no hay nada confiable para guardar
         If cboMecanico.DataSource Is Nothing OrElse cboMecanico.SelectedValue Is Nothing Then
             MessageBox.Show("No se pudo leer el mecánico elegido. Cierre la ventana y vuelva a abrir la orden.")
+            Exit Sub
+        End If
+
+        'guardar el mecanico recarga la orden: antes hay que guardar el avance escrito
+        If avanceSinGuardar Then
+            MessageBox.Show("Hay cantidades, horas u observaciones sin guardar. Use ""Guardar avance"" antes de cambiar el mecánico.")
             Exit Sub
         End If
 
@@ -502,25 +1015,10 @@ Public Class FrmOrdenGestion
                 Dim transaccion As MySqlTransaction = cn.BeginTransaction()
                 Try
                     'vuelvo a leer el estado: otro puesto pudo cambiarlo
-                    Dim codigoActual As String = ""
-                    Dim esFinal As Boolean = True
-                    Dim consulta As String =
-                        "SELECT e.codigo, e.es_estado_final " &
-                        "FROM orden_trabajo AS ot " &
-                        "JOIN estado_ot AS e ON e.id_estado_ot = ot.id_estado_ot " &
-                        "WHERE ot.id_orden_trabajo = @id_orden_trabajo FOR UPDATE;"
-                    Using cmd As New MySqlCommand(consulta, cn, transaccion)
-                        cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
-                        Using lector As MySqlDataReader = cmd.ExecuteReader
-                            If lector.Read() Then
-                                codigoActual = lector("codigo").ToString()
-                                esFinal = Convert.ToBoolean(lector("es_estado_final"))
-                            End If
-                        End Using
-                    End Using
+                    Dim codigoActual As String = LeerCodigoEstado(cn, transaccion)
 
                     'en un estado final ya no se cambia el mecanico
-                    If esFinal Then
+                    If EstadoEsFinal(cn, transaccion, codigoActual) Then
                         aviso = "La orden ya está en un estado final y no se puede cambiar su mecánico."
                     End If
 
@@ -532,26 +1030,26 @@ Public Class FrmOrdenGestion
                     End If
 
                     If aviso = "" Then
-                        consulta = "UPDATE orden_trabajo SET id_mecanico = @id_mecanico " &
-                                   "WHERE id_orden_trabajo = @id_orden_trabajo;"
+                        Dim consulta As String = "UPDATE orden_trabajo SET id_mecanico = @id_mecanico " &
+                                                 "WHERE id_orden_trabajo = @id_orden_trabajo;"
                         Using cmd As New MySqlCommand(consulta, cn, transaccion)
                             cmd.Parameters.AddWithValue("@id_mecanico", idMecanico)
                             cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
                             cmd.ExecuteNonQuery()
                         End Using
                     End If
-
-                    'confirmo solo si se pudo guardar
-                    If aviso = "" Then
-                        transaccion.Commit()
-                    Else
-                        transaccion.Rollback()
-                    End If
                 Catch ex As Exception
-                    'algo fallo: deshago todo y dejo que el error llegue al mensaje de abajo
+                    'algo fallo antes de confirmar: deshago todo y dejo que el error llegue al mensaje de abajo
                     transaccion.Rollback()
                     Throw
                 End Try
+
+                'confirmo fuera del Try de arriba: si el Commit falla no se intenta deshacer una transaccion ya cerrada
+                If aviso = "" Then
+                    transaccion.Commit()
+                Else
+                    transaccion.Rollback()
+                End If
             End Using
         Catch ex As Exception
             MessageBox.Show("No se pudo guardar el mecánico: " & ex.Message)
@@ -655,18 +1153,18 @@ Public Class FrmOrdenGestion
 
                         RecalcularTotales(cn, transaccion)
                     End If
-
-                    'confirmo solo si se pudo guardar
-                    If aviso = "" Then
-                        transaccion.Commit()
-                    Else
-                        transaccion.Rollback()
-                    End If
                 Catch ex As Exception
-                    'algo fallo: deshago todo y dejo que el error llegue al mensaje de abajo
+                    'algo fallo antes de confirmar: deshago todo y dejo que el error llegue al mensaje de abajo
                     transaccion.Rollback()
                     Throw
                 End Try
+
+                'confirmo fuera del Try de arriba: si el Commit falla no se intenta deshacer una transaccion ya cerrada
+                If aviso = "" Then
+                    transaccion.Commit()
+                Else
+                    transaccion.Rollback()
+                End If
             End Using
         Catch ex As Exception
             MessageBox.Show("No se pudo agregar el servicio y no se guardó ningún dato." & vbCrLf &
@@ -694,7 +1192,7 @@ Public Class FrmOrdenGestion
             MessageBox.Show("Debe seleccionar una línea del presupuesto para cambiar su cantidad")
             Exit Sub
         End If
-        Dim idDetalle As Integer = CInt(dgvDetalle.SelectedRows(0).Cells("id_ot_detalle").Value)
+        Dim idDetalle As Integer = CInt(dgvDetalle.SelectedRows(0).Cells("colIdDetalle").Value)
 
         'la cantidad admite dos decimales y tiene que ser mayor a cero
         Dim cantidad As Decimal = Math.Round(nudCantidad.Value, 2, MidpointRounding.AwayFromZero)
@@ -735,18 +1233,18 @@ Public Class FrmOrdenGestion
                     End If
 
                     If aviso = "" Then RecalcularTotales(cn, transaccion)
-
-                    'confirmo solo si se pudo guardar
-                    If aviso = "" Then
-                        transaccion.Commit()
-                    Else
-                        transaccion.Rollback()
-                    End If
                 Catch ex As Exception
-                    'algo fallo: deshago todo y dejo que el error llegue al mensaje de abajo
+                    'algo fallo antes de confirmar: deshago todo y dejo que el error llegue al mensaje de abajo
                     transaccion.Rollback()
                     Throw
                 End Try
+
+                'confirmo fuera del Try de arriba: si el Commit falla no se intenta deshacer una transaccion ya cerrada
+                If aviso = "" Then
+                    transaccion.Commit()
+                Else
+                    transaccion.Rollback()
+                End If
             End Using
         Catch ex As Exception
             MessageBox.Show("No se pudo cambiar la cantidad y no se guardó ningún dato." & vbCrLf &
@@ -769,11 +1267,11 @@ Public Class FrmOrdenGestion
             Exit Sub
         End If
         Dim fila As DataGridViewRow = dgvDetalle.SelectedRows(0)
-        Dim idDetalle As Integer = CInt(fila.Cells("id_ot_detalle").Value)
+        Dim idDetalle As Integer = CInt(fila.Cells("colIdDetalle").Value)
 
         'pido confirmacion antes de quitar
         Dim respuesta As DialogResult = MessageBox.Show(
-            "¿Quitar del presupuesto la línea """ & fila.Cells("descripcion").Value.ToString() & """?",
+            "¿Quitar del presupuesto la línea """ & fila.Cells("colDescripcion").Value.ToString() & """?",
             "Quitar línea",
             MessageBoxButtons.YesNo,
             MessageBoxIcon.Warning)
@@ -808,18 +1306,18 @@ Public Class FrmOrdenGestion
                     End If
 
                     If aviso = "" Then RecalcularTotales(cn, transaccion)
-
-                    'confirmo solo si se pudo guardar
-                    If aviso = "" Then
-                        transaccion.Commit()
-                    Else
-                        transaccion.Rollback()
-                    End If
                 Catch ex As Exception
-                    'algo fallo: deshago todo y dejo que el error llegue al mensaje de abajo
+                    'algo fallo antes de confirmar: deshago todo y dejo que el error llegue al mensaje de abajo
                     transaccion.Rollback()
                     Throw
                 End Try
+
+                'confirmo fuera del Try de arriba: si el Commit falla no se intenta deshacer una transaccion ya cerrada
+                If aviso = "" Then
+                    transaccion.Commit()
+                Else
+                    transaccion.Rollback()
+                End If
             End Using
         Catch ex As Exception
             MessageBox.Show("No se pudo quitar la línea y no se guardó ningún dato." & vbCrLf &
@@ -833,7 +1331,7 @@ Public Class FrmOrdenGestion
         CargarOrden()
     End Sub
 
-    Private Sub btnPresupuestar_Click(sender As Object, e As EventArgs) Handles btnPresupuestar.Click
+    Sub Presupuestar()
         'paso la orden de RECEPCIONADA a PRESUPUESTADA
 
         Dim aviso As String = ""
@@ -862,18 +1360,18 @@ Public Class FrmOrdenGestion
                     End If
 
                     If aviso = "" Then CambiarEstado(cn, transaccion, "PRESUPUESTADA", "Presupuesto cargado")
-
-                    'confirmo solo si se pudo guardar
-                    If aviso = "" Then
-                        transaccion.Commit()
-                    Else
-                        transaccion.Rollback()
-                    End If
                 Catch ex As Exception
-                    'algo fallo: deshago todo y dejo que el error llegue al mensaje de abajo
+                    'algo fallo antes de confirmar: deshago todo y dejo que el error llegue al mensaje de abajo
                     transaccion.Rollback()
                     Throw
                 End Try
+
+                'confirmo fuera del Try de arriba: si el Commit falla no se intenta deshacer una transaccion ya cerrada
+                If aviso = "" Then
+                    transaccion.Commit()
+                Else
+                    transaccion.Rollback()
+                End If
             End Using
         Catch ex As Exception
             MessageBox.Show("No se pudo presupuestar la orden y no se guardó ningún dato." & vbCrLf &
@@ -891,7 +1389,7 @@ Public Class FrmOrdenGestion
         CargarOrden()
     End Sub
 
-    Private Sub btnAprobar_Click(sender As Object, e As EventArgs) Handles btnAprobar.Click
+    Sub RegistrarAprobacion()
         'registro la aprobacion del cliente: paso la orden de PRESUPUESTADA a APROBADA
         'con las lineas que quedaron tildadas en la grilla
 
@@ -902,9 +1400,9 @@ Public Class FrmOrdenGestion
         Dim lineasAprobadas As Integer = 0
         Dim totalAprobado As Decimal = 0D
         For Each fila As DataGridViewRow In dgvDetalle.Rows
-            If Convert.ToBoolean(fila.Cells("aprobado").Value) Then
+            If Convert.ToBoolean(fila.Cells("colAprobado").Value) Then
                 lineasAprobadas = lineasAprobadas + 1
-                totalAprobado = totalAprobado + CDec(fila.Cells("subtotal").Value)
+                totalAprobado = totalAprobado + CDec(fila.Cells("colSubtotal").Value)
             End If
         Next
 
@@ -958,8 +1456,8 @@ Public Class FrmOrdenGestion
                                    "WHERE id_ot_detalle = @id_ot_detalle AND id_orden_trabajo = @id_orden_trabajo;"
                         For Each fila As DataGridViewRow In dgvDetalle.Rows
                             Using cmd As New MySqlCommand(consulta, cn, transaccion)
-                                cmd.Parameters.AddWithValue("@aprobado", Convert.ToBoolean(fila.Cells("aprobado").Value))
-                                cmd.Parameters.AddWithValue("@id_ot_detalle", CInt(fila.Cells("id_ot_detalle").Value))
+                                cmd.Parameters.AddWithValue("@aprobado", Convert.ToBoolean(fila.Cells("colAprobado").Value))
+                                cmd.Parameters.AddWithValue("@id_ot_detalle", CInt(fila.Cells("colIdDetalle").Value))
                                 cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
                                 cmd.ExecuteNonQuery()
                             End Using
@@ -980,18 +1478,18 @@ Public Class FrmOrdenGestion
                         RecalcularTotales(cn, transaccion)
                         CambiarEstado(cn, transaccion, "APROBADA", "Aprobación del cliente registrada")
                     End If
-
-                    'confirmo solo si se pudo guardar
-                    If aviso = "" Then
-                        transaccion.Commit()
-                    Else
-                        transaccion.Rollback()
-                    End If
                 Catch ex As Exception
-                    'algo fallo: deshago todo y dejo que el error llegue al mensaje de abajo
+                    'algo fallo antes de confirmar: deshago todo y dejo que el error llegue al mensaje de abajo
                     transaccion.Rollback()
                     Throw
                 End Try
+
+                'confirmo fuera del Try de arriba: si el Commit falla no se intenta deshacer una transaccion ya cerrada
+                If aviso = "" Then
+                    transaccion.Commit()
+                Else
+                    transaccion.Rollback()
+                End If
             End Using
         Catch ex As Exception
             MessageBox.Show("No se pudo registrar la aprobación y no se guardó ningún dato." & vbCrLf &
@@ -1009,7 +1507,7 @@ Public Class FrmOrdenGestion
         CargarOrden()
     End Sub
 
-    Private Sub btnRechazar_Click(sender As Object, e As EventArgs) Handles btnRechazar.Click
+    Sub RechazarPresupuesto()
         'el cliente no aprueba el presupuesto: paso la orden de PRESUPUESTADA a RECHAZADA
 
         'pido confirmacion, la orden queda cerrada
@@ -1046,18 +1544,18 @@ Public Class FrmOrdenGestion
                         RecalcularTotales(cn, transaccion)
                         CambiarEstado(cn, transaccion, "RECHAZADA", "Presupuesto rechazado por el cliente")
                     End If
-
-                    'confirmo solo si se pudo guardar
-                    If aviso = "" Then
-                        transaccion.Commit()
-                    Else
-                        transaccion.Rollback()
-                    End If
                 Catch ex As Exception
-                    'algo fallo: deshago todo y dejo que el error llegue al mensaje de abajo
+                    'algo fallo antes de confirmar: deshago todo y dejo que el error llegue al mensaje de abajo
                     transaccion.Rollback()
                     Throw
                 End Try
+
+                'confirmo fuera del Try de arriba: si el Commit falla no se intenta deshacer una transaccion ya cerrada
+                If aviso = "" Then
+                    transaccion.Commit()
+                Else
+                    transaccion.Rollback()
+                End If
             End Using
         Catch ex As Exception
             MessageBox.Show("No se pudo rechazar el presupuesto y no se guardó ningún dato." & vbCrLf &
@@ -1075,7 +1573,7 @@ Public Class FrmOrdenGestion
         CargarOrden()
     End Sub
 
-    Private Sub btnIniciar_Click(sender As Object, e As EventArgs) Handles btnIniciar.Click
+    Sub IniciarTrabajo()
         'paso la orden de APROBADA a EN_PROCESO
 
         Dim aviso As String = ""
@@ -1105,18 +1603,18 @@ Public Class FrmOrdenGestion
                     End If
 
                     If aviso = "" Then CambiarEstado(cn, transaccion, "EN_PROCESO", "Inicio del trabajo")
-
-                    'confirmo solo si se pudo guardar
-                    If aviso = "" Then
-                        transaccion.Commit()
-                    Else
-                        transaccion.Rollback()
-                    End If
                 Catch ex As Exception
-                    'algo fallo: deshago todo y dejo que el error llegue al mensaje de abajo
+                    'algo fallo antes de confirmar: deshago todo y dejo que el error llegue al mensaje de abajo
                     transaccion.Rollback()
                     Throw
                 End Try
+
+                'confirmo fuera del Try de arriba: si el Commit falla no se intenta deshacer una transaccion ya cerrada
+                If aviso = "" Then
+                    transaccion.Commit()
+                Else
+                    transaccion.Rollback()
+                End If
             End Using
         Catch ex As Exception
             MessageBox.Show("No se pudo iniciar el trabajo y no se guardó ningún dato." & vbCrLf &
@@ -1134,92 +1632,77 @@ Public Class FrmOrdenGestion
         CargarOrden()
     End Sub
 
-    Private Sub btnGuardarEjecucion_Click(sender As Object, e As EventArgs) Handles btnGuardarEjecucion.Click
-        'guardo la cantidad real y las horas reales de la linea seleccionada
+    Sub GuardarAvance()
+        'guardo lo cargado hasta ahora del trabajo en proceso: lo real de cada linea y las observaciones
         'no cambia el estado de la orden ni deja fila en el historial
 
-        'tomo la linea marcada en la grilla en este momento
-        If dgvDetalle.SelectedRows.Count = 0 Then
-            MessageBox.Show("Debe seleccionar una línea del presupuesto para cargar su ejecución")
-            Exit Sub
-        End If
-        Dim fila As DataGridViewRow = dgvDetalle.SelectedRows(0)
-        Dim idDetalle As Integer = CInt(fila.Cells("id_ot_detalle").Value)
+        'cierro la edicion de la celda para que el ultimo valor escrito quede en la grilla
+        If Not dgvDetalle.EndEdit() Then Exit Sub
 
-        'solo se ejecutan las lineas que aprobo el cliente
-        If Not Convert.ToBoolean(fila.Cells("aprobado").Value) Then
-            MessageBox.Show("La línea seleccionada no fue aprobada por el cliente, no se ejecuta.")
-            Exit Sub
-        End If
-
-        'los dos valores admiten dos decimales y no pueden ser negativos
-        Dim cantidadReal As Decimal = Math.Round(nudCantidadReal.Value, 2, MidpointRounding.AwayFromZero)
-        Dim horasReales As Decimal = Math.Round(nudHorasReales.Value, 2, MidpointRounding.AwayFromZero)
-        If cantidadReal < 0 Then
-            MessageBox.Show("La cantidad real no puede ser negativa")
-            nudCantidadReal.Focus()
-            Exit Sub
-        End If
-        If horasReales < 0 OrElse horasReales > 999.99D Then
-            MessageBox.Show("Las horas reales deben estar entre 0 y 999,99")
-            nudHorasReales.Focus()
-            Exit Sub
-        End If
-
+        Dim notas As String = txtNotasTecnicas.Text.Trim
         Dim aviso As String = ""
 
         Try
             Using cn As New MySqlConnection(CADENA)
                 cn.Open()
 
+                'las lineas y las observaciones se guardan juntas o ninguna
                 Dim transaccion As MySqlTransaction = cn.BeginTransaction()
                 Try
                     If LeerCodigoEstado(cn, transaccion) <> "EN_PROCESO" Then
-                        aviso = "La orden ya no está en proceso, no se puede cargar la ejecución."
+                        aviso = "La orden ya no está en proceso, no se puede guardar el avance."
                     End If
 
-                    If aviso = "" Then
-                        Dim consulta As String =
-                            "UPDATE ot_detalle SET cantidad_real = @cantidad_real, horas_reales = @horas_reales " &
-                            "WHERE id_ot_detalle = @id_ot_detalle AND id_orden_trabajo = @id_orden_trabajo " &
-                            "AND aprobado = 1;"
-                        Using cmd As New MySqlCommand(consulta, cn, transaccion)
-                            cmd.Parameters.AddWithValue("@cantidad_real", cantidadReal)
-                            cmd.Parameters.AddWithValue("@horas_reales", horasReales)
-                            cmd.Parameters.AddWithValue("@id_ot_detalle", idDetalle)
-                            cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
-                            If cmd.ExecuteNonQuery() = 0 Then
-                                aviso = "La línea seleccionada ya no existe o no está aprobada."
-                            End If
-                        End Using
-                    End If
-
-                    'confirmo solo si se pudo guardar
-                    If aviso = "" Then
-                        transaccion.Commit()
-                    Else
-                        transaccion.Rollback()
-                    End If
+                    If aviso = "" Then GuardarEjecucion(cn, transaccion, notas)
                 Catch ex As Exception
-                    'algo fallo: deshago todo y dejo que el error llegue al mensaje de abajo
+                    'algo fallo antes de confirmar: deshago todo y dejo que el error llegue al mensaje de abajo
                     transaccion.Rollback()
                     Throw
                 End Try
+
+                'confirmo fuera del Try de arriba: si el Commit falla no se intenta deshacer una transaccion ya cerrada
+                If aviso = "" Then
+                    transaccion.Commit()
+                Else
+                    transaccion.Rollback()
+                End If
             End Using
         Catch ex As Exception
-            MessageBox.Show("No se pudo guardar la ejecución y no se guardó ningún dato." & vbCrLf &
+            MessageBox.Show("No se pudo guardar el avance y no se guardó ningún dato." & vbCrLf &
                             "Detalle: " & ex.Message)
             Exit Sub
         End Try
 
-        If aviso <> "" Then MessageBox.Show(aviso)
+        If aviso <> "" Then
+            MessageBox.Show(aviso)
+        Else
+            MessageBox.Show("Avance guardado.")
+        End If
 
-        'vuelvo a cargar la orden con sus lineas actuales
+        'vuelvo a cargar la orden con lo que quedo guardado
         CargarOrden()
     End Sub
 
-    Private Sub btnFinalizar_Click(sender As Object, e As EventArgs) Handles btnFinalizar.Click
-        'cierre tecnico: paso la orden de EN_PROCESO a FINALIZADA
+    Sub FinalizarTrabajo()
+        'cierre tecnico: guardo el avance y paso la orden de EN_PROCESO a FINALIZADA, todo junto
+
+        'cierro la edicion de la celda para que el ultimo valor escrito quede en la grilla
+        If Not dgvDetalle.EndEdit() Then Exit Sub
+
+        'toda linea aprobada tiene que tener cargada su ejecucion real
+        'lo compruebo antes de guardar, asi lo ya escrito sigue en pantalla
+        Dim faltantes As Integer = 0
+        For Each fila As DataGridViewRow In dgvDetalle.Rows
+            If IsDBNull(fila.Cells("colReal").Value) OrElse IsDBNull(fila.Cells("colHoras").Value) Then
+                faltantes = faltantes + 1
+            End If
+        Next
+        If faltantes > 0 Then
+            MessageBox.Show("Falta cargar la cantidad real y las horas reales en " & faltantes &
+                            " línea(s) aprobada(s). Complete las columnas ""Real"" y ""Horas"".")
+            dgvDetalle.Focus()
+            Exit Sub
+        End If
 
         'las observaciones del mecanico son obligatorias para cerrar el trabajo
         Dim notas As String = txtNotasTecnicas.Text.Trim
@@ -1235,7 +1718,7 @@ Public Class FrmOrdenGestion
             Using cn As New MySqlConnection(CADENA)
                 cn.Open()
 
-                'las observaciones, la fecha, el estado y el historial se guardan juntos o ninguno
+                'lo real de cada linea, las observaciones, la fecha, el estado y el historial se guardan juntos o ninguno
                 Dim transaccion As MySqlTransaction = cn.BeginTransaction()
                 Try
                     If LeerCodigoEstado(cn, transaccion) <> "EN_PROCESO" Then
@@ -1244,46 +1727,47 @@ Public Class FrmOrdenGestion
 
                     Dim consulta As String
 
-                    'toda linea aprobada tiene que tener cargada su ejecucion real
                     If aviso = "" Then
+                        'el mismo guardado que hace "Guardar avance"
+                        GuardarEjecucion(cn, transaccion, notas)
+
+                        'vuelvo a comprobar en la base que no quede ninguna linea aprobada sin su ejecucion
                         consulta = "SELECT COUNT(*) FROM ot_detalle " &
                                    "WHERE id_orden_trabajo = @id_orden_trabajo AND aprobado = 1 " &
                                    "AND (cantidad_real IS NULL OR horas_reales IS NULL);"
                         Using cmd As New MySqlCommand(consulta, cn, transaccion)
                             cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
-                            Dim faltantes As Integer = CInt(cmd.ExecuteScalar())
-                            If faltantes > 0 Then
-                                aviso = "Falta cargar la cantidad real y las horas reales en " & faltantes &
-                                        " línea(s) aprobada(s). Seleccione cada una y use ""Guardar ejecución""."
+                            Dim sinEjecucion As Integer = CInt(cmd.ExecuteScalar())
+                            If sinEjecucion > 0 Then
+                                aviso = "Falta cargar la cantidad real y las horas reales en " & sinEjecucion &
+                                        " línea(s) aprobada(s). Se recargó la orden: revísela y vuelva a intentar."
                             End If
                         End Using
                     End If
 
                     If aviso = "" Then
                         'la fecha de finalizacion es la fecha y hora del servidor
-                        consulta = "UPDATE orden_trabajo SET observaciones_mecanico = @observaciones_mecanico, " &
-                                   "fecha_finalizacion = NOW() " &
+                        consulta = "UPDATE orden_trabajo SET fecha_finalizacion = NOW() " &
                                    "WHERE id_orden_trabajo = @id_orden_trabajo;"
                         Using cmd As New MySqlCommand(consulta, cn, transaccion)
-                            cmd.Parameters.AddWithValue("@observaciones_mecanico", notas)
                             cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
                             cmd.ExecuteNonQuery()
                         End Using
 
                         CambiarEstado(cn, transaccion, "FINALIZADA", "Trabajo finalizado")
                     End If
-
-                    'confirmo solo si se pudo guardar
-                    If aviso = "" Then
-                        transaccion.Commit()
-                    Else
-                        transaccion.Rollback()
-                    End If
                 Catch ex As Exception
-                    'algo fallo: deshago todo y dejo que el error llegue al mensaje de abajo
+                    'algo fallo antes de confirmar: deshago todo y dejo que el error llegue al mensaje de abajo
                     transaccion.Rollback()
                     Throw
                 End Try
+
+                'confirmo fuera del Try de arriba: si el Commit falla no se intenta deshacer una transaccion ya cerrada
+                If aviso = "" Then
+                    transaccion.Commit()
+                Else
+                    transaccion.Rollback()
+                End If
             End Using
         Catch ex As Exception
             MessageBox.Show("No se pudo finalizar la orden y no se guardó ningún dato." & vbCrLf &
@@ -1301,7 +1785,7 @@ Public Class FrmOrdenGestion
         CargarOrden()
     End Sub
 
-    Private Sub btnEntregar_Click(sender As Object, e As EventArgs) Handles btnEntregar.Click
+    Sub EntregarVehiculo()
         'entrego el vehiculo: paso la orden de FINALIZADA a ENTREGADA
 
         'pido confirmacion, la orden queda cerrada
@@ -1363,18 +1847,18 @@ Public Class FrmOrdenGestion
 
                         CambiarEstado(cn, transaccion, "ENTREGADA", "Vehículo entregado al cliente")
                     End If
-
-                    'confirmo solo si se pudo guardar
-                    If aviso = "" Then
-                        transaccion.Commit()
-                    Else
-                        transaccion.Rollback()
-                    End If
                 Catch ex As Exception
-                    'algo fallo: deshago todo y dejo que el error llegue al mensaje de abajo
+                    'algo fallo antes de confirmar: deshago todo y dejo que el error llegue al mensaje de abajo
                     transaccion.Rollback()
                     Throw
                 End Try
+
+                'confirmo fuera del Try de arriba: si el Commit falla no se intenta deshacer una transaccion ya cerrada
+                If aviso = "" Then
+                    transaccion.Commit()
+                Else
+                    transaccion.Rollback()
+                End If
             End Using
         Catch ex As Exception
             MessageBox.Show("No se pudo registrar la entrega y no se guardó ningún dato." & vbCrLf &
@@ -1401,23 +1885,13 @@ Public Class FrmOrdenGestion
             Exit Sub
         End If
 
-        'el motivo es obligatorio y queda en el historial de estados
-        Dim motivo As String = txtMotivoAnulacion.Text.Trim
-        If motivo = "" Then
-            MessageBox.Show("Falta el motivo de la anulación")
-            txtMotivoAnulacion.Focus()
-            Exit Sub
-        End If
-
-        'pido confirmacion, la anulacion no tiene vuelta atras
-        Dim respuesta As DialogResult = MessageBox.Show(
-            "¿Anular la orden de trabajo? Esta acción no se puede deshacer." & vbCrLf &
-            "Motivo: " & motivo,
-            "Anular orden",
-            MessageBoxButtons.YesNo,
-            MessageBoxIcon.Warning)
-
-        If respuesta = DialogResult.No Then Exit Sub
+        'el motivo es obligatorio y queda en el historial: lo pide una ventana aparte, que tambien confirma
+        Dim motivo As String = ""
+        Using formulario As New FrmAnularOrden
+            formulario.Orden = lblTitulo.Text
+            If formulario.ShowDialog() <> DialogResult.OK Then Exit Sub
+            motivo = formulario.Motivo
+        End Using
 
         Dim aviso As String = ""
 
@@ -1429,36 +1903,26 @@ Public Class FrmOrdenGestion
                 Dim transaccion As MySqlTransaction = cn.BeginTransaction()
                 Try
                     'vuelvo a leer el estado de la orden: otro puesto pudo cerrarla
-                    Dim esFinal As Boolean = True
-                    Dim consulta As String =
-                        "SELECT e.es_estado_final " &
-                        "FROM orden_trabajo AS ot " &
-                        "JOIN estado_ot AS e ON e.id_estado_ot = ot.id_estado_ot " &
-                        "WHERE ot.id_orden_trabajo = @id_orden_trabajo FOR UPDATE;"
-                    Using cmd As New MySqlCommand(consulta, cn, transaccion)
-                        cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
-                        Dim resultado As Object = cmd.ExecuteScalar()
-                        If resultado IsNot Nothing Then esFinal = Convert.ToBoolean(resultado)
-                    End Using
+                    Dim codigoActual As String = LeerCodigoEstado(cn, transaccion)
 
-                    If esFinal Then
+                    If EstadoEsFinal(cn, transaccion, codigoActual) Then
                         aviso = "La orden ya está en un estado final y no se puede anular."
                     End If
 
                     'no se borra ninguna fila: la orden, sus lineas y su historial se conservan
                     If aviso = "" Then CambiarEstado(cn, transaccion, "ANULADA", motivo)
-
-                    'confirmo solo si se pudo guardar
-                    If aviso = "" Then
-                        transaccion.Commit()
-                    Else
-                        transaccion.Rollback()
-                    End If
                 Catch ex As Exception
-                    'algo fallo: deshago todo y dejo que el error llegue al mensaje de abajo
+                    'algo fallo antes de confirmar: deshago todo y dejo que el error llegue al mensaje de abajo
                     transaccion.Rollback()
                     Throw
                 End Try
+
+                'confirmo fuera del Try de arriba: si el Commit falla no se intenta deshacer una transaccion ya cerrada
+                If aviso = "" Then
+                    transaccion.Commit()
+                Else
+                    transaccion.Rollback()
+                End If
             End Using
         Catch ex As Exception
             MessageBox.Show("No se pudo anular la orden y no se guardó ningún dato." & vbCrLf &
@@ -1470,8 +1934,10 @@ Public Class FrmOrdenGestion
             MessageBox.Show(aviso)
         Else
             MessageBox.Show("Orden anulada.")
-            txtMotivoAnulacion.Clear()
         End If
+
+        'lo que estaba escrito y sin guardar ya no cuenta: la orden quedo cerrada o cambio desde otro puesto
+        avanceSinGuardar = False
 
         'vuelvo a cargar la orden con su estado actual
         CargarOrden()
