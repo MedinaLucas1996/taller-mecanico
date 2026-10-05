@@ -44,7 +44,11 @@ Los títulos de sección siguen la misma regla: "OPERACIONES" se muestra a todos
 
 Las tres pantallas están disponibles para el administrador y el operador.
 
-**Recepción** (`FrmRecepcion`) abre la orden de trabajo con un asistente de cuatro pasos. Se puede volver a un paso anterior sin perder lo cargado.
+**Recepción** (`FrmRecepcion`) abre la orden de trabajo con un asistente de cuatro pasos que ocupa todo el ancho de la ventana. Se puede volver a un paso anterior sin perder lo cargado.
+
+- Una barra muestra los cuatro pasos: el actual resaltado, los completos con una marca y los que faltan atenuados. Un clic en un paso completo vuelve a él; hacia adelante solo se avanza con "Siguiente".
+- A la derecha, la tarjeta "Resumen de la recepción" está siempre a la vista y se completa a medida que se avanza: vehículo, cliente, kilometraje, combustible, mecánico, fecha prometida, cantidad de fotos y síntoma.
+- Al pie quedan siempre en el mismo lugar "Cancelar", "Anterior" y el botón principal, que dice "Siguiente" en los pasos 1 a 3 y "Confirmar recepción" en el paso 4.
 
 | Paso | Qué se hace |
 |---|---|
@@ -64,6 +68,15 @@ Las tres pantallas están disponibles para el administrador y el operador.
 | Detalle | Datos de la orden seleccionada (número, estado, vehículo, cliente, mecánico, fechas y total presupuestado), sus cinco fotos de recepción en miniatura y el botón "Gestionar orden". Sin una orden seleccionada solo muestra una ayuda. |
 
 Las fotos se leen de la base recién al elegir la orden. Un clic en una miniatura con foto la abre ampliada en una ventana aparte (`FrmFoto`). "Gestionar orden" abre la gestión de la orden seleccionada; al cerrarla, las tarjetas y la grilla se recargan y la orden sigue seleccionada si continúa en la lista.
+
+Las fotos también se pueden cargar después de la recepción, desde las miniaturas del detalle:
+
+| Acción | Cuándo se permite | Cómo |
+|---|---|---|
+| Agregar una foto que falta | Mientras la orden no esté en un estado final | Un clic en la miniatura vacía, que se muestra con borde punteado y "Cargar foto". |
+| Reemplazar o quitar una foto cargada | Solo con la orden en `RECEPCIONADA` | Un clic en la miniatura abre la foto ampliada, con los botones "Reemplazar foto" y "Quitar foto". |
+
+Cada foto guarda quién la cargó y cuándo, y pasa por el mismo proceso que en la recepción (JPG o PNG, reducida a 1280 píxeles, guardada como JPEG).
 
 Las fotos se guardan en la base de datos, en la tabla `ot_foto`.
 
