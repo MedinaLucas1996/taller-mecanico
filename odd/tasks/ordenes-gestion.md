@@ -172,6 +172,8 @@ Redesign on 2026-10-05 (branch `feature/TM-0008`), asked by the user after using
 
 Review of `9acc6b2`: the native review refused it at start with `lens_context_budget_exceeded` (too large; no review record was created). An independent read-only reviewer read `FrmOrdenGestion.vb` in full instead and confirmed one serious defect, fixed in the next commit: the primary and secondary buttons dispatched with independent `If` lines on `codigoEstado`, which each step rewrites, so one click chained several transitions (approval went straight on to "Iniciar trabajo"; "Finalizar trabajo" went on to ask for the delivery). It also found the transactions, totals, execution save, tick restore and role checks correct. Still open from that read: the unsaved-progress guard may miss a value still being typed when the window is closed; a rejected cell edit may show its message twice; approval still guards only the line count.
 
+Verified by the user at runtime on 2026-10-05 ("funciona todo") after the single-step fix; the agent did not observe it.
+
 ## Next step
 
-The user tests the redesigned dialog through every state. Next feature in the roadmap: "Mis órdenes asignadas" (mechanic screen).
+Next feature in the roadmap: "Mis órdenes asignadas" (mechanic screen).
