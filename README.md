@@ -49,13 +49,17 @@ Las tres pantallas están disponibles para el administrador y el operador.
 | 3. Fotos | Una foto por ángulo: frente, trasera, lateral izquierdo, lateral derecho y tablero. Se eligen del disco (JPG o PNG), se reducen a 1280 píxeles en su lado mayor y se pueden quitar. Son opcionales. |
 | 4. Confirmación | Resumen de solo lectura. Al confirmar se avisa qué fotos faltan y se guardan, en una sola transacción, la orden con el número siguiente en estado `RECEPCIONADA`, la primera fila del historial de estados y las fotos cargadas. |
 
-**Órdenes de trabajo** (`FrmOrdenes`) es un tablero con el estado de todas las órdenes. El tablero no modifica datos; los cambios se hacen en la gestión de la orden.
+**Órdenes de trabajo** (`FrmOrdenes`) es un tablero con el estado de todas las órdenes. Ocupa todo el ancho de la ventana y no modifica datos; los cambios se hacen en la gestión de la orden.
 
-- Resumen con la cantidad de órdenes en cada estado. Cuenta siempre todas las órdenes, sin aplicar los filtros.
-- Filtros por estado, por texto (parte de la patente o del nombre del cliente) y "Solo demoradas".
-- Grilla con una fila por orden, la más reciente primero: número, fecha de recepción, patente, vehículo, cliente de la orden, mecánico, estado, fecha prometida y situación. Una orden figura como **Demorada**, con la fila resaltada, cuando su fecha prometida ya pasó y su estado no es final.
-- Fotos de recepción de la orden seleccionada. Se leen de la base recién al elegir la orden.
-- Botón "Gestionar orden": abre la gestión de la orden seleccionada. Al cerrarla, el resumen y la grilla se recargan.
+| Zona | Qué muestra |
+|---|---|
+| Título | Cuántas órdenes están listadas y cuántas de ellas están demoradas. |
+| Tarjetas de estado | Una tarjeta por estado, con la cantidad de órdenes en ese estado. Cuentan siempre todas las órdenes, sin aplicar los filtros. Un clic en una tarjeta filtra la lista por ese estado; otro clic en la misma tarjeta quita el filtro. |
+| Filtros | Texto (parte de la patente o del nombre del cliente), que filtra mientras se escribe, "Solo demoradas" y "Limpiar filtros", que también quita el estado elegido. |
+| Grilla | Una fila por orden, la más reciente primero: número, fecha de recepción, patente, vehículo, cliente de la orden, mecánico, estado, fecha prometida y situación. La celda del estado lleva un color por estado. Una orden figura como **Demorada**, con la fila resaltada, cuando su fecha prometida ya pasó y su estado no es final. |
+| Detalle | Datos de la orden seleccionada (número, estado, vehículo, cliente, mecánico, fechas y total presupuestado), sus cinco fotos de recepción en miniatura y el botón "Gestionar orden". Sin una orden seleccionada solo muestra una ayuda. |
+
+Las fotos se leen de la base recién al elegir la orden. Un clic en una miniatura con foto la abre ampliada en una ventana aparte (`FrmFoto`). "Gestionar orden" abre la gestión de la orden seleccionada; al cerrarla, las tarjetas y la grilla se recargan y la orden sigue seleccionada si continúa en la lista.
 
 Las fotos se guardan en la base de datos, en la tabla `ot_foto`.
 
@@ -245,7 +249,7 @@ No aplica: aplicación de escritorio WinForms. No expone endpoints.
   - Terminado: Clientes (ABM, baja lógica, búsqueda en vivo), Vehículos (ABM con combos de titular y marca/modelo en cascada, baja lógica), Marcas y modelos (maestro-detalle), Usuarios (ABM con baja lógica; contraseña guardada con PBKDF2 al crear o modificar; el rol MECANICO exige elegir un mecánico; el administrador no puede darse de baja ni cambiar su propio rol; el botón del menú solo se muestra para el rol ADMINISTRADOR).
   - Terminado: Login (imagen y música; valida usuario activo y contraseña contra `usuario`, con un mensaje único para usuario inexistente o clave incorrecta; guarda el usuario en `Sesion` y la barra superior de `FrmPrincipal` muestra nombre y rol; el botón "Cerrar sesión" de esa barra vuelve al login vacío para que ingrese otro usuario).
   - Terminado: Menú por rol (`FrmPrincipal` está armado en el diseñador y muestra en `FrmPrincipal_Load` solo las opciones del rol que ingresó; ver [Menú por rol](#menú-por-rol)). Aún no se aplican permisos por rol dentro de cada pantalla, salvo en Usuarios, Mecánicos, Recepción, Órdenes de trabajo y Gestión de la orden, que comprueban el rol al abrirse; en Gestión de la orden, además, solo el administrador ve el botón "Anular".
-  - Terminado: Recepción (asistente de cuatro pasos: vehículo por patente, datos de ingreso, fotos por ángulo y confirmación; guarda en una transacción la orden en estado `RECEPCIONADA`, su primera fila de historial y sus fotos) y Órdenes de trabajo (tablero: cantidad de órdenes por estado, grilla con filtros por estado, texto y demoradas, fotos de la orden seleccionada y botón "Gestionar orden"). Ver [Recepción y órdenes de trabajo](#recepción-y-órdenes-de-trabajo).
+  - Terminado: Recepción (asistente de cuatro pasos: vehículo por patente, datos de ingreso, fotos por ángulo y confirmación; guarda en una transacción la orden en estado `RECEPCIONADA`, su primera fila de historial y sus fotos) y Órdenes de trabajo (tablero a todo el ancho: tarjetas con la cantidad de órdenes por estado, que también filtran la lista; filtros por texto y demoradas; grilla con el estado en color; y tarjeta de detalle de la orden seleccionada con sus fotos en miniatura, ampliables, y el botón "Gestionar orden"). Ver [Recepción y órdenes de trabajo](#recepción-y-órdenes-de-trabajo).
   - Terminado: Gestión de la orden (líneas de presupuesto con sus totales, mecánico, aprobación del cliente por línea o rechazo, inicio del trabajo, cantidad y horas reales por línea, cierre técnico, entrega con actualización del kilometraje y anulación con motivo, solo para el administrador; cada cambio de estado se guarda en una transacción con su fila de historial). Ver [Recepción y órdenes de trabajo](#recepción-y-órdenes-de-trabajo).
   - Pendiente en el flujo de la orden de trabajo: vista del mecánico e impresión del presupuesto.
   - Terminado: Mecánicos (ABM solo para el administrador: nombre completo obligatorio, especialidad y teléfono; la grilla lista activos y dados de baja con búsqueda por nombre o especialidad; baja lógica, rechazada si el mecánico tiene órdenes de trabajo sin cerrar; un mecánico dado de baja se reactiva con el mismo botón; no admite dos mecánicos activos con el mismo nombre).
