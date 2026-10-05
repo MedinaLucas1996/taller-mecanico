@@ -541,8 +541,8 @@ Public Class FrmRecepcion
 
                         'el vehiculo existe pero esta dado de baja: no se recepciona ni se registra de nuevo
                         If Not Convert.ToBoolean(lector("activo")) Then
-                            MessageBox.Show("No hay un vehículo activo con la patente " & patente & "." & vbCrLf &
-                                            "Regístrelo primero en ""Vehículos"" y vuelva a buscarlo.")
+                            MessageBox.Show("El vehículo con la patente " & patente & " está dado de baja." & vbCrLf &
+                                            "No se puede recepcionar ni registrar de nuevo con esa patente.")
                             txtPatente.Focus()
                             Exit Sub
                         End If
