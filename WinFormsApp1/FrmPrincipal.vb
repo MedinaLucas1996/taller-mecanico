@@ -202,6 +202,10 @@ Public Class FrmPrincipal
         AbrirFormulario(New FrmServicios())
     End Sub
 
+    Private Sub btnCategorias_Click(sender As Object, e As EventArgs) Handles btnCategorias.Click
+        AbrirFormulario(New FrmCategorias())
+    End Sub
+
     Private Sub btnMecanicos_Click(sender As Object, e As EventArgs) Handles btnMecanicos.Click
         AbrirFormulario(New FrmMecanicos())
     End Sub
