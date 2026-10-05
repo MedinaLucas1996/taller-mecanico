@@ -138,6 +138,8 @@ Se abre la orden de trabajo registrando:
 | Nivel de combustible | Registro del estado al ingresar |
 | Observaciones de recepción | Rayones, faltantes, estado general |
 | Mecánico | Puede quedar sin asignar y completarse después |
+| Fecha prometida de entrega | Opcional; no puede ser anterior al día de la recepción |
+| Fotos del vehículo | Cinco ángulos: frente, trasera, lateral izquierdo, lateral derecho y tablero. Son opcionales |
 
 **Estado resultante:** `RECEPCIONADA` · **Salida:** comanda de taller
 
@@ -220,7 +222,7 @@ El indicador de edición de detalle controla algo concreto: hasta el estado `PRE
 
 ## 7. Modelo de datos
 
-El modelo consta de **12 tablas**.
+El modelo consta de **13 tablas**.
 
 ### 7.1 Datos maestros
 
@@ -242,9 +244,10 @@ El modelo consta de **12 tablas**.
 
 | Tabla | Contenido |
 |---|---|
-| `orden_trabajo` | Cabecera: número, vehículo, cliente, mecánico, estado, fechas, kilometraje, síntoma, observaciones, totales |
+| `orden_trabajo` | Cabecera: número, vehículo, cliente, mecánico, estado, fechas (incluida la fecha prometida de entrega), kilometraje, síntoma, observaciones, totales |
 | `ot_detalle` | Líneas del presupuesto: servicio, descripción y precio congelados, cantidad, subtotal, aprobación, ejecución real |
 | `ot_historial_estado` | Trazabilidad de los cambios de estado |
+| `ot_foto` | Fotos del vehículo tomadas en la recepción: orden, ángulo, imagen, usuario, fecha y hora |
 
 ---
 
@@ -264,7 +267,7 @@ Solo las líneas marcadas como aprobadas se ejecutan y se contabilizan en el tot
 
 ### 8.3 Validación de kilometraje
 
-El kilometraje ingresado en una orden nueva no puede ser inferior al de la última orden registrada para ese vehículo.
+El kilometraje ingresado en una orden nueva no puede ser inferior al de la última orden registrada para ese vehículo ni al kilometraje actual cargado en el vehículo.
 
 ### 8.4 Cambio de titularidad del vehículo
 
@@ -283,6 +286,16 @@ Un usuario tiene mecánico asociado si y solo si su rol es `MECANICO`.
 ### 8.7 Anulación
 
 Las órdenes anuladas conservan su registro y su historial. No se eliminan físicamente.
+
+### 8.8 Fotos de recepción
+
+En la recepción se puede cargar una foto por cada uno de los cinco ángulos del vehículo: frente, trasera, lateral izquierdo, lateral derecho y tablero. Se aceptan archivos JPG o PNG, que se reducen a 1280 píxeles en su lado mayor y se guardan en la base de datos en formato JPEG.
+
+Las fotos son opcionales: si falta alguna, el sistema lo advierte y permite continuar. Cada orden admite una sola foto por ángulo.
+
+### 8.9 Órdenes demoradas
+
+Una orden está demorada cuando su fecha prometida de entrega es anterior a la fecha actual y su estado no es final. Las órdenes sin fecha prometida no se consideran demoradas.
 
 ---
 

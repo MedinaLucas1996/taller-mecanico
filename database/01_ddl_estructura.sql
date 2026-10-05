@@ -1,7 +1,8 @@
 -- =====================================================================
 -- Sistema de Gestión para Taller Mecánico
 -- 01 - DDL: estructura de la base de datos (MariaDB >= 10.6)
--- Fuente: taller-mecanico.dbml (12 tablas, solo servicios)
+-- Fuente: taller-mecanico.dbml (12 tablas, solo servicios) más la
+-- tabla ot_foto de las fotos de recepción: 13 tablas en total
 --
 -- ATENCIÓN: la primera sentencia elimina la base completa.
 -- Sirve para reiniciar durante el desarrollo. Comentarla cuando
@@ -182,6 +183,7 @@ CREATE TABLE orden_trabajo (
     fecha_recepcion          DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_finalizacion       DATETIME      NULL,
     fecha_entrega            DATETIME      NULL,
+    fecha_prometida          DATE          NULL COMMENT 'Fecha prometida de entrega. Opcional',
     km_ingreso               INT           NOT NULL COMMENT 'No menor al km de la última OT (se valida en la app)',
     nivel_combustible        ENUM('VACIO', 'UN_CUARTO', 'MEDIO', 'TRES_CUARTOS', 'LLENO') NULL,
     sintoma_reportado        TEXT          NOT NULL,
@@ -265,6 +267,28 @@ CREATE TABLE ot_historial_estado (
         REFERENCES estado_ot (id_estado_ot)
         ON DELETE RESTRICT ON UPDATE RESTRICT,
     CONSTRAINT cf_ot_historial_usuario FOREIGN KEY (id_usuario)
+        REFERENCES usuario (id_usuario)
+        ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB;
+
+-- ---------------------------------------------------------------------
+-- FOTOS DE RECEPCIÓN
+-- ---------------------------------------------------------------------
+
+CREATE TABLE ot_foto (
+    id_ot_foto        INT      NOT NULL AUTO_INCREMENT,
+    id_orden_trabajo  INT      NOT NULL,
+    angulo            ENUM('FRENTE', 'TRASERA', 'LATERAL_IZQUIERDO', 'LATERAL_DERECHO', 'TABLERO') NOT NULL,
+    imagen            LONGBLOB NOT NULL COMMENT 'JPEG reducido a 1280 px en su lado mayor',
+    id_usuario        INT      NOT NULL COMMENT 'Usuario que cargó la foto',
+    fecha_hora        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT cp_ot_foto PRIMARY KEY (id_ot_foto),
+    -- Una sola foto por ángulo en cada orden
+    CONSTRAINT un_ot_foto_orden_angulo UNIQUE (id_orden_trabajo, angulo),
+    CONSTRAINT cf_ot_foto_orden FOREIGN KEY (id_orden_trabajo)
+        REFERENCES orden_trabajo (id_orden_trabajo)
+        ON DELETE CASCADE ON UPDATE RESTRICT,
+    CONSTRAINT cf_ot_foto_usuario FOREIGN KEY (id_usuario)
         REFERENCES usuario (id_usuario)
         ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE = InnoDB;
