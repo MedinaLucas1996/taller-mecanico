@@ -35,6 +35,11 @@ Repositorio: https://github.com/MedinaLucas1996/taller-mecanico (público).
     - Grilla: lista todos los servicios, activos y dados de baja, con código, descripción, categoría, precio, horas y la columna "Activo" (Sí / No); los activos primero. Búsqueda en vivo por código, descripción o categoría.
     - Código repetido: lo impide la restricción única `un_servicio_codigo`; el error 1062 se traduce a un mensaje, que aclara que el código puede ser de un servicio dado de baja.
     - Baja y reactivación: el mismo botón dice "Dar de baja" o "Reactivar" según el servicio seleccionado, y ambos piden confirmación. Dentro de una transacción se vuelve a leer el servicio con bloqueo; si otro puesto ya le cambió el estado no se guarda nada. La baja no comprueba si el servicio está en uso, porque cada línea de presupuesto guarda su propia copia de la descripción y del precio. La reactivación se rechaza si la categoría del servicio está dada de baja.
+  - **Categorías** (`FrmCategorias`, solo administrador): alta, modificación, baja lógica y reactivación sobre la tabla `categoria_servicio`. Como respaldo del menú, al abrirse con un rol distinto de `ADMINISTRADOR` muestra un aviso y deshabilita el formulario.
+    - Campo: descripción (obligatoria, hasta 60 caracteres, se guarda sin espacios sobrantes).
+    - Grilla: lista todas las categorías, activas y dadas de baja, con la cantidad de servicios activos de cada una y la columna "Activo" (Sí / No); las activas primero. Búsqueda en vivo por descripción.
+    - Descripción repetida: la impide la restricción única `un_categoria_servicio_descripcion`; el error 1062 se traduce a un mensaje, que aclara que puede ser de una categoría dada de baja.
+    - Baja y reactivación: el mismo botón dice "Dar de baja" o "Reactivar" según la categoría seleccionada, y ambos piden confirmación. Dentro de una transacción se vuelve a leer la categoría con bloqueo; si otro puesto ya le cambió el estado no se guarda nada. La baja se rechaza, indicando la cantidad, si la categoría tiene servicios activos. La reactivación no tiene condiciones.
   - **Mecánicos** (`FrmMecanicos`, solo administrador): alta, modificación, baja lógica y reactivación sobre la tabla `mecanico`. Como respaldo del menú, al abrirse con un rol distinto de `ADMINISTRADOR` muestra un aviso y deshabilita el formulario.
     - Campos: nombre completo (obligatorio, hasta 100 caracteres), especialidad (hasta 80) y teléfono (hasta 30); los dos últimos, si quedan vacíos, se guardan como NULL.
     - Grilla: lista todos los mecánicos, activos y dados de baja, con la columna "Activo" (Sí / No); los activos primero. Búsqueda en vivo por nombre o especialidad.
@@ -73,7 +78,7 @@ Repositorio: https://github.com/MedinaLucas1996/taller-mecanico (público).
     | Anular | Estado no final → `ANULADA` | Solo visible para el administrador. Exige un motivo (hasta 255 caracteres), que se guarda como observación del historial. No borra ninguna fila. |
 
 - Pendiente en el flujo de la orden de trabajo: vista del mecánico e impresión del presupuesto o de la comanda de taller.
-- Opciones de menú sin pantalla (el botón existe pero no tiene evento): Historial, Categorías y Reportes.
+- Opciones de menú sin pantalla (el botón existe pero no tiene evento): Historial y Reportes.
 
 ### Menú por rol
 
@@ -218,7 +223,7 @@ graph TD
 
 Estados de la orden de trabajo (`database/02_dml_catalogos.sql`): `RECEPCIONADA`, `PRESUPUESTADA`, `APROBADA`, `EN_PROCESO`, `FINALIZADA`, `ENTREGADA`, `RECHAZADA`, `ANULADA`. Los estados llevan ID explícito (1 a 8). La recepción busca el estado inicial por su código (`RECEPCIONADA`), la gestión de la orden busca cada estado de destino también por su código, y el tablero de órdenes los lee de la tabla, ordenados por `orden_flujo`.
 
-Estado de implementación: la aplicación opera hoy sobre `cliente`, `vehiculo`, `marca` y `modelo`; el login lee `usuario` y el ABM de Usuarios la escribe (y lee `mecanico` solo para llenar el combo de mecánicos). La recepción escribe `orden_trabajo`, `ot_historial_estado` y `ot_foto`, y el tablero de órdenes las lee junto con `estado_ot`. La gestión de la orden escribe `ot_detalle`, `orden_trabajo` (mecánico, estado, totales, observaciones del mecánico y fechas de finalización y entrega), `ot_historial_estado` y `vehiculo.km_actual`, y lee `servicio` y `mecanico`. El ABM de Mecánicos escribe `mecanico` y lee `orden_trabajo` y `estado_ot` para rechazar la baja de un mecánico con órdenes sin cerrar. El ABM de Servicios escribe `servicio` y lee `categoria_servicio`. La tabla `categoria_servicio` todavía no tiene pantalla de carga: sus datos provienen de `database/02_dml_catalogos.sql`.
+Estado de implementación: la aplicación opera hoy sobre `cliente`, `vehiculo`, `marca` y `modelo`; el login lee `usuario` y el ABM de Usuarios la escribe (y lee `mecanico` solo para llenar el combo de mecánicos). La recepción escribe `orden_trabajo`, `ot_historial_estado` y `ot_foto`, y el tablero de órdenes las lee junto con `estado_ot`. La gestión de la orden escribe `ot_detalle`, `orden_trabajo` (mecánico, estado, totales, observaciones del mecánico y fechas de finalización y entrega), `ot_historial_estado` y `vehiculo.km_actual`, y lee `servicio` y `mecanico`. El ABM de Mecánicos escribe `mecanico` y lee `orden_trabajo` y `estado_ot` para rechazar la baja de un mecánico con órdenes sin cerrar. El ABM de Servicios escribe `servicio` y lee `categoria_servicio`. El ABM de Categorías escribe `categoria_servicio` y lee `servicio` para contar los servicios activos de cada categoría y rechazar la baja de una categoría que los tenga.
 
 Reglas de negocio relevantes de la especificación (sección 8):
 
@@ -364,7 +369,7 @@ Casos manejados en el código:
 
 Riesgos conocidos no cubiertos:
 
-- Los permisos por rol se aplican solo en el menú, ocultando opciones (ver [Menú por rol](#menú-por-rol)). Las pantallas no vuelven a comprobar el rol al abrirse, salvo `FrmUsuarios`, `FrmMecanicos`, `FrmServicios`, `FrmRecepcion`, `FrmOrdenes` y `FrmOrdenGestion`, y dentro de cada pantalla no hay permisos por botón, salvo "Anular" en `FrmOrdenGestion`, que es solo del administrador.
+- Los permisos por rol se aplican solo en el menú, ocultando opciones (ver [Menú por rol](#menú-por-rol)). Las pantallas no vuelven a comprobar el rol al abrirse, salvo `FrmUsuarios`, `FrmMecanicos`, `FrmServicios`, `FrmCategorias`, `FrmRecepcion`, `FrmOrdenes` y `FrmOrdenGestion`, y dentro de cada pantalla no hay permisos por botón, salvo "Anular" en `FrmOrdenGestion`, que es solo del administrador.
 - En la gestión de la orden, las tildes de aprobación y las observaciones del mecánico viven en pantalla hasta presionar "Registrar aprobación" o "Finalizar": las tildes se pierden si antes se modifica el presupuesto o se guarda el mecánico, y las observaciones se pierden si se cierra la ventana.
 - Una base creada con la versión anterior de los scripts y sin `database/07_recepcion_fotos.sql` no tiene `orden_trabajo.fecha_prometida` ni `ot_foto`: Recepción y Órdenes de trabajo muestran el error de MariaDB y no funcionan hasta ejecutar la migración.
 - Las fotos se guardan dentro de la base, por lo que su tamaño y el de sus copias de respaldo crecen con cada recepción (hasta cinco imágenes por orden).
@@ -411,8 +416,8 @@ Cobertura: no medida.
 
 Pendiente según el estado actual del código y `taller-mecanico-especificacion.md` (sección 13):
 
-1. **Permisos por rol**: el login ya valida usuario y contraseña y deja el rol en `Sesion.Rol`, y el menú principal ya se filtra por rol; falta aplicar permisos por rol (administrador, operador, mecánico) dentro de cada pantalla (hoy solo Usuarios, Mecánicos, Servicios, Recepción, Órdenes de trabajo y Gestión de la orden comprueban el rol al abrirse).
-2. **ABM restantes**: Categorías (los ABM de Usuarios, de Mecánicos y de Servicios ya están terminados).
+1. **Permisos por rol**: el login ya valida usuario y contraseña y deja el rol en `Sesion.Rol`, y el menú principal ya se filtra por rol; falta aplicar permisos por rol (administrador, operador, mecánico) dentro de cada pantalla (hoy solo Usuarios, Mecánicos, Servicios, Categorías, Recepción, Órdenes de trabajo y Gestión de la orden comprueban el rol al abrirse).
+2. **ABM**: todos terminados (Clientes, Vehículos, Marcas y modelos, Servicios, Categorías, Mecánicos y Usuarios).
 3. **Flujo de orden de trabajo**: la recepción (asistente con fotos, que crea la orden y su primera fila de historial en una transacción), el tablero de estado de las órdenes y la gestión de la orden (líneas de presupuesto, aprobación del cliente total o parcial por línea, y cambios de estado con su fila de historial en una transacción) ya están terminados. Falta: vista del mecánico, impresión (presupuesto y comanda de taller) y consulta de historial por patente.
 4. **Reportes**: elegir el motor compatible con .NET 10 y construir primero el presupuesto; después los reportes de gestión (servicios más solicitados, productividad por mecánico, órdenes abiertas, tiempos por etapa).
 5. **Credenciales fuera del repositorio**: cambiar la contraseña de la base de desarrollo y mover la cadena de conexión a configuración local no versionada.
