@@ -175,14 +175,13 @@ Registrar la aprobación exige al menos una línea aprobada. Si el cliente no ap
 
 ### 5.4 Ejecución del trabajo
 
-El mecánico realiza las tareas aprobadas. Sobre cada línea aprobada se registra:
+El mecánico realiza las tareas aprobadas. Sobre cada línea aprobada se registran solo las **horas trabajadas**: el tiempo insumido, que se contrasta con el tiempo estimado del catálogo.
 
-- **Cantidad real:** lo efectivamente ejecutado, que puede diferir de lo presupuestado
-- **Horas reales:** el tiempo insumido, que se contrasta con el tiempo estimado del catálogo
+La cantidad real ejecutada no se registra. La columna `ot_detalle.cantidad_real` permanece en el modelo de datos, sin uso.
 
 Ese contraste entre estimado y real alimenta el reporte de productividad.
 
-La cantidad y las horas reales se cargan línea por línea y se pueden guardar en cualquier momento, junto con las observaciones del mecánico, sin cerrar el trabajo ("Guardar avance").
+Las horas trabajadas se cargan línea por línea y se pueden guardar en cualquier momento, junto con las observaciones del mecánico, sin cerrar el trabajo ("Guardar avance").
 
 Para iniciar el trabajo la orden debe tener un mecánico asignado.
 
@@ -192,7 +191,7 @@ Para iniciar el trabajo la orden debe tener un mecánico asignado.
 
 Se completan las observaciones del mecánico —lo que se hizo y las recomendaciones para el cliente— y se registra la fecha de finalización.
 
-Para finalizar, todas las líneas aprobadas deben tener cargadas la cantidad real y las horas reales, y las observaciones del mecánico son obligatorias.
+Para finalizar, todas las líneas aprobadas deben tener cargadas sus horas trabajadas, y las observaciones del mecánico son obligatorias.
 
 **Estado resultante:** `FINALIZADA`
 
@@ -257,7 +256,7 @@ El modelo consta de **13 tablas**.
 | Tabla | Contenido |
 |---|---|
 | `orden_trabajo` | Cabecera: número, vehículo, cliente, mecánico, estado, fechas (incluida la fecha prometida de entrega), kilometraje, síntoma, observaciones, totales |
-| `ot_detalle` | Líneas del presupuesto: servicio, descripción y precio congelados, cantidad, subtotal, aprobación, ejecución real |
+| `ot_detalle` | Líneas del presupuesto: servicio, descripción y precio congelados, cantidad, subtotal, aprobación, horas trabajadas |
 | `ot_historial_estado` | Trazabilidad de los cambios de estado |
 | `ot_foto` | Fotos del vehículo tomadas en la recepción: orden, ángulo, imagen, usuario, fecha y hora |
 
