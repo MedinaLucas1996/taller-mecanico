@@ -10,9 +10,9 @@ Aplicación de escritorio para gestionar los servicios de un taller mecánico (t
 
 ## Qué es
 
-Aplicación Windows Forms en VB.NET que administra el ciclo de atención de un taller mecánico sobre una base MariaDB: clientes, vehículos, recepción del vehículo con apertura de la orden de trabajo, consulta del estado de las órdenes y, a futuro, presupuesto, cambios de estado y reportes. Cubre únicamente la actividad de **servicios**: queda fuera la facturación, los pagos, la venta de insumos y el control de stock.
+Aplicación Windows Forms en VB.NET que administra el ciclo de atención de un taller mecánico sobre una base MariaDB: clientes, vehículos, recepción del vehículo con apertura de la orden de trabajo, consulta del estado de las órdenes, gestión de cada orden (presupuesto, aprobación del cliente, ejecución y entrega) y, a futuro, reportes. Cubre únicamente la actividad de **servicios**: queda fuera la facturación, los pagos, la venta de insumos y el control de stock.
 
-Estado actual: están terminadas las pantallas de **Clientes**, **Vehículos**, **Marcas y modelos** y **Usuarios** (esta última solo visible para el administrador), y las dos primeras pantallas del flujo de la orden de trabajo: **Recepción** y **Órdenes de trabajo** (ver [Recepción y órdenes de trabajo](#recepción-y-órdenes-de-trabajo)). El login muestra imagen de fondo y música y **valida usuario y contraseña** contra la tabla `usuario` (hash PBKDF2); el usuario que ingresó se muestra en la barra superior. El menú principal **se filtra por rol** (ver [Menú por rol](#menú-por-rol)). El resto de las opciones del menú no tiene pantalla (ver [Estado](#estado)).
+Estado actual: están terminadas las pantallas de **Clientes**, **Vehículos**, **Marcas y modelos**, **Mecánicos** y **Usuarios** (estas dos últimas solo visibles para el administrador), y las tres pantallas del flujo de la orden de trabajo: **Recepción**, **Órdenes de trabajo** y **Gestión de la orden** (ver [Recepción y órdenes de trabajo](#recepción-y-órdenes-de-trabajo)). El login muestra imagen de fondo y música y **valida usuario y contraseña** contra la tabla `usuario` (hash PBKDF2); el usuario que ingresó se muestra en la barra superior. El menú principal **se filtra por rol** (ver [Menú por rol](#menú-por-rol)). El resto de las opciones del menú no tiene pantalla (ver [Estado](#estado)).
 
 El código sigue de forma deliberada el estilo de la cátedra de programación orientada a eventos (SQL dentro de los formularios, sin capa de acceso a datos). No es una arquitectura por capas.
 
@@ -38,7 +38,7 @@ Los títulos de sección siguen la misma regla: "OPERACIONES" se muestra a todos
 
 ### Recepción y órdenes de trabajo
 
-Las dos pantallas están disponibles para el administrador y el operador.
+Las tres pantallas están disponibles para el administrador y el operador.
 
 **Recepción** (`FrmRecepcion`) abre la orden de trabajo con un asistente de cuatro pasos. Se puede volver a un paso anterior sin perder lo cargado.
 
@@ -49,14 +49,36 @@ Las dos pantallas están disponibles para el administrador y el operador.
 | 3. Fotos | Una foto por ángulo: frente, trasera, lateral izquierdo, lateral derecho y tablero. Se eligen del disco (JPG o PNG), se reducen a 1280 píxeles en su lado mayor y se pueden quitar. Son opcionales. |
 | 4. Confirmación | Resumen de solo lectura. Al confirmar se avisa qué fotos faltan y se guardan, en una sola transacción, la orden con el número siguiente en estado `RECEPCIONADA`, la primera fila del historial de estados y las fotos cargadas. |
 
-**Órdenes de trabajo** (`FrmOrdenes`) es un tablero de solo lectura con el estado de todas las órdenes:
+**Órdenes de trabajo** (`FrmOrdenes`) es un tablero con el estado de todas las órdenes. Ocupa todo el ancho de la ventana y no modifica datos; los cambios se hacen en la gestión de la orden.
 
-- Resumen con la cantidad de órdenes en cada estado. Cuenta siempre todas las órdenes, sin aplicar los filtros.
-- Filtros por estado, por texto (parte de la patente o del nombre del cliente) y "Solo demoradas".
-- Grilla con una fila por orden, la más reciente primero: número, fecha de recepción, patente, vehículo, cliente de la orden, mecánico, estado, fecha prometida y situación. Una orden figura como **Demorada**, con la fila resaltada, cuando su fecha prometida ya pasó y su estado no es final.
-- Fotos de recepción de la orden seleccionada. Se leen de la base recién al elegir la orden.
+| Zona | Qué muestra |
+|---|---|
+| Título | Cuántas órdenes están listadas y cuántas de ellas están demoradas. |
+| Tarjetas de estado | Una tarjeta por estado, con la cantidad de órdenes en ese estado. Cuentan siempre todas las órdenes, sin aplicar los filtros. Un clic en una tarjeta filtra la lista por ese estado; otro clic en la misma tarjeta quita el filtro. |
+| Filtros | Texto (parte de la patente o del nombre del cliente), que filtra mientras se escribe, "Solo demoradas" y "Limpiar filtros", que también quita el estado elegido. |
+| Grilla | Una fila por orden, la más reciente primero: número, fecha de recepción, patente, vehículo, cliente de la orden, mecánico, estado, fecha prometida y situación. La celda del estado lleva un color por estado. Una orden figura como **Demorada**, con la fila resaltada, cuando su fecha prometida ya pasó y su estado no es final. |
+| Detalle | Datos de la orden seleccionada (número, estado, vehículo, cliente, mecánico, fechas y total presupuestado), sus cinco fotos de recepción en miniatura y el botón "Gestionar orden". Sin una orden seleccionada solo muestra una ayuda. |
+
+Las fotos se leen de la base recién al elegir la orden. Un clic en una miniatura con foto la abre ampliada en una ventana aparte (`FrmFoto`). "Gestionar orden" abre la gestión de la orden seleccionada; al cerrarla, las tarjetas y la grilla se recargan y la orden sigue seleccionada si continúa en la lista.
 
 Las fotos se guardan en la base de datos, en la tabla `ot_foto`.
+
+**Gestión de la orden** (`FrmOrdenGestion`) lleva una orden desde `RECEPCIONADA` hasta `ENTREGADA`. Muestra los datos de la orden, su presupuesto, su mecánico y su historial de estados. Cada botón se habilita solo en el estado que le corresponde.
+
+| Acción | Estado de la orden | Qué hace |
+|---|---|---|
+| Agregar, quitar o cambiar la cantidad de una línea | `RECEPCIONADA` o `PRESUPUESTADA` | Edita el presupuesto. La descripción y el precio se copian del servicio y no se modifican en la línea. Cada servicio va una sola vez por orden. |
+| Guardar mecánico | Cualquiera que no sea final | Asigna o cambia el mecánico. Desde `EN_PROCESO` la orden no puede quedar sin mecánico. |
+| Presupuestar | `RECEPCIONADA` → `PRESUPUESTADA` | Exige al menos una línea. |
+| Registrar aprobación | `PRESUPUESTADA` → `APROBADA` | Guarda las líneas tildadas como aprobadas y el total aprobado. Exige al menos una línea aprobada. |
+| Rechazar | `PRESUPUESTADA` → `RECHAZADA` | Cierra la orden sin líneas aprobadas. |
+| Iniciar trabajo | `APROBADA` → `EN_PROCESO` | Exige un mecánico asignado. |
+| Guardar ejecución | `EN_PROCESO` | Guarda la cantidad real y las horas reales de la línea aprobada seleccionada. |
+| Finalizar | `EN_PROCESO` → `FINALIZADA` | Exige la ejecución cargada en todas las líneas aprobadas y las observaciones del mecánico. Guarda la fecha de finalización. |
+| Entregar | `FINALIZADA` → `ENTREGADA` | Guarda la fecha de entrega y sube el kilometraje del vehículo al de la orden. |
+| Anular | Cualquiera que no sea final → `ANULADA` | Solo el administrador. Exige un motivo, que queda en el historial. No se borra ningún dato. |
+
+Cada cambio de estado se guarda en una transacción junto con su fila en el historial de estados: si algo falla, no se guarda nada.
 
 ---
 
@@ -226,10 +248,12 @@ No aplica: aplicación de escritorio WinForms. No expone endpoints.
 - **Status:** En desarrollo (trabajo práctico universitario).
   - Terminado: Clientes (ABM, baja lógica, búsqueda en vivo), Vehículos (ABM con combos de titular y marca/modelo en cascada, baja lógica), Marcas y modelos (maestro-detalle), Usuarios (ABM con baja lógica; contraseña guardada con PBKDF2 al crear o modificar; el rol MECANICO exige elegir un mecánico; el administrador no puede darse de baja ni cambiar su propio rol; el botón del menú solo se muestra para el rol ADMINISTRADOR).
   - Terminado: Login (imagen y música; valida usuario activo y contraseña contra `usuario`, con un mensaje único para usuario inexistente o clave incorrecta; guarda el usuario en `Sesion` y la barra superior de `FrmPrincipal` muestra nombre y rol; el botón "Cerrar sesión" de esa barra vuelve al login vacío para que ingrese otro usuario).
-  - Terminado: Menú por rol (`FrmPrincipal` está armado en el diseñador y muestra en `FrmPrincipal_Load` solo las opciones del rol que ingresó; ver [Menú por rol](#menú-por-rol)). Aún no se aplican permisos por rol dentro de cada pantalla, salvo en Usuarios, Recepción y Órdenes de trabajo, que comprueban el rol al abrirse.
-  - Terminado: Recepción (asistente de cuatro pasos: vehículo por patente, datos de ingreso, fotos por ángulo y confirmación; guarda en una transacción la orden en estado `RECEPCIONADA`, su primera fila de historial y sus fotos) y Órdenes de trabajo (tablero de solo lectura: cantidad de órdenes por estado, grilla con filtros por estado, texto y demoradas, y fotos de la orden seleccionada). Ver [Recepción y órdenes de trabajo](#recepción-y-órdenes-de-trabajo).
-  - Pendiente en el flujo de la orden de trabajo: líneas de presupuesto, aprobación del cliente, cambios de estado (toda orden queda en `RECEPCIONADA`), vista del mecánico e impresión.
-  - Sin pantalla todavía (botones del menú sin evento): Historial, Servicios, Categorías, Mecánicos y Reportes.
+  - Terminado: Menú por rol (`FrmPrincipal` está armado en el diseñador y muestra en `FrmPrincipal_Load` solo las opciones del rol que ingresó; ver [Menú por rol](#menú-por-rol)). Aún no se aplican permisos por rol dentro de cada pantalla, salvo en Usuarios, Mecánicos, Recepción, Órdenes de trabajo y Gestión de la orden, que comprueban el rol al abrirse; en Gestión de la orden, además, solo el administrador ve el botón "Anular".
+  - Terminado: Recepción (asistente de cuatro pasos: vehículo por patente, datos de ingreso, fotos por ángulo y confirmación; guarda en una transacción la orden en estado `RECEPCIONADA`, su primera fila de historial y sus fotos) y Órdenes de trabajo (tablero a todo el ancho: tarjetas con la cantidad de órdenes por estado, que también filtran la lista; filtros por texto y demoradas; grilla con el estado en color; y tarjeta de detalle de la orden seleccionada con sus fotos en miniatura, ampliables, y el botón "Gestionar orden"). Ver [Recepción y órdenes de trabajo](#recepción-y-órdenes-de-trabajo).
+  - Terminado: Gestión de la orden (líneas de presupuesto con sus totales, mecánico, aprobación del cliente por línea o rechazo, inicio del trabajo, cantidad y horas reales por línea, cierre técnico, entrega con actualización del kilometraje y anulación con motivo, solo para el administrador; cada cambio de estado se guarda en una transacción con su fila de historial). Ver [Recepción y órdenes de trabajo](#recepción-y-órdenes-de-trabajo).
+  - Pendiente en el flujo de la orden de trabajo: vista del mecánico e impresión del presupuesto.
+  - Terminado: Mecánicos (ABM solo para el administrador: nombre completo obligatorio, especialidad y teléfono; la grilla lista activos y dados de baja con búsqueda por nombre o especialidad; baja lógica, rechazada si el mecánico tiene órdenes de trabajo sin cerrar; un mecánico dado de baja se reactiva con el mismo botón; no admite dos mecánicos activos con el mismo nombre).
+  - Sin pantalla todavía (botones del menú sin evento): Historial, Servicios, Categorías y Reportes.
   - Decisión cerrada: hash de contraseñas con PBKDF2 + SHA256, igual que la referencia de la cátedra (reemplaza la mención de BCrypt de la especificación). Las bases ya cargadas deben ejecutar `database/06_migracion_hash_pbkdf2.sql`.
   - Base de datos: 13 tablas. A las 12 del modelo original se suma `ot_foto` (fotos de recepción) y `orden_trabajo` tiene la columna `fecha_prometida`. Las bases ya creadas deben ejecutar `database/07_recepcion_fotos.sql`.
 

@@ -22,19 +22,45 @@ Repositorio: https://github.com/MedinaLucas1996/taller-mecanico (público).
   - **Vehículos** (`FrmVehiculos`): alta, modificación y baja lógica; combo de titular (clientes activos); combos de marca y modelo en cascada (el modelo se recarga al cambiar la marca); búsqueda por patente, titular, marca o modelo; el error 1062 se traduce al mensaje de patente duplicada.
   - **Marcas y modelos** (`FrmMarcasModelos`): maestro-detalle (grilla de marcas con cantidad de modelos y grilla de modelos de la marca elegida); la baja es **física** (`DELETE`) y el error 1451 de clave foránea se traduce a un mensaje ("la marca tiene modelos cargados" o "hay vehículos cargados con ese modelo").
   - **Usuarios** (`FrmUsuarios`, solo administrador): alta, modificación y baja lógica (`activo = 0`) con confirmación; la grilla lista solo usuarios activos (con el nombre del mecánico asociado, si lo hay) y nunca lee `hash_contrasena` ni `salt`; búsqueda en vivo por usuario o nombre completo. Al crear, la contraseña es obligatoria y se guarda con `Seguridad.GenerarSalt` + `Seguridad.HashearClave`; al modificar, una contraseña vacía conserva la actual y una contraseña escrita genera un salt y un hash nuevos. El combo de rol (`ADMINISTRADOR`, `OPERADOR`, `MECANICO`) habilita el combo de mecánico solo para `MECANICO` y ese rol exige elegir un mecánico; para los demás roles `id_mecanico` se guarda como NULL (regla 8.6, respaldada por el CHECK `val_usuario_rol_mecanico`). El error 1062 se traduce al mensaje de nombre de usuario duplicado, que puede corresponder a un usuario dado de baja. Reglas de autoprotección: el usuario logueado no puede darse de baja ni cambiar su propio rol, y si modifica su propio usuario se actualizan `Sesion.NombreUsuario` y `Sesion.NombreCompleto`. Como respaldo del menú, al abrirse con un rol distinto de `ADMINISTRADOR` muestra un aviso y deshabilita el formulario.
+  - **Mecánicos** (`FrmMecanicos`, solo administrador): alta, modificación, baja lógica y reactivación sobre la tabla `mecanico`. Como respaldo del menú, al abrirse con un rol distinto de `ADMINISTRADOR` muestra un aviso y deshabilita el formulario.
+    - Campos: nombre completo (obligatorio, hasta 100 caracteres), especialidad (hasta 80) y teléfono (hasta 30); los dos últimos, si quedan vacíos, se guardan como NULL.
+    - Grilla: lista todos los mecánicos, activos y dados de baja, con la columna "Activo" (Sí / No); los activos primero. Búsqueda en vivo por nombre o especialidad.
+    - Nombre repetido: no se guarda ni se modifica un mecánico con el nombre de otro mecánico activo (se compara sin espacios sobrantes y sin distinguir mayúsculas).
+    - Baja y reactivación: con un mecánico activo seleccionado el botón dice "Dar de baja" y, con uno dado de baja, "Reactivar"; ambos piden confirmación. La baja (`activo = 0`) se rechaza si el mecánico tiene órdenes de trabajo en un estado no final; la comprobación y el cambio se hacen en una transacción.
   - **Recepción** (`FrmRecepcion`, administrador y operador): asistente de cuatro pasos en un solo formulario, con un panel por paso y los botones Anterior, Siguiente, Cancelar y Confirmar recepción. Volver a un paso anterior no pierde lo cargado.
     1. *Vehículo*: búsqueda por patente exacta sobre vehículos activos. Muestra marca y modelo, año, color, kilometraje actual, titular y las órdenes anteriores del vehículo. No deja avanzar si la patente no existe o el vehículo está inactivo (hay que registrarlo antes en Vehículos; el asistente no crea clientes ni vehículos) ni si el vehículo ya tiene una orden en un estado no final.
     2. *Datos de ingreso*: kilometraje de ingreso (no menor al `km_actual` del vehículo ni al mayor `km_ingreso` de sus órdenes, regla 8.3), nivel de combustible, síntoma reportado (obligatorio), observaciones de recepción, mecánico (opcional) y fecha prometida de entrega (opcional; si se indica, no puede ser anterior a hoy).
     3. *Fotos*: cinco cuadros fijos (frente, trasera, lateral izquierdo, lateral derecho y tablero), cada uno con "Cargar foto", vista previa y "Quitar". Se eligen archivos JPG o PNG del disco; la foto se endereza según su orientación EXIF y se reduce a 1280 píxeles en su lado mayor. Las fotos son opcionales.
     4. *Confirmación*: resumen de solo lectura. Al confirmar, si faltan fotos se pregunta si se continúa igual, y luego se guardan en una sola transacción la orden (`nro_orden` siguiente, estado `RECEPCIONADA`, el titular de ese momento como cliente de la orden y `Sesion.IdUsuario` como usuario de alta), la primera fila de `ot_historial_estado` y una fila de `ot_foto` por cada foto cargada, en JPEG. Si algo falla no se guarda nada. La recepción no modifica `vehiculo.km_actual`.
-  - **Órdenes de trabajo** (`FrmOrdenes`, administrador y operador): tablero de solo lectura; no escribe en la base.
-    - Resumen: grilla con la cantidad de órdenes en cada estado, en el orden de `estado_ot.orden_flujo`, incluidos los estados sin órdenes. Cuenta siempre todas las órdenes y no aplica los filtros.
-    - Filtros: combo de estado (primera opción "Todos los estados"), texto contenido en la patente o en el nombre del cliente, y casilla "Solo demoradas". Se aplican con "Buscar" o con Enter en el texto; "Limpiar" los reinicia y recarga.
-    - Grilla: una fila por orden, la más reciente primero, con número, fecha y hora de recepción, patente, vehículo (marca y modelo), cliente de la orden (`orden_trabajo.id_cliente`, no el titular actual del vehículo), mecánico ("Sin asignar" si no tiene), estado, fecha prometida y situación. Debajo se indica cuántas órdenes están listadas.
+  - **Órdenes de trabajo** (`FrmOrdenes`, administrador y operador): tablero; no escribe en la base. Sus controles usan `Anchor`, por lo que el tablero sigue el tamaño del panel de contenido: las tarjetas y los filtros se estiran a lo ancho, la grilla en los dos sentidos y la tarjeta de detalle queda a la derecha con ancho fijo.
+    - Título: el subtítulo indica cuántas órdenes están listadas y cuántas de ellas están demoradas.
+    - Tarjetas de estado: ocho tarjetas declaradas en el diseñador dentro de un `TableLayoutPanel` de ocho columnas iguales. `CargarTarjetas` asigna a cada una un estado de `estado_ot` en el orden de `orden_flujo`, con su cantidad de órdenes, incluidos los estados sin órdenes (número atenuado). Cuentan siempre todas las órdenes y no aplican los filtros. Un clic en una tarjeta filtra la lista por ese estado y la resalta; otro clic en la misma tarjeta quita el filtro. Reemplazan a la grilla de resumen y al combo de estado.
+    - Filtros: texto contenido en la patente o en el nombre del cliente, que se aplica mientras se escribe, y casilla "Solo demoradas". "Limpiar filtros" los reinicia, quita el estado elegido y recarga. No hay botón "Buscar".
+    - Grilla: una fila por orden, la más reciente primero, con número, fecha y hora de recepción, patente, vehículo (marca y modelo), cliente de la orden (`orden_trabajo.id_cliente`, no el titular actual del vehículo), mecánico ("Sin asignar" si no tiene), estado, fecha prometida y situación. Vehículo, cliente y mecánico se reparten el ancho disponible. La celda del estado se colorea según `estado_ot.codigo`, que la consulta trae en una columna oculta (`ColorEstado`).
     - Demoradas: una orden está demorada cuando su `fecha_prometida` es anterior a hoy y su estado no es final (`estado_ot.es_estado_final = 0`). La columna de situación dice "Demorada" y la fila se muestra con fondo rojo suave.
-    - Fotos: al hacer clic en una orden se leen de `ot_foto` solo las fotos de esa orden y se muestran en cinco cuadros, uno por ángulo; el ángulo sin foto muestra "Sin foto". La consulta de la grilla nunca lee la columna `imagen`. Buscar, limpiar o recargar quita la selección y vacía los cuadros.
-- Pendiente en el flujo de la orden de trabajo: líneas de presupuesto (`ot_detalle`), aprobación del cliente, cambios de estado (hoy toda orden queda en `RECEPCIONADA`), vista del mecánico e impresión del presupuesto o de la comanda de taller.
-- Opciones de menú sin pantalla (el botón existe pero no tiene evento): Historial, Servicios, Categorías, Mecánicos y Reportes.
+    - Detalle: al seleccionar una orden con el mouse o con el teclado, la tarjeta de la derecha muestra número, estado, patente y vehículo, cliente, mecánico, fecha de recepción, fecha prometida y total presupuestado, tomados de la fila de la grilla. Sin orden seleccionada muestra solo una ayuda y oculta el resto, incluido el botón "Gestionar orden".
+    - Fotos: al seleccionar una orden se leen de `ot_foto` solo las fotos de esa orden y se muestran en cinco miniaturas, una por ángulo; el ángulo sin foto muestra "Sin foto". La consulta de la grilla nunca lee la columna `imagen`. Un clic en una miniatura con foto la abre ampliada en `FrmFoto`, una ventana modal con el ángulo como título.
+    - "Gestionar orden": abre `FrmOrdenGestion` como ventana modal (`ShowDialog`) y, al cerrarla, recarga las tarjetas y la grilla. La orden queda seleccionada si sigue en la lista; si un filtro la deja fuera, el detalle vuelve a la ayuda.
+  - **Gestión de la orden** (`FrmOrdenGestion`, administrador y operador): ventana modal que lleva una orden desde `RECEPCIONADA` hasta `ENTREGADA`. Recibe la orden en el campo público `IdOrdenTrabajo`. La rutina `CargarOrden` lee la orden y su estado (`estado_ot.codigo`, `permite_edicion_detalle`, `es_estado_final`), habilita los controles que corresponden a ese estado y se vuelve a ejecutar después de cada guardado.
+    - Cabecera (solo lectura): número, estado, vehículo, cliente de la orden, kilometraje de ingreso, fechas de recepción, prometida, finalización y entrega, síntoma y observaciones de recepción.
+    - Presupuesto (`ot_detalle`): combo de servicios activos con su precio, cantidad, "Agregar", "Actualizar cantidad" y "Quitar". Solo se edita cuando el estado tiene `permite_edicion_detalle = 1`. Cada cambio recalcula `total_presupuestado` y `total_aprobado` en la misma transacción.
+    - Mecánico: combo de mecánicos activos con la opción "(sin asignar)" y "Guardar mecánico", en cualquier estado no final.
+    - Cambios de estado: un botón por transición (ver la tabla siguiente). Cada uno vuelve a leer el estado dentro de su transacción, actualiza la orden e inserta una fila en `ot_historial_estado` con `Sesion.IdUsuario`.
+    - Ejecución: cantidad real y horas reales de la línea aprobada seleccionada ("Guardar ejecución") y observaciones del mecánico, que se escriben con la orden en `EN_PROCESO` y se guardan al finalizar.
+    - Historial: grilla de solo lectura de `ot_historial_estado`, el cambio más reciente primero.
+
+    | Botón | Transición | Condiciones y efecto |
+    |---|---|---|
+    | Presupuestar | `RECEPCIONADA` → `PRESUPUESTADA` | Exige al menos una línea. |
+    | Registrar aprobación | `PRESUPUESTADA` → `APROBADA` | La columna "Aprobado" de la grilla se tilda línea por línea (solo es editable en `PRESUPUESTADA`). Exige al menos una línea aprobada, pide confirmación con el total aprobado y guarda las tildes y los totales. |
+    | Rechazar | `PRESUPUESTADA` → `RECHAZADA` | Pide confirmación. Deja todas las líneas sin aprobar y el total aprobado en cero. |
+    | Iniciar trabajo | `APROBADA` → `EN_PROCESO` | Exige un mecánico asignado. |
+    | Finalizar | `EN_PROCESO` → `FINALIZADA` | Exige cantidad real y horas reales en todas las líneas aprobadas y las observaciones del mecánico. Guarda `observaciones_mecanico` y `fecha_finalizacion = NOW()`. |
+    | Entregar | `FINALIZADA` → `ENTREGADA` | Pide confirmación. Guarda `fecha_entrega = NOW()` y sube `vehiculo.km_actual` al `km_ingreso` de la orden cuando es mayor. |
+    | Anular | Estado no final → `ANULADA` | Solo visible para el administrador. Exige un motivo (hasta 255 caracteres), que se guarda como observación del historial. No borra ninguna fila. |
+
+- Pendiente en el flujo de la orden de trabajo: vista del mecánico e impresión del presupuesto o de la comanda de taller.
+- Opciones de menú sin pantalla (el botón existe pero no tiene evento): Historial, Servicios, Categorías y Reportes.
 
 ### Menú por rol
 
@@ -177,9 +203,9 @@ graph TD
     mecanico -.->|"opcional"| usuario
 ```
 
-Estados de la orden de trabajo (`database/02_dml_catalogos.sql`): `RECEPCIONADA`, `PRESUPUESTADA`, `APROBADA`, `EN_PROCESO`, `FINALIZADA`, `ENTREGADA`, `RECHAZADA`, `ANULADA`. Los estados llevan ID explícito (1 a 8). La recepción busca el estado inicial por su código (`RECEPCIONADA`) y el tablero de órdenes los lee de la tabla, ordenados por `orden_flujo`.
+Estados de la orden de trabajo (`database/02_dml_catalogos.sql`): `RECEPCIONADA`, `PRESUPUESTADA`, `APROBADA`, `EN_PROCESO`, `FINALIZADA`, `ENTREGADA`, `RECHAZADA`, `ANULADA`. Los estados llevan ID explícito (1 a 8). La recepción busca el estado inicial por su código (`RECEPCIONADA`), la gestión de la orden busca cada estado de destino también por su código, y el tablero de órdenes los lee de la tabla, ordenados por `orden_flujo`.
 
-Estado de implementación: la aplicación opera hoy sobre `cliente`, `vehiculo`, `marca` y `modelo`; el login lee `usuario` y el ABM de Usuarios la escribe (y lee `mecanico` solo para llenar el combo de mecánicos). La recepción escribe `orden_trabajo`, `ot_historial_estado` y `ot_foto`, y el tablero de órdenes las lee junto con `estado_ot`. Las tablas `ot_detalle`, `servicio` y `categoria_servicio` existen en la base pero ninguna pantalla las usa todavía.
+Estado de implementación: la aplicación opera hoy sobre `cliente`, `vehiculo`, `marca` y `modelo`; el login lee `usuario` y el ABM de Usuarios la escribe (y lee `mecanico` solo para llenar el combo de mecánicos). La recepción escribe `orden_trabajo`, `ot_historial_estado` y `ot_foto`, y el tablero de órdenes las lee junto con `estado_ot`. La gestión de la orden escribe `ot_detalle`, `orden_trabajo` (mecánico, estado, totales, observaciones del mecánico y fechas de finalización y entrega), `ot_historial_estado` y `vehiculo.km_actual`, y lee `servicio` y `mecanico`. El ABM de Mecánicos escribe `mecanico` y lee `orden_trabajo` y `estado_ot` para rechazar la baja de un mecánico con órdenes sin cerrar. Las tablas `servicio` y `categoria_servicio` todavía no tienen pantalla de carga: sus datos provienen de `database/03_dml_prueba.sql`.
 
 Reglas de negocio relevantes de la especificación (sección 8):
 
@@ -195,6 +221,17 @@ Reglas agregadas con la recepción y el tablero de órdenes:
 - La fecha prometida de entrega es opcional y, si se indica, no puede ser anterior al día de la recepción.
 - Las fotos de recepción son opcionales: una por ángulo, guardadas en la base como JPEG de hasta 1280 píxeles en su lado mayor.
 - Una orden está demorada cuando su fecha prometida es anterior a hoy y su estado no es final (`estado_ot.es_estado_final = 0`).
+
+Reglas agregadas con la gestión de la orden:
+
+- "Presupuestar" es un paso explícito y exige al menos una línea. Una orden `PRESUPUESTADA` mantiene su detalle editable y no vuelve a `RECEPCIONADA`.
+- El precio copiado del servicio no se edita en la línea. Un servicio va una sola vez por orden; para pedir más se cambia la cantidad. La cantidad admite dos decimales y debe ser mayor a cero.
+- Subtotal de la línea = cantidad × precio unitario. `total_presupuestado` es la suma de los subtotales y `total_aprobado` la suma de los subtotales de las líneas aprobadas; los dos se escriben en un solo `UPDATE` por el CHECK `total_aprobado <= total_presupuestado`.
+- La aprobación exige al menos una línea aprobada; si el cliente no aprueba ninguna, la orden se rechaza. `RECHAZADA` solo se alcanza desde `PRESUPUESTADA`.
+- Para iniciar el trabajo la orden debe tener mecánico, y desde `EN_PROCESO` no puede quedar sin mecánico.
+- Para finalizar, todas las líneas aprobadas deben tener cantidad real y horas reales (hasta 999,99), y las observaciones del mecánico son obligatorias.
+- La anulación es exclusiva del administrador, exige un motivo y se permite en cualquier estado no final, es decir, hasta `FINALIZADA`. La orden, sus líneas y su historial se conservan.
+- Las fechas de finalización y de entrega son la fecha y hora del servidor (`NOW()`). En la entrega, `vehiculo.km_actual` toma el `km_ingreso` de la orden solo cuando es mayor al valor actual.
 
 ---
 
@@ -255,10 +292,13 @@ sequenceDiagram
 | Sin clases DAO ni proyecto de datos separado | La regla del estilo de cátedra reemplaza el apartado 3.2 de la especificación, que proponía `TallerMecanico.UI` y `TallerMecanico.Datos`. | `openspec/config.yaml`, `taller-mecanico-especificacion.md` |
 | Driver MySqlConnector (no `MySql.Data`) | Mejor soporte asincrónico y compatibilidad con MariaDB. | `taller-mecanico-especificacion.md` (11.3), `WinFormsApp1.vbproj` |
 | Baja lógica en clientes y vehículos (`activo = 0`) | Pueden tener órdenes de trabajo asociadas; no se borran. | `FrmClientes.vb`, `FrmVehiculos.vb` |
+| Baja lógica con reactivación en mecánicos; la grilla muestra también los dados de baja | Las órdenes de trabajo conservan a su mecánico, y un mecánico que vuelve al taller se reactiva sin cargarlo de nuevo. | `FrmMecanicos.vb` |
 | Baja física en marcas y modelos | Son catálogos; la base impide borrar si hay dependencias (error 1451) y la aplicación lo traduce a un mensaje. | `FrmMarcasModelos.vb` |
 | Claves foráneas con `ON UPDATE RESTRICT` | Desde MariaDB 10.5 una columna con FK en `CASCADE` no puede usarse en un `CHECK` (error 1901). | `database/01_ddl_estructura.sql` |
 | Fotos de recepción guardadas en la base (`ot_foto.imagen`, `LONGBLOB`), reducidas a 1280 píxeles y en JPEG | La base queda completa por sí sola, sin una carpeta de archivos que mantener junto a ella; la reducción limita el tamaño de cada fila. El tablero de órdenes lee las imágenes solo de la orden seleccionada. | `database/01_ddl_estructura.sql`, `FrmRecepcion.vb`, `FrmOrdenes.vb` |
 | Alta de la orden en una sola transacción (`BeginTransaction`) | La orden, su primera fila de historial y sus fotos se guardan todas o ninguna, como pide la especificación. | `FrmRecepcion.vb` |
+| Cada cambio del presupuesto y cada cambio de estado en una transacción que vuelve a leer el estado de la orden con `SELECT ... FOR UPDATE` | Otro puesto puede haber cambiado la orden después de cargarla en pantalla; la lectura con bloqueo evita guardar sobre un estado que ya no es el esperado. La línea, los totales, el estado y la fila de historial se guardan todos o ninguno. | `FrmOrdenGestion.vb` |
+| Rutinas del formulario que reciben la conexión y la transacción (`PermiteEditarDetalle`, `LeerCodigoEstado`, `RecalcularTotales`, `CambiarEstado`) | Evitan repetir en cada botón la lectura del estado, el recálculo de totales y el cambio de estado con su fila de historial. Son rutinas del propio formulario, no clases de acceso a datos. | `FrmOrdenGestion.vb` |
 | Música del login con `winmm.dll` (`mciSendStringW`) | Permite reproducir un MP3 sin dependencias adicionales. | `FrmLogin.vb` |
 | Recursos del login copiados al directorio de salida (`CopyToOutputDirectory`) | La imagen y la música se leen desde `AppContext.BaseDirectory\Recursos`. | `WinFormsApp1.vbproj`, `FrmLogin.vb` |
 
@@ -301,14 +341,21 @@ Casos manejados en el código:
 - **Número de orden repetido** (recepción): si otro puesto registra una orden con el mismo número al mismo tiempo, el error 1062 se traduce a un mensaje, no se guarda nada y se puede confirmar de nuevo.
 - **Cancelar con datos cargados** (recepción): se pide confirmación antes de descartarlos.
 - **Orden sin mecánico o sin fecha prometida** (tablero de órdenes): se muestra "Sin asignar" y la fecha vacía; una orden sin fecha prometida nunca figura como demorada.
-- **Orden sin fotos o con ángulos faltantes** (tablero de órdenes): cada cuadro sin foto muestra "Sin foto"; una imagen que no se puede leer muestra "Foto ilegible".
+- **Orden sin fotos o con ángulos faltantes** (tablero de órdenes): cada miniatura sin foto muestra "Sin foto" y no se amplía; una imagen que no se puede leer muestra "Ilegible".
+- **Orden modificada desde otro puesto** (gestión de la orden): cada guardado vuelve a leer el estado dentro de la transacción; si ya no es el esperado, no se guarda nada, se avisa y se recarga la orden.
+- **Servicio repetido o dado de baja** (gestión de la orden): un servicio que ya está en el presupuesto se rechaza con el aviso de cambiar la cantidad; un servicio que dejó de estar activo tampoco se agrega.
+- **Línea quitada desde otro puesto** (gestión de la orden): si "Actualizar cantidad" o "Quitar" no encuentran la línea, se avisa que ya no existe y no se guarda nada.
+- **Aprobación sin líneas aprobadas o presupuesto vacío** (gestión de la orden): "Registrar aprobación" se rechaza e indica usar "Rechazar".
+- **Línea no aprobada** (gestión de la orden): "Guardar ejecución" la rechaza; solo se ejecutan las líneas aprobadas.
+- **Mecánico de la orden dado de baja** (gestión de la orden): se agrega al combo para poder mostrarlo.
 
 Riesgos conocidos no cubiertos:
 
-- Los permisos por rol se aplican solo en el menú, ocultando opciones (ver [Menú por rol](#menú-por-rol)). Las pantallas no vuelven a comprobar el rol al abrirse, salvo `FrmUsuarios`, `FrmRecepcion` y `FrmOrdenes`, y dentro de cada pantalla no hay permisos por botón.
+- Los permisos por rol se aplican solo en el menú, ocultando opciones (ver [Menú por rol](#menú-por-rol)). Las pantallas no vuelven a comprobar el rol al abrirse, salvo `FrmUsuarios`, `FrmMecanicos`, `FrmRecepcion`, `FrmOrdenes` y `FrmOrdenGestion`, y dentro de cada pantalla no hay permisos por botón, salvo "Anular" en `FrmOrdenGestion`, que es solo del administrador.
+- En la gestión de la orden, las tildes de aprobación y las observaciones del mecánico viven en pantalla hasta presionar "Registrar aprobación" o "Finalizar": las tildes se pierden si antes se modifica el presupuesto o se guarda el mecánico, y las observaciones se pierden si se cierra la ventana.
 - Una base creada con la versión anterior de los scripts y sin `database/07_recepcion_fotos.sql` no tiene `orden_trabajo.fecha_prometida` ni `ot_foto`: Recepción y Órdenes de trabajo muestran el error de MariaDB y no funcionan hasta ejecutar la migración.
 - Las fotos se guardan dentro de la base, por lo que su tamaño y el de sus copias de respaldo crecen con cada recepción (hasta cinco imágenes por orden).
-- El tablero de órdenes trae todas las órdenes que cumplen los filtros, sin paginar, y no se actualiza solo: hay que presionar "Buscar" para ver los cambios hechos desde otro puesto.
+- El tablero de órdenes trae todas las órdenes que cumplen los filtros, sin paginar, y no se actualiza solo: los cambios hechos desde otro puesto se ven al cambiar un filtro, elegir una tarjeta de estado o presionar "Limpiar filtros".
 - Un usuario cuyo `salt` esté vacío o cuyo hash no sea Base64 válido (por ejemplo un hash BCrypt de una base sin migrar) no puede ingresar: `VerificarClave` devuelve `False` y se muestra el mensaje genérico. En ese caso hay que ejecutar `database/06_migracion_hash_pbkdf2.sql`.
 - Si la base no responde durante el login se muestra el error de MariaDB en un `MessageBox` y se permanece en el login.
 - Si la base no está disponible, cada pantalla muestra el mensaje de la excepción en un `MessageBox`; no hay reintentos ni registro de errores.
@@ -351,9 +398,9 @@ Cobertura: no medida.
 
 Pendiente según el estado actual del código y `taller-mecanico-especificacion.md` (sección 13):
 
-1. **Permisos por rol**: el login ya valida usuario y contraseña y deja el rol en `Sesion.Rol`, y el menú principal ya se filtra por rol; falta aplicar permisos por rol (administrador, operador, mecánico) dentro de cada pantalla (hoy solo Usuarios, Recepción y Órdenes de trabajo comprueban el rol al abrirse).
-2. **ABM restantes**: Servicios, Categorías, Mecánicos (el ABM de Usuarios ya está terminado).
-3. **Flujo de orden de trabajo**: la recepción (asistente con fotos, que crea la orden y su primera fila de historial en una transacción) y el tablero de estado de las órdenes ya están terminados. Falta: líneas de presupuesto, aprobación del cliente (total o parcial por línea), cambios de estado con su fila de historial en una transacción, vista del mecánico, impresión (presupuesto y comanda de taller) y consulta de historial por patente.
+1. **Permisos por rol**: el login ya valida usuario y contraseña y deja el rol en `Sesion.Rol`, y el menú principal ya se filtra por rol; falta aplicar permisos por rol (administrador, operador, mecánico) dentro de cada pantalla (hoy solo Usuarios, Mecánicos, Recepción, Órdenes de trabajo y Gestión de la orden comprueban el rol al abrirse).
+2. **ABM restantes**: Servicios y Categorías (los ABM de Usuarios y de Mecánicos ya están terminados).
+3. **Flujo de orden de trabajo**: la recepción (asistente con fotos, que crea la orden y su primera fila de historial en una transacción), el tablero de estado de las órdenes y la gestión de la orden (líneas de presupuesto, aprobación del cliente total o parcial por línea, y cambios de estado con su fila de historial en una transacción) ya están terminados. Falta: vista del mecánico, impresión (presupuesto y comanda de taller) y consulta de historial por patente.
 4. **Reportes**: elegir el motor compatible con .NET 10 y construir primero el presupuesto; después los reportes de gestión (servicios más solicitados, productividad por mecánico, órdenes abiertas, tiempos por etapa).
 5. **Credenciales fuera del repositorio**: cambiar la contraseña de la base de desarrollo y mover la cadena de conexión a configuración local no versionada.
 6. **Pruebas automatizadas**: no hay plan definido. _TODO: completar manualmente_
