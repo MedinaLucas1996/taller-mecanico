@@ -2,20 +2,29 @@ Imports MySqlConnector
 
 Public Class FrmUsuarios
 
+    'indica si el registro seleccionado esta activo, decide si el boton da de baja o reactiva
+    Private registroActivo As Boolean = True
+
     Sub CargarUsuarios(Optional filtro As String = "")
         'creo subrutina para cargar grilla
         Try
             'conecto a la bd para cargar la grilla
             Using cn As New MySqlConnection(CADENA)
                 cn.Open()
-                'armo mi consulta sql, solo traigo usuarios activos
+                'armo mi consulta sql
                 'nunca traigo el hash ni el salt de la clave
                 Dim consulta As String =
                     "SELECT u.id_usuario, u.nombre_usuario, u.nombre_completo, u.rol, " &
-                    "m.nombre_completo AS mecanico, u.id_mecanico " &
+                    "m.nombre_completo AS mecanico, u.id_mecanico, " &
+                    "CASE WHEN u.activo = 1 THEN 'Sí' ELSE 'No' END AS esta_activo " &
                     "FROM usuario AS u " &
                     "LEFT JOIN mecanico AS m ON m.id_mecanico = u.id_mecanico " &
-                    "WHERE u.activo = 1 "
+                    "WHERE 1 = 1 "
+
+                'solo traigo usuarios activos, salvo que se pida ver tambien los dados de baja
+                If Not chkBajas.Checked Then
+                    consulta = consulta & "AND u.activo = 1 "
+                End If
 
                 'aplico filtro por usuario o nombre completo
                 If filtro <> "" Then
@@ -23,7 +32,8 @@ Public Class FrmUsuarios
                         "AND (u.nombre_usuario LIKE @filtro OR u.nombre_completo LIKE @filtro) "
                 End If
 
-                consulta = consulta & "ORDER BY u.nombre_usuario;"
+                'primero los activos, despues los dados de baja
+                consulta = consulta & "ORDER BY u.activo DESC, u.nombre_usuario;"
 
                 Using cmd As New MySqlCommand(consulta, cn)
                     'evito SQL Injection usando parametros
@@ -48,6 +58,10 @@ Public Class FrmUsuarios
                     dgvUsuarios.Columns("mecanico").HeaderText = "Mecánico"
                     'la clave del mecanico se usa al seleccionar la fila, no se muestra
                     dgvUsuarios.Columns("id_mecanico").Visible = False
+                    'la columna Activo solo se ve cuando tambien se listan los dados de baja
+                    dgvUsuarios.Columns("esta_activo").HeaderText = "Activo"
+                    dgvUsuarios.Columns("esta_activo").AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells
+                    dgvUsuarios.Columns("esta_activo").Visible = chkBajas.Checked
                 End Using
             End Using
         Catch ex As Exception
@@ -95,6 +109,9 @@ Public Class FrmUsuarios
         'vuelvo a la opcion "Seleccione un rol", eso tambien deshabilita el combo de mecanicos
         cboRol.SelectedIndex = 0
         If cboMecanico.Items.Count > 0 Then cboMecanico.SelectedIndex = 0
+        'sin registro seleccionado el boton vuelve a ser el de la baja
+        registroActivo = True
+        btnEliminar.Text = "Dar de baja"
         dgvUsuarios.ClearSelection()
         txtUsuario.Focus()
     End Sub
@@ -172,6 +189,12 @@ Public Class FrmUsuarios
         CargarUsuarios(txtFiltro.Text.Trim)
     End Sub
 
+    Private Sub chkBajas_CheckedChanged(sender As Object, e As EventArgs) Handles chkBajas.CheckedChanged
+        'muestro o dejo de mostrar los usuarios dados de baja, el formulario queda limpio
+        LimpiarFormu()
+        CargarUsuarios(txtFiltro.Text.Trim)
+    End Sub
+
     Private Sub btnGuardar_Click(sender As Object, e As EventArgs) Handles btnGuardar.Click
         'guardo un usuario nuevo
 
@@ -246,6 +269,14 @@ Public Class FrmUsuarios
             If cboMecanico.Items.Count > 0 Then cboMecanico.SelectedIndex = 0
         Else
             cboMecanico.SelectedValue = CInt(fila.Cells("id_mecanico").Value)
+        End If
+
+        'segun el estado del registro, el mismo boton da de baja o reactiva
+        registroActivo = (fila.Cells("esta_activo").Value.ToString() = "Sí")
+        If registroActivo Then
+            btnEliminar.Text = "Dar de baja"
+        Else
+            btnEliminar.Text = "Reactivar"
         End If
     End Sub
 
@@ -327,46 +358,164 @@ Public Class FrmUsuarios
     End Sub
 
     Private Sub btnEliminar_Click(sender As Object, e As EventArgs) Handles btnEliminar.Click
+        'doy de baja al usuario seleccionado, o lo reactivo si ya estaba dado de baja
+
         'valido que haya un usuario seleccionado
         If txtID.Text.Trim = "" Then
             MessageBox.Show("Debe seleccionar un usuario para dar de baja")
             Exit Sub
         End If
 
+        Dim idRegistro As Integer = CInt(txtID.Text)
+
         'el usuario logueado no puede darse de baja a si mismo
-        If CInt(txtID.Text) = Sesion.IdUsuario Then
+        If idRegistro = Sesion.IdUsuario Then
             MessageBox.Show("No puede dar de baja su propio usuario.")
             Exit Sub
         End If
 
-        'pido confirmacion antes de dar de baja
-        Dim respuesta As DialogResult = MessageBox.Show(
-            "¿Dar de baja al usuario " & txtUsuario.Text & "?",
-            "Dar de baja",
-            MessageBoxButtons.YesNo,
-            MessageBoxIcon.Warning)
+        'pido confirmacion antes de cambiar el estado
+        Dim respuesta As DialogResult
+        If registroActivo Then
+            respuesta = MessageBox.Show(
+                "¿Dar de baja al usuario " & txtUsuario.Text & "?",
+                "Dar de baja",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning)
+        Else
+            respuesta = MessageBox.Show(
+                "¿Reactivar al usuario " & txtUsuario.Text & "?",
+                "Reactivar",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question)
+        End If
 
         If respuesta = DialogResult.No Then Exit Sub
 
+        Dim aviso As String = ""
+        'estado del usuario leido en la base dentro de la transaccion
+        Dim activoEnBase As Boolean = False
+        'queda en True cuando lo que hay en pantalla ya no coincide con la base
+        Dim desactualizado As Boolean = False
+
         'baja logica: el usuario puede tener ordenes de trabajo asociadas
-        'solo lo marco como inactivo y ya no puede iniciar sesion
+        'solo lo marco como inactivo y ya no puede iniciar sesion; con el mismo boton se lo puede reactivar
         Try
             Using cn As New MySqlConnection(CADENA)
                 cn.Open()
-                Dim consulta As String = "UPDATE usuario SET activo = 0 WHERE id_usuario=@id;"
-                Using cmd As New MySqlCommand(consulta, cn)
-                    cmd.Parameters.AddWithValue("@id", CInt(txtID.Text))
-                    Dim Resultado As Integer = cmd.ExecuteNonQuery()
-                    MessageBox.Show("Usuarios dados de baja: " & Resultado)
-                End Using
+
+                'la comprobacion y el cambio de estado van juntos en una transaccion
+                Dim transaccion As MySqlTransaction = cn.BeginTransaction()
+                Try
+                    'vuelvo a leer el usuario y bloqueo solo su fila hasta terminar
+                    Dim existe As Boolean = False
+                    Dim rolEnBase As String = ""
+                    Dim idMecanicoEnBase As Integer = 0
+                    Dim consulta As String = "SELECT activo, rol, id_mecanico FROM usuario WHERE id_usuario = @id FOR UPDATE;"
+                    Using cmd As New MySqlCommand(consulta, cn, transaccion)
+                        cmd.Parameters.AddWithValue("@id", idRegistro)
+                        Using lector As MySqlDataReader = cmd.ExecuteReader
+                            If lector.Read() Then
+                                existe = True
+                                activoEnBase = Convert.ToBoolean(lector("activo"))
+                                rolEnBase = lector("rol").ToString()
+                                If Not IsDBNull(lector("id_mecanico")) Then idMecanicoEnBase = CInt(lector("id_mecanico"))
+                            End If
+                        End Using
+                    End Using
+
+                    If Not existe Then
+                        aviso = "El usuario seleccionado ya no existe."
+                        desactualizado = True
+                    End If
+
+                    'si otro puesto ya le cambio el estado, lo que se confirmo en pantalla no vale
+                    If aviso = "" AndAlso activoEnBase <> registroActivo Then
+                        aviso = "El estado del usuario fue cambiado desde otro puesto. Se actualizó la lista: revíselo y vuelva a intentar."
+                        desactualizado = True
+                    End If
+
+                    'de aca en mas decido con el estado leido en la base, no con el de la pantalla
+                    If aviso = "" AndAlso activoEnBase AndAlso rolEnBase = "ADMINISTRADOR" Then
+                        'el sistema no puede quedar sin ningun administrador activo
+                        'puede pasar si dos administradores se dan de baja uno al otro desde dos puestos
+                        'aca si bloqueo a los demas administradores, para que las dos bajas no pasen a la vez
+                        Dim otrosAdministradores As Integer = 0
+                        consulta = "SELECT id_usuario FROM usuario " &
+                                   "WHERE rol = 'ADMINISTRADOR' AND activo = 1 AND id_usuario <> @id FOR UPDATE;"
+                        Using cmd As New MySqlCommand(consulta, cn, transaccion)
+                            cmd.Parameters.AddWithValue("@id", idRegistro)
+                            Using lector As MySqlDataReader = cmd.ExecuteReader
+                                While lector.Read()
+                                    otrosAdministradores = otrosAdministradores + 1
+                                End While
+                            End Using
+                        End Using
+
+                        If otrosAdministradores = 0 Then
+                            aviso = "No se puede dar de baja: es el único administrador activo y el sistema quedaría sin administrador."
+                        End If
+                    End If
+
+                    If aviso = "" AndAlso Not activoEnBase AndAlso rolEnBase = "MECANICO" Then
+                        'no se reactiva un usuario mecanico cuyo mecanico asociado esta dado de baja
+                        consulta = "SELECT nombre_completo, activo FROM mecanico WHERE id_mecanico = @id_mecanico;"
+                        Using cmd As New MySqlCommand(consulta, cn, transaccion)
+                            cmd.Parameters.AddWithValue("@id_mecanico", idMecanicoEnBase)
+                            Using lector As MySqlDataReader = cmd.ExecuteReader
+                                If lector.Read() AndAlso Not Convert.ToBoolean(lector("activo")) Then
+                                    aviso = "No se puede reactivar: su mecánico asociado, " & lector("nombre_completo").ToString() &
+                                            ", está dado de baja. Reactive primero al mecánico en ""Mecánicos""."
+                                End If
+                            End Using
+                        End Using
+                    End If
+
+                    If aviso = "" Then
+                        'activo pasa a FALSE en la baja y a TRUE en la reactivacion
+                        consulta = "UPDATE usuario SET activo = @activo WHERE id_usuario = @id;"
+                        Using cmd As New MySqlCommand(consulta, cn, transaccion)
+                            cmd.Parameters.AddWithValue("@activo", Not activoEnBase)
+                            cmd.Parameters.AddWithValue("@id", idRegistro)
+                            cmd.ExecuteNonQuery()
+                        End Using
+                    End If
+                Catch ex As Exception
+                    'algo fallo antes de confirmar: deshago todo y dejo que el error llegue al mensaje de abajo
+                    transaccion.Rollback()
+                    Throw
+                End Try
+
+                'confirmo fuera del Try de arriba: si el Commit falla no se intenta deshacer una transaccion ya cerrada
+                If aviso = "" Then
+                    transaccion.Commit()
+                Else
+                    transaccion.Rollback()
+                End If
             End Using
-
-            LimpiarFormu()
-            CargarUsuarios(txtFiltro.Text.Trim)
-
         Catch ex As Exception
             MessageBox.Show("Error al dar de baja " & ex.Message)
+            Exit Sub
         End Try
+
+        If aviso <> "" Then
+            MessageBox.Show(aviso)
+            'si el usuario cambio desde otro puesto, limpio el formulario y muestro el estado real
+            If desactualizado Then
+                LimpiarFormu()
+                CargarUsuarios(txtFiltro.Text.Trim)
+            End If
+            Exit Sub
+        End If
+
+        If activoEnBase Then
+            MessageBox.Show("Usuarios dados de baja: 1")
+        Else
+            MessageBox.Show("Usuarios reactivados: 1")
+        End If
+
+        LimpiarFormu()
+        CargarUsuarios(txtFiltro.Text.Trim)
     End Sub
 
     Private Sub btnLimpiar_Click(sender As Object, e As EventArgs) Handles btnLimpiar.Click

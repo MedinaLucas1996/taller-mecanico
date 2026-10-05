@@ -52,6 +52,7 @@ Partial Class FrmVehiculos
         btnEliminar = New Button()
         btnLimpiar = New Button()
         txtFiltro = New TextBox()
+        chkBajas = New CheckBox()
         dgvVehiculos = New DataGridView()
         pnlDatos.SuspendLayout()
         CType(nudAnio, ComponentModel.ISupportInitialize).BeginInit()
@@ -378,6 +379,16 @@ Partial Class FrmVehiculos
         txtFiltro.Size = New Size(420, 32)
         txtFiltro.TabIndex = 3
         '
+        ' chkBajas
+        '
+        chkBajas.AutoSize = True
+        chkBajas.Location = New Point(480, 434)
+        chkBajas.Name = "chkBajas"
+        chkBajas.Size = New Size(190, 24)
+        chkBajas.TabIndex = 5
+        chkBajas.Text = "Mostrar dados de baja"
+        chkBajas.UseVisualStyleBackColor = True
+        '
         ' dgvVehiculos
         '
         dgvVehiculos.AllowUserToAddRows = False
@@ -404,6 +415,7 @@ Partial Class FrmVehiculos
         BackColor = Color.FromArgb(CByte(245), CByte(246), CByte(250))
         ClientSize = New Size(1010, 730)
         Controls.Add(dgvVehiculos)
+        Controls.Add(chkBajas)
         Controls.Add(txtFiltro)
         Controls.Add(pnlDatos)
         Controls.Add(lblSubtitulo)
@@ -449,5 +461,6 @@ Partial Class FrmVehiculos
     Friend WithEvents btnEliminar As Button
     Friend WithEvents btnLimpiar As Button
     Friend WithEvents txtFiltro As TextBox
+    Friend WithEvents chkBajas As CheckBox
     Friend WithEvents dgvVehiculos As DataGridView
 End Class

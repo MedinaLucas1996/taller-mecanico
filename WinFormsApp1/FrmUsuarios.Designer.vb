@@ -43,6 +43,7 @@ Partial Class FrmUsuarios
         btnEliminar = New Button()
         btnLimpiar = New Button()
         txtFiltro = New TextBox()
+        chkBajas = New CheckBox()
         dgvUsuarios = New DataGridView()
         pnlDatos.SuspendLayout()
         CType(dgvUsuarios, ComponentModel.ISupportInitialize).BeginInit()
@@ -282,6 +283,16 @@ Partial Class FrmUsuarios
         txtFiltro.Size = New Size(420, 32)
         txtFiltro.TabIndex = 3
         '
+        ' chkBajas
+        '
+        chkBajas.AutoSize = True
+        chkBajas.Location = New Point(480, 374)
+        chkBajas.Name = "chkBajas"
+        chkBajas.Size = New Size(190, 24)
+        chkBajas.TabIndex = 5
+        chkBajas.Text = "Mostrar dados de baja"
+        chkBajas.UseVisualStyleBackColor = True
+        '
         ' dgvUsuarios
         '
         dgvUsuarios.AllowUserToAddRows = False
@@ -308,6 +319,7 @@ Partial Class FrmUsuarios
         BackColor = Color.FromArgb(CByte(245), CByte(246), CByte(250))
         ClientSize = New Size(1010, 690)
         Controls.Add(dgvUsuarios)
+        Controls.Add(chkBajas)
         Controls.Add(txtFiltro)
         Controls.Add(pnlDatos)
         Controls.Add(lblSubtitulo)
@@ -342,5 +354,6 @@ Partial Class FrmUsuarios
     Friend WithEvents btnEliminar As Button
     Friend WithEvents btnLimpiar As Button
     Friend WithEvents txtFiltro As TextBox
+    Friend WithEvents chkBajas As CheckBox
     Friend WithEvents dgvUsuarios As DataGridView
 End Class

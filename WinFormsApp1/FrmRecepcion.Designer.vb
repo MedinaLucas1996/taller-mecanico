@@ -43,6 +43,10 @@ Partial Class FrmRecepcion
         txtPatente = New TextBox()
         btnBuscar = New Button()
         lblAyudaPatente = New Label()
+        pnlNoRegistrada = New Panel()
+        lblNoRegistrada = New Label()
+        lblNoRegistradaAyuda = New Label()
+        btnRegistrarVehiculo = New Button()
         pnlVehiculo = New Panel()
         lblMarcaModelo = New Label()
         txtMarcaModelo = New TextBox()
@@ -149,6 +153,7 @@ Partial Class FrmRecepcion
         pnlBarra4.SuspendLayout()
         pnlTarjeta.SuspendLayout()
         pnlPaso1.SuspendLayout()
+        pnlNoRegistrada.SuspendLayout()
         pnlVehiculo.SuspendLayout()
         pnlPaso2.SuspendLayout()
         pnlPaso3.SuspendLayout()
@@ -390,6 +395,7 @@ Partial Class FrmRecepcion
         pnlPaso1.Controls.Add(txtPatente)
         pnlPaso1.Controls.Add(btnBuscar)
         pnlPaso1.Controls.Add(lblAyudaPatente)
+        pnlPaso1.Controls.Add(pnlNoRegistrada)
         pnlPaso1.Controls.Add(pnlVehiculo)
         pnlPaso1.Controls.Add(lblAnteriores)
         pnlPaso1.Controls.Add(dgvAnteriores)
@@ -444,6 +450,58 @@ Partial Class FrmRecepcion
         lblAyudaPatente.Size = New Size(400, 44)
         lblAyudaPatente.TabIndex = 3
         lblAyudaPatente.Text = "Escriba la patente y presione Buscar. El vehículo tiene que estar registrado en Vehículos."
+        '
+        ' pnlNoRegistrada
+        '
+        pnlNoRegistrada.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
+        pnlNoRegistrada.BackColor = Color.FromArgb(CByte(245), CByte(246), CByte(250))
+        pnlNoRegistrada.Controls.Add(lblNoRegistrada)
+        pnlNoRegistrada.Controls.Add(lblNoRegistradaAyuda)
+        pnlNoRegistrada.Controls.Add(btnRegistrarVehiculo)
+        pnlNoRegistrada.Location = New Point(20, 96)
+        pnlNoRegistrada.Name = "pnlNoRegistrada"
+        pnlNoRegistrada.Size = New Size(400, 132)
+        pnlNoRegistrada.TabIndex = 20
+        pnlNoRegistrada.Visible = False
+        '
+        ' lblNoRegistrada
+        '
+        lblNoRegistrada.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
+        lblNoRegistrada.AutoEllipsis = True
+        lblNoRegistrada.Font = New Font("Segoe UI", 10F, FontStyle.Bold)
+        lblNoRegistrada.Location = New Point(12, 10)
+        lblNoRegistrada.Name = "lblNoRegistrada"
+        lblNoRegistrada.Size = New Size(376, 26)
+        lblNoRegistrada.TabIndex = 0
+        lblNoRegistrada.Text = "La patente no está registrada."
+        '
+        ' lblNoRegistradaAyuda
+        '
+        lblNoRegistradaAyuda.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
+        lblNoRegistradaAyuda.AutoEllipsis = True
+        lblNoRegistradaAyuda.ForeColor = Color.DimGray
+        lblNoRegistradaAyuda.Location = New Point(12, 40)
+        lblNoRegistradaAyuda.Name = "lblNoRegistradaAyuda"
+        lblNoRegistradaAyuda.Size = New Size(376, 26)
+        lblNoRegistradaAyuda.TabIndex = 1
+        lblNoRegistradaAyuda.Text = "Puede registrar el vehículo y su titular ahora, sin salir de la recepción."
+        '
+        ' btnRegistrarVehiculo
+        '
+        btnRegistrarVehiculo.BackColor = Color.FromArgb(CByte(30), CByte(39), CByte(46))
+        btnRegistrarVehiculo.Cursor = Cursors.Hand
+        btnRegistrarVehiculo.FlatAppearance.BorderSize = 0
+        btnRegistrarVehiculo.FlatAppearance.MouseOverBackColor = Color.FromArgb(CByte(52), CByte(73), CByte(94))
+        btnRegistrarVehiculo.FlatStyle = FlatStyle.Flat
+        btnRegistrarVehiculo.Font = New Font("Segoe UI", 10F, FontStyle.Bold)
+        btnRegistrarVehiculo.ForeColor = Color.White
+        btnRegistrarVehiculo.Location = New Point(12, 76)
+        btnRegistrarVehiculo.Name = "btnRegistrarVehiculo"
+        btnRegistrarVehiculo.Size = New Size(230, 44)
+        btnRegistrarVehiculo.TabIndex = 2
+        btnRegistrarVehiculo.Text = " Registrar vehículo"
+        btnRegistrarVehiculo.TextImageRelation = TextImageRelation.ImageBeforeText
+        btnRegistrarVehiculo.UseVisualStyleBackColor = False
         '
         ' pnlVehiculo
         '
@@ -1688,6 +1746,7 @@ Partial Class FrmRecepcion
         pnlBarra3.ResumeLayout(False)
         pnlBarra4.ResumeLayout(False)
         pnlTarjeta.ResumeLayout(False)
+        pnlNoRegistrada.ResumeLayout(False)
         pnlPaso1.ResumeLayout(False)
         pnlPaso1.PerformLayout()
         pnlVehiculo.ResumeLayout(False)
@@ -1752,6 +1811,10 @@ Partial Class FrmRecepcion
     Friend WithEvents txtPatente As TextBox
     Friend WithEvents btnBuscar As Button
     Friend WithEvents lblAyudaPatente As Label
+    Friend WithEvents pnlNoRegistrada As Panel
+    Friend WithEvents lblNoRegistrada As Label
+    Friend WithEvents lblNoRegistradaAyuda As Label
+    Friend WithEvents btnRegistrarVehiculo As Button
     Friend WithEvents pnlVehiculo As Panel
     Friend WithEvents lblMarcaModelo As Label
     Friend WithEvents txtMarcaModelo As TextBox

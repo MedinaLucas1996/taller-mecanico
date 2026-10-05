@@ -174,6 +174,8 @@ Review of `9acc6b2`: the native review refused it at start with `lens_context_bu
 
 Verified by the user at runtime on 2026-10-05 ("funciona todo") after the single-step fix; the agent did not observe it.
 
+Hours only, decided by the user on 2026-10-05 (branch `feature/TM-0009`): the real quantity was "too much detail". The dialog no longer shows, asks for or writes `ot_detalle.cantidad_real` (the column stays in the schema, unused); only the hours worked are registered, and finalising needs the hours of every approved line plus the notes. Headers are now "Cantidad" and "Horas trabajadas". Compiles with 0 warnings and 0 errors when built to a separate output folder; the normal build could not copy the executable because the application was running. Not run against a database nor seen on screen by the agent.
+
 ## Next step
 
 Next feature in the roadmap: "Mis órdenes asignadas" (mechanic screen).

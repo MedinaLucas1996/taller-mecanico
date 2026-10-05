@@ -50,9 +50,17 @@ Las tres pantallas están disponibles para el administrador y el operador.
 - A la derecha, la tarjeta "Resumen de la recepción" está siempre a la vista y se completa a medida que se avanza: vehículo, cliente, kilometraje, combustible, mecánico, fecha prometida, cantidad de fotos y síntoma.
 - Al pie quedan siempre en el mismo lugar "Cancelar", "Anterior" y el botón principal, que dice "Siguiente" en los pasos 1 a 3 y "Confirmar recepción" en el paso 4.
 
+**Registro rápido** (`FrmAltaRapida`): cuando la patente buscada no existe, "Registrar vehículo" abre una ventana para darla de alta sin salir de la recepción.
+
+1. Titular: se busca un cliente ya registrado por documento o nombre y se lo elige de la lista, o se elige "Cliente nuevo" y se cargan nombre o razón social, documento y, si se quiere, teléfono.
+2. Vehículo: patente (viene cargada con la que se buscó), marca y modelo de las listas, y año y color opcionales. La marca y el modelo no se crean aquí: se agregan en "Marcas y modelos".
+3. "Registrar y continuar" guarda el cliente nuevo y el vehículo juntos; si algo falla no se guarda ninguno. La recepción busca esa patente y sigue como con cualquier vehículo.
+
+El cliente y el vehículo quedan registrados aunque después se cancele la recepción.
+
 | Paso | Qué se hace |
 |---|---|
-| 1. Vehículo | Se busca el vehículo por su patente exacta. Se muestran sus datos, el titular y sus órdenes anteriores. El vehículo debe estar registrado y activo, y no puede tener otra orden abierta. |
+| 1. Vehículo | Se busca el vehículo por su patente exacta. Se muestran sus datos, el titular y sus órdenes anteriores. Si la patente no está registrada, el paso lo avisa y ofrece "Registrar vehículo" (ver más abajo). El vehículo debe estar activo, y no puede tener otra orden abierta. |
 | 2. Datos de ingreso | Kilometraje de ingreso (no menor al último registrado), nivel de combustible, síntoma reportado (obligatorio), observaciones de recepción, mecánico (opcional) y fecha prometida de entrega (opcional, no anterior a hoy). |
 | 3. Fotos | Una foto por ángulo: frente, trasera, lateral izquierdo, lateral derecho y tablero. Se eligen del disco (JPG o PNG), se reducen a 1280 píxeles en su lado mayor y se pueden quitar. Son opcionales. |
 | 4. Confirmación | Resumen de solo lectura. Al confirmar se avisa qué fotos faltan y se guardan, en una sola transacción, la orden con el número siguiente en estado `RECEPCIONADA`, la primera fila del historial de estados y las fotos cargadas. |
@@ -91,8 +99,8 @@ Las fotos se guardan en la base de datos, en la tabla `ot_foto`.
 | `RECEPCIONADA` | Armar el presupuesto: agregar servicios, cambiar cantidades, quitar líneas. | Presupuestar (exige al menos una línea) | — |
 | `PRESUPUESTADA` | Tildar las líneas que el cliente aprueba; el presupuesto todavía se puede ajustar sin perder las tildes. | Registrar aprobación (exige al menos una línea aprobada) | Rechazar |
 | `APROBADA` | Revisar las líneas aprobadas y el mecánico asignado; se avisa si falta. | Iniciar trabajo (exige un mecánico) | — |
-| `EN_PROCESO` | Cargar en la grilla la cantidad real y las horas reales de cada línea aprobada, y las observaciones del mecánico. | Finalizar trabajo (exige todo cargado) | Guardar avance |
-| `FINALIZADA` | Resumen de solo lectura con lo presupuestado y lo real. | Entregar vehículo | — |
+| `EN_PROCESO` | Cargar en la grilla las horas trabajadas de cada línea aprobada, y las observaciones del mecánico. | Finalizar trabajo (exige todo cargado) | Guardar avance |
+| `FINALIZADA` | Resumen de solo lectura con las líneas aprobadas y sus horas trabajadas. | Entregar vehículo | — |
 | `ENTREGADA`, `RECHAZADA`, `ANULADA` | El mismo resumen, solo de consulta. | Cerrar | — |
 
 "Guardar avance" guarda lo cargado del trabajo sin cambiar el estado, para seguir después. "Anular orden" abre una ventana que pide el motivo (`FrmAnularOrden`). El precio y la descripción se copian del servicio y no se modifican en la línea; cada servicio va una sola vez por orden. La entrega sube el kilometraje del vehículo al de la orden.
@@ -266,10 +274,11 @@ No aplica: aplicación de escritorio WinForms. No expone endpoints.
 - **Versión:** _TODO: completar manualmente_ (el proyecto no define versión en `WinFormsApp1.vbproj`).
 - **Status:** En desarrollo (trabajo práctico universitario).
   - Terminado: Clientes (ABM, baja lógica, búsqueda en vivo), Vehículos (ABM con combos de titular y marca/modelo en cascada, baja lógica), Marcas y modelos (maestro-detalle), Usuarios (ABM con baja lógica; contraseña guardada con PBKDF2 al crear o modificar; el rol MECANICO exige elegir un mecánico; el administrador no puede darse de baja ni cambiar su propio rol; el botón del menú solo se muestra para el rol ADMINISTRADOR).
+  - Terminado: reactivación en Clientes, Vehículos y Usuarios. La casilla "Mostrar dados de baja" lista también los registros inactivos, con una columna "Activo"; al elegir uno, el botón de baja dice "Reactivar". Reglas: un cliente con vehículos activos no se da de baja; un vehículo con una orden de trabajo sin cerrar no se da de baja y no se reactiva si su titular está dado de baja; no se da de baja al único administrador activo; un usuario mecánico no se reactiva si su mecánico está dado de baja.
   - Terminado: Login (imagen y música; valida usuario activo y contraseña contra `usuario`, con un mensaje único para usuario inexistente o clave incorrecta; guarda el usuario en `Sesion` y la barra superior de `FrmPrincipal` muestra nombre y rol; el botón "Cerrar sesión" de esa barra vuelve al login vacío para que ingrese otro usuario).
   - Terminado: Menú por rol (`FrmPrincipal` está armado en el diseñador y muestra en `FrmPrincipal_Load` solo las opciones del rol que ingresó; ver [Menú por rol](#menú-por-rol)). Aún no se aplican permisos por rol dentro de cada pantalla, salvo en Usuarios, Mecánicos, Servicios, Categorías, Recepción, Órdenes de trabajo y Gestión de la orden, que comprueban el rol al abrirse; en Gestión de la orden, además, solo el administrador ve el botón "Anular".
   - Terminado: Recepción (asistente de cuatro pasos: vehículo por patente, datos de ingreso, fotos por ángulo y confirmación; guarda en una transacción la orden en estado `RECEPCIONADA`, su primera fila de historial y sus fotos) y Órdenes de trabajo (tablero a todo el ancho: tarjetas con la cantidad de órdenes por estado, que también filtran la lista; filtros por texto y demoradas; grilla con el estado en color; y tarjeta de detalle de la orden seleccionada con sus fotos en miniatura, ampliables, y el botón "Gestionar orden"). Ver [Recepción y órdenes de trabajo](#recepción-y-órdenes-de-trabajo).
-  - Terminado: Gestión de la orden (líneas de presupuesto con sus totales, mecánico, aprobación del cliente por línea o rechazo, inicio del trabajo, cantidad y horas reales por línea, cierre técnico, entrega con actualización del kilometraje y anulación con motivo, solo para el administrador; cada cambio de estado se guarda en una transacción con su fila de historial). Ver [Recepción y órdenes de trabajo](#recepción-y-órdenes-de-trabajo).
+  - Terminado: Gestión de la orden (líneas de presupuesto con sus totales, mecánico, aprobación del cliente por línea o rechazo, inicio del trabajo, horas trabajadas por línea, cierre técnico, entrega con actualización del kilometraje y anulación con motivo, solo para el administrador; cada cambio de estado se guarda en una transacción con su fila de historial). Ver [Recepción y órdenes de trabajo](#recepción-y-órdenes-de-trabajo).
   - Pendiente en el flujo de la orden de trabajo: vista del mecánico e impresión del presupuesto.
   - Terminado: Mecánicos (ABM solo para el administrador: nombre completo obligatorio, especialidad y teléfono; la grilla lista activos y dados de baja con búsqueda por nombre o especialidad; baja lógica, rechazada si el mecánico tiene órdenes de trabajo sin cerrar; un mecánico dado de baja se reactiva con el mismo botón; no admite dos mecánicos activos con el mismo nombre).
   - Terminado: Servicios (ABM solo para el administrador: código único, descripción, categoría y precio obligatorios, tiempo estimado en horas opcional; la grilla lista activos y dados de baja con búsqueda por código, descripción o categoría; baja lógica y reactivación con el mismo botón, rechazada si la categoría del servicio está dada de baja; cambiar el precio no altera los presupuestos ya cargados).

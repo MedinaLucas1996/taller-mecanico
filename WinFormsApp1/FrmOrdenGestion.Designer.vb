@@ -53,7 +53,6 @@ Partial Class FrmOrdenGestion
         colPrecio = New DataGridViewTextBoxColumn()
         colSubtotal = New DataGridViewTextBoxColumn()
         colAprobado = New DataGridViewCheckBoxColumn()
-        colReal = New DataGridViewTextBoxColumn()
         colHoras = New DataGridViewTextBoxColumn()
         colIdDetalle = New DataGridViewTextBoxColumn()
         pnlPieLineas = New Panel()
@@ -453,7 +452,7 @@ Partial Class FrmOrdenGestion
         dgvDetalle.BackgroundColor = Color.White
         dgvDetalle.BorderStyle = BorderStyle.FixedSingle
         dgvDetalle.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize
-        dgvDetalle.Columns.AddRange(New DataGridViewColumn() {colMarca, colDescripcion, colCantidad, colPrecio, colSubtotal, colAprobado, colReal, colHoras, colIdDetalle})
+        dgvDetalle.Columns.AddRange(New DataGridViewColumn() {colMarca, colDescripcion, colCantidad, colPrecio, colSubtotal, colAprobado, colHoras, colIdDetalle})
         dgvDetalle.Dock = DockStyle.Fill
         dgvDetalle.Location = New Point(16, 130)
         dgvDetalle.MultiSelect = False
@@ -522,21 +521,11 @@ Partial Class FrmOrdenGestion
         colAprobado.ReadOnly = True
         colAprobado.Visible = False
         '
-        ' colReal
-        '
-        colReal.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells
-        colReal.DataPropertyName = "cantidad_real"
-        colReal.HeaderText = "Real"
-        colReal.MinimumWidth = 6
-        colReal.Name = "colReal"
-        colReal.ReadOnly = True
-        colReal.Visible = False
-        '
         ' colHoras
         '
         colHoras.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells
         colHoras.DataPropertyName = "horas_reales"
-        colHoras.HeaderText = "Horas"
+        colHoras.HeaderText = "Horas trabajadas"
         colHoras.MinimumWidth = 6
         colHoras.Name = "colHoras"
         colHoras.ReadOnly = True
@@ -1272,7 +1261,6 @@ Partial Class FrmOrdenGestion
     Friend WithEvents colPrecio As DataGridViewTextBoxColumn
     Friend WithEvents colSubtotal As DataGridViewTextBoxColumn
     Friend WithEvents colAprobado As DataGridViewCheckBoxColumn
-    Friend WithEvents colReal As DataGridViewTextBoxColumn
     Friend WithEvents colHoras As DataGridViewTextBoxColumn
     Friend WithEvents colIdDetalle As DataGridViewTextBoxColumn
     Friend WithEvents pnlPieLineas As Panel

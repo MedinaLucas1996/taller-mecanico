@@ -2,23 +2,31 @@ Imports MySqlConnector
 
 Public Class FrmVehiculos
 
+    'indica si el registro seleccionado esta activo, decide si el boton da de baja o reactiva
+    Private registroActivo As Boolean = True
+
     Sub CargarVehiculos(Optional filtro As String = "")
         'creo subrutina para cargar grilla
         Try
             Using cn As New MySqlConnection(CADENA)
                 cn.Open()
                 'armo mi consulta sql uniendo vehiculo con cliente, modelo y marca
-                'solo traigo vehiculos activos
                 Dim consulta As String =
                     "SELECT v.id_vehiculo, v.patente, c.razon_social AS titular, " &
                     "ma.descripcion AS marca, mo.descripcion AS modelo, v.anio, v.color, " &
                     "v.nro_motor, v.nro_chasis, v.km_actual, v.observaciones, " &
-                    "v.id_cliente, mo.id_marca, v.id_modelo " &
+                    "v.id_cliente, mo.id_marca, v.id_modelo, " &
+                    "CASE WHEN v.activo = 1 THEN 'Sí' ELSE 'No' END AS esta_activo " &
                     "FROM vehiculo AS v " &
                     "JOIN cliente AS c ON c.id_cliente = v.id_cliente " &
                     "JOIN modelo AS mo ON mo.id_modelo = v.id_modelo " &
                     "JOIN marca AS ma ON ma.id_marca = mo.id_marca " &
-                    "WHERE v.activo = 1 "
+                    "WHERE 1 = 1 "
+
+                'solo traigo vehiculos activos, salvo que se pida ver tambien los dados de baja
+                If Not chkBajas.Checked Then
+                    consulta = consulta & "AND v.activo = 1 "
+                End If
 
                 'aplico filtro por patente, titular, marca o modelo
                 If filtro <> "" Then
@@ -27,7 +35,8 @@ Public Class FrmVehiculos
                         "OR ma.descripcion LIKE @filtro OR mo.descripcion LIKE @filtro) "
                 End If
 
-                consulta = consulta & "ORDER BY v.patente;"
+                'primero los activos, despues los dados de baja
+                consulta = consulta & "ORDER BY v.activo DESC, v.patente;"
 
                 Using cmd As New MySqlCommand(consulta, cn)
                     'evito SQL Injection usando parametros
@@ -61,6 +70,10 @@ Public Class FrmVehiculos
                     dgvVehiculos.Columns("id_cliente").Visible = False
                     dgvVehiculos.Columns("id_marca").Visible = False
                     dgvVehiculos.Columns("id_modelo").Visible = False
+                    'la columna Activo solo se ve cuando tambien se listan los dados de baja
+                    dgvVehiculos.Columns("esta_activo").HeaderText = "Activo"
+                    dgvVehiculos.Columns("esta_activo").AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells
+                    dgvVehiculos.Columns("esta_activo").Visible = chkBajas.Checked
                 End Using
             End Using
         Catch ex As Exception
@@ -163,6 +176,9 @@ Public Class FrmVehiculos
         txtChasis.Clear()
         nudKilometraje.Value = 0
         txtObservaciones.Clear()
+        'sin registro seleccionado el boton vuelve a ser el de la baja
+        registroActivo = True
+        btnEliminar.Text = "Dar de baja"
         dgvVehiculos.ClearSelection()
         cboTitular.Focus()
     End Sub
@@ -217,6 +233,12 @@ Public Class FrmVehiculos
 
     Private Sub txtFiltro_TextChanged(sender As Object, e As EventArgs) Handles txtFiltro.TextChanged
         'vuelvo a cargar la grilla con el filtro escrito
+        CargarVehiculos(txtFiltro.Text.Trim)
+    End Sub
+
+    Private Sub chkBajas_CheckedChanged(sender As Object, e As EventArgs) Handles chkBajas.CheckedChanged
+        'muestro o dejo de mostrar los vehiculos dados de baja, el formulario queda limpio
+        LimpiarFormu()
         CargarVehiculos(txtFiltro.Text.Trim)
     End Sub
 
@@ -294,6 +316,14 @@ Public Class FrmVehiculos
         txtChasis.Text = fila.Cells("nro_chasis").Value.ToString()
         nudKilometraje.Value = CInt(fila.Cells("km_actual").Value)
         txtObservaciones.Text = fila.Cells("observaciones").Value.ToString()
+
+        'segun el estado del registro, el mismo boton da de baja o reactiva
+        registroActivo = (fila.Cells("esta_activo").Value.ToString() = "Sí")
+        If registroActivo Then
+            btnEliminar.Text = "Dar de baja"
+        Else
+            btnEliminar.Text = "Reactivar"
+        End If
     End Sub
 
     Private Sub btnModificar_Click(sender As Object, e As EventArgs) Handles btnModificar.Click
@@ -345,39 +375,154 @@ Public Class FrmVehiculos
     End Sub
 
     Private Sub btnEliminar_Click(sender As Object, e As EventArgs) Handles btnEliminar.Click
+        'doy de baja el vehiculo seleccionado, o lo reactivo si ya estaba dado de baja
+
         'valido que haya un vehiculo seleccionado
         If txtID.Text.Trim = "" Then
             MessageBox.Show("Debe seleccionar un vehículo para dar de baja")
             Exit Sub
         End If
 
-        'pido confirmacion antes de dar de baja
-        Dim respuesta As DialogResult = MessageBox.Show(
-            "¿Dar de baja el vehículo " & txtPatente.Text & "?",
-            "Dar de baja",
-            MessageBoxButtons.YesNo,
-            MessageBoxIcon.Warning)
+        Dim idRegistro As Integer = CInt(txtID.Text)
+
+        'pido confirmacion antes de cambiar el estado
+        Dim respuesta As DialogResult
+        If registroActivo Then
+            respuesta = MessageBox.Show(
+                "¿Dar de baja el vehículo " & txtPatente.Text & "?",
+                "Dar de baja",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning)
+        Else
+            respuesta = MessageBox.Show(
+                "¿Reactivar el vehículo " & txtPatente.Text & "?",
+                "Reactivar",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question)
+        End If
 
         If respuesta = DialogResult.No Then Exit Sub
 
+        Dim aviso As String = ""
+        'estado del vehiculo leido en la base dentro de la transaccion
+        Dim activoEnBase As Boolean = False
+        'queda en True cuando lo que hay en pantalla ya no coincide con la base
+        Dim desactualizado As Boolean = False
+
         'baja logica: el vehiculo puede tener ordenes de trabajo asociadas
+        'solo lo marco como inactivo, y con el mismo boton se lo puede reactivar
         Try
             Using cn As New MySqlConnection(CADENA)
                 cn.Open()
-                Dim consulta As String = "UPDATE vehiculo SET activo = 0 WHERE id_vehiculo=@id;"
-                Using cmd As New MySqlCommand(consulta, cn)
-                    cmd.Parameters.AddWithValue("@id", CInt(txtID.Text))
-                    Dim Resultado As Integer = cmd.ExecuteNonQuery()
-                    MessageBox.Show("Vehículos dados de baja: " & Resultado)
-                End Using
+
+                'la comprobacion y el cambio de estado van juntos en una transaccion
+                Dim transaccion As MySqlTransaction = cn.BeginTransaction()
+                Try
+                    'vuelvo a leer el vehiculo y bloqueo solo su fila hasta terminar
+                    Dim existe As Boolean = False
+                    Dim idTitular As Integer = 0
+                    Dim consulta As String = "SELECT activo, id_cliente FROM vehiculo WHERE id_vehiculo = @id FOR UPDATE;"
+                    Using cmd As New MySqlCommand(consulta, cn, transaccion)
+                        cmd.Parameters.AddWithValue("@id", idRegistro)
+                        Using lector As MySqlDataReader = cmd.ExecuteReader
+                            If lector.Read() Then
+                                existe = True
+                                activoEnBase = Convert.ToBoolean(lector("activo"))
+                                idTitular = CInt(lector("id_cliente"))
+                            End If
+                        End Using
+                    End Using
+
+                    If Not existe Then
+                        aviso = "El vehículo seleccionado ya no existe."
+                        desactualizado = True
+                    End If
+
+                    'si otro puesto ya le cambio el estado, lo que se confirmo en pantalla no vale
+                    If aviso = "" AndAlso activoEnBase <> registroActivo Then
+                        aviso = "El estado del vehículo fue cambiado desde otro puesto. Se actualizó la lista: revíselo y vuelva a intentar."
+                        desactualizado = True
+                    End If
+
+                    'de aca en mas decido con el estado leido en la base, no con el de la pantalla
+                    If aviso = "" AndAlso activoEnBase Then
+                        'no se da de baja un vehiculo con una orden de trabajo sin cerrar (estado no final)
+                        consulta =
+                            "SELECT COUNT(*) AS abiertas, MAX(ot.nro_orden) AS ultima " &
+                            "FROM orden_trabajo AS ot " &
+                            "JOIN estado_ot AS e ON e.id_estado_ot = ot.id_estado_ot " &
+                            "WHERE ot.id_vehiculo = @id AND e.es_estado_final = 0;"
+                        Using cmd As New MySqlCommand(consulta, cn, transaccion)
+                            cmd.Parameters.AddWithValue("@id", idRegistro)
+                            Using lector As MySqlDataReader = cmd.ExecuteReader
+                                If lector.Read() AndAlso CInt(lector("abiertas")) > 0 Then
+                                    aviso = "No se puede dar de baja: el vehículo tiene " & lector("abiertas").ToString() &
+                                            " orden(es) de trabajo sin cerrar (la N.º " & lector("ultima").ToString() &
+                                            "). Ciérrela o anúlela primero."
+                                End If
+                            End Using
+                        End Using
+                    End If
+
+                    If aviso = "" AndAlso Not activoEnBase Then
+                        'no se reactiva un vehiculo cuyo titular esta dado de baja
+                        consulta = "SELECT razon_social, activo FROM cliente WHERE id_cliente = @id_cliente;"
+                        Using cmd As New MySqlCommand(consulta, cn, transaccion)
+                            cmd.Parameters.AddWithValue("@id_cliente", idTitular)
+                            Using lector As MySqlDataReader = cmd.ExecuteReader
+                                If lector.Read() AndAlso Not Convert.ToBoolean(lector("activo")) Then
+                                    aviso = "No se puede reactivar: su titular, " & lector("razon_social").ToString() &
+                                            ", está dado de baja. Reactive primero al cliente en ""Clientes""."
+                                End If
+                            End Using
+                        End Using
+                    End If
+
+                    If aviso = "" Then
+                        'activo pasa a FALSE en la baja y a TRUE en la reactivacion
+                        consulta = "UPDATE vehiculo SET activo = @activo WHERE id_vehiculo = @id;"
+                        Using cmd As New MySqlCommand(consulta, cn, transaccion)
+                            cmd.Parameters.AddWithValue("@activo", Not activoEnBase)
+                            cmd.Parameters.AddWithValue("@id", idRegistro)
+                            cmd.ExecuteNonQuery()
+                        End Using
+                    End If
+                Catch ex As Exception
+                    'algo fallo antes de confirmar: deshago todo y dejo que el error llegue al mensaje de abajo
+                    transaccion.Rollback()
+                    Throw
+                End Try
+
+                'confirmo fuera del Try de arriba: si el Commit falla no se intenta deshacer una transaccion ya cerrada
+                If aviso = "" Then
+                    transaccion.Commit()
+                Else
+                    transaccion.Rollback()
+                End If
             End Using
-
-            LimpiarFormu()
-            CargarVehiculos(txtFiltro.Text.Trim)
-
         Catch ex As Exception
             MessageBox.Show("Error al dar de baja " & ex.Message)
+            Exit Sub
         End Try
+
+        If aviso <> "" Then
+            MessageBox.Show(aviso)
+            'si el vehiculo cambio desde otro puesto, limpio el formulario y muestro el estado real
+            If desactualizado Then
+                LimpiarFormu()
+                CargarVehiculos(txtFiltro.Text.Trim)
+            End If
+            Exit Sub
+        End If
+
+        If activoEnBase Then
+            MessageBox.Show("Vehículos dados de baja: 1")
+        Else
+            MessageBox.Show("Vehículos reactivados: 1")
+        End If
+
+        LimpiarFormu()
+        CargarVehiculos(txtFiltro.Text.Trim)
     End Sub
 
     Private Sub btnLimpiar_Click(sender As Object, e As EventArgs) Handles btnLimpiar.Click

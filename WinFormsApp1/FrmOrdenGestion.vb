@@ -171,7 +171,7 @@ Public Class FrmOrdenGestion
                 cn.Open()
                 Dim consulta As String =
                     "SELECT id_ot_detalle, descripcion, cantidad, precio_unitario, subtotal, aprobado, " &
-                    "cantidad_real, horas_reales " &
+                    "horas_reales " &
                     "FROM ot_detalle " &
                     "WHERE id_orden_trabajo = @id_orden_trabajo "
 
@@ -198,20 +198,14 @@ Public Class FrmOrdenGestion
             MessageBox.Show("Error al cargar las líneas de la orden: " & ex.Message)
         End Try
 
-        'en proceso y en los resumenes se ve lo presupuestado contra lo real
+        'en proceso y en los resumenes se ven las horas trabajadas de cada linea
         Dim conEjecucion As Boolean =
             (codigoEstado = "EN_PROCESO" OrElse codigoEstado = "FINALIZADA" OrElse codigoEstado = "ENTREGADA")
 
-        'la marca de listo o pendiente es solo para cargar la ejecucion
+        'la marca de listo o pendiente es solo para cargar las horas
         colMarca.Visible = (codigoEstado = "EN_PROCESO")
 
-        If conEjecucion Then
-            colCantidad.HeaderText = "Presup."
-        Else
-            colCantidad.HeaderText = "Cantidad"
-        End If
-
-        'con el trabajo en proceso los importes no hacen falta, se cargan cantidades y horas
+        'con el trabajo en proceso los importes no hacen falta, se cargan las horas
         colPrecio.Visible = (codigoEstado <> "EN_PROCESO")
         colSubtotal.Visible = (codigoEstado <> "EN_PROCESO")
 
@@ -219,11 +213,10 @@ Public Class FrmOrdenGestion
         colAprobado.Visible = (codigoEstado = "PRESUPUESTADA" OrElse codigoEstado = "APROBADA" OrElse
                                codigoEstado = "RECHAZADA" OrElse codigoEstado = "ANULADA")
 
-        'lo real se ve desde que el trabajo se inicia, y en una orden anulada por si llego a cargarse
-        colReal.Visible = (conEjecucion OrElse codigoEstado = "ANULADA")
+        'las horas se ven desde que el trabajo se inicia, y en una orden anulada por si llegaron a cargarse
         colHoras.Visible = (conEjecucion OrElse codigoEstado = "ANULADA")
 
-        'en la grilla se edita solo la aprobacion (presupuestada) o lo real (en proceso)
+        'en la grilla se edita solo la aprobacion (presupuestada) o las horas (en proceso)
         dgvDetalle.ReadOnly = Not (codigoEstado = "PRESUPUESTADA" OrElse codigoEstado = "EN_PROCESO")
         colMarca.ReadOnly = True
         colDescripcion.ReadOnly = True
@@ -231,7 +224,6 @@ Public Class FrmOrdenGestion
         colPrecio.ReadOnly = True
         colSubtotal.ReadOnly = True
         colAprobado.ReadOnly = (codigoEstado <> "PRESUPUESTADA")
-        colReal.ReadOnly = (codigoEstado <> "EN_PROCESO")
         colHoras.ReadOnly = (codigoEstado <> "EN_PROCESO")
     End Sub
 
@@ -394,7 +386,7 @@ Public Class FrmOrdenGestion
 
         If codigoEstado = "EN_PROCESO" Then
             lblEtapaTitulo.Text = "Trabajo en proceso"
-            lblEtapaAyuda.Text = "Cargá la cantidad y las horas reales de cada servicio aprobado."
+            lblEtapaAyuda.Text = "Cargá las horas trabajadas de cada servicio aprobado."
             btnPrimario.Text = " Finalizar trabajo"
             btnPrimario.Image = iconoFinalizar
             btnSecundario.Visible = True
@@ -422,7 +414,7 @@ Public Class FrmOrdenGestion
     End Sub
 
     Sub ActualizarConteo()
-        'actualizo el contador de la etapa: aprobadas (presupuestada) o pendientes de ejecucion (en proceso)
+        'actualizo el contador de la etapa: aprobadas (presupuestada) o sin horas cargadas (en proceso)
         lblConteo.Text = ""
 
         If codigoEstado = "PRESUPUESTADA" Then
@@ -440,17 +432,17 @@ Public Class FrmOrdenGestion
         End If
 
         If codigoEstado = "EN_PROCESO" Then
-            'una linea esta lista cuando tiene cantidad real y horas reales
+            'una linea esta lista cuando tiene cargadas sus horas trabajadas
             Dim faltan As Integer = 0
             For Each fila As DataGridViewRow In dgvDetalle.Rows
-                If IsDBNull(fila.Cells("colReal").Value) OrElse IsDBNull(fila.Cells("colHoras").Value) Then
+                If IsDBNull(fila.Cells("colHoras").Value) Then
                     faltan = faltan + 1
                 End If
             Next
             If faltan = 0 Then
-                lblConteo.Text = "Completas " & dgvDetalle.Rows.Count & " de " & dgvDetalle.Rows.Count
+                lblConteo.Text = "Horas cargadas en " & dgvDetalle.Rows.Count & " de " & dgvDetalle.Rows.Count
             Else
-                lblConteo.Text = "Faltan " & faltan & " de " & dgvDetalle.Rows.Count
+                lblConteo.Text = "Faltan horas en " & faltan & " de " & dgvDetalle.Rows.Count
             End If
         End If
     End Sub
@@ -693,27 +685,22 @@ Public Class FrmOrdenGestion
     End Sub
 
     Sub GuardarEjecucion(cn As MySqlConnection, transaccion As MySqlTransaction, notas As String)
-        'guardo lo que esta en pantalla del trabajo en proceso: lo real de cada linea aprobada y las observaciones
+        'guardo lo que esta en pantalla del trabajo en proceso: las horas de cada linea aprobada y las observaciones
         'lo usan "Guardar avance" y "Finalizar trabajo", cada uno dentro de su transaccion
 
+        'solo se escriben las horas: ningun otro dato de la linea se toca
         Dim consulta As String =
-            "UPDATE ot_detalle SET cantidad_real = @cantidad_real, horas_reales = @horas_reales " &
+            "UPDATE ot_detalle SET horas_reales = @horas_reales " &
             "WHERE id_ot_detalle = @id_ot_detalle AND id_orden_trabajo = @id_orden_trabajo AND aprobado = 1;"
 
         For Each fila As DataGridViewRow In dgvDetalle.Rows
             'una celda vacia se guarda como NULL, las demas con dos decimales
-            Dim cantidadReal As Object = DBNull.Value
-            If Not IsDBNull(fila.Cells("colReal").Value) Then
-                cantidadReal = Math.Round(CDec(fila.Cells("colReal").Value), 2, MidpointRounding.AwayFromZero)
-            End If
-
             Dim horasReales As Object = DBNull.Value
             If Not IsDBNull(fila.Cells("colHoras").Value) Then
                 horasReales = Math.Round(CDec(fila.Cells("colHoras").Value), 2, MidpointRounding.AwayFromZero)
             End If
 
             Using cmd As New MySqlCommand(consulta, cn, transaccion)
-                cmd.Parameters.AddWithValue("@cantidad_real", cantidadReal)
                 cmd.Parameters.AddWithValue("@horas_reales", horasReales)
                 cmd.Parameters.AddWithValue("@id_ot_detalle", CInt(fila.Cells("colIdDetalle").Value))
                 cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
@@ -763,8 +750,6 @@ Public Class FrmOrdenGestion
         colPrecio.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight
         colSubtotal.DefaultCellStyle.Format = "C2"
         colSubtotal.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight
-        colReal.DefaultCellStyle.Format = "N2"
-        colReal.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight
         colHoras.DefaultCellStyle.Format = "N2"
         colHoras.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight
         'una linea sin marca no muestra el dibujo de imagen faltante
@@ -820,12 +805,12 @@ Public Class FrmOrdenGestion
     End Sub
 
     Private Sub dgvDetalle_CellFormatting(sender As Object, e As DataGridViewCellFormattingEventArgs) Handles dgvDetalle.CellFormatting
-        'la primera columna marca cada linea como lista o pendiente segun tenga cargado lo real
+        'la primera columna marca cada linea como lista o pendiente segun tenga cargadas sus horas
         If e.RowIndex < 0 Then Exit Sub
         If dgvDetalle.Columns(e.ColumnIndex) IsNot colMarca Then Exit Sub
 
         Dim fila As DataGridViewRow = dgvDetalle.Rows(e.RowIndex)
-        If IsDBNull(fila.Cells("colReal").Value) OrElse IsDBNull(fila.Cells("colHoras").Value) Then
+        If IsDBNull(fila.Cells("colHoras").Value) Then
             e.Value = iconoReloj
         Else
             e.Value = iconoCheckVerde
@@ -842,12 +827,12 @@ Public Class FrmOrdenGestion
     End Sub
 
     Private Sub dgvDetalle_CellValidating(sender As Object, e As DataGridViewCellValidatingEventArgs) Handles dgvDetalle.CellValidating
-        'valido lo que se escribe en "Real" y "Horas" antes de que quede en la grilla
+        'valido lo que se escribe en "Horas trabajadas" antes de que quede en la grilla
         If codigoEstado <> "EN_PROCESO" Then Exit Sub
         If Not dgvDetalle.IsCurrentCellDirty Then Exit Sub
 
         Dim columna As DataGridViewColumn = dgvDetalle.Columns(e.ColumnIndex)
-        If columna IsNot colReal AndAlso columna IsNot colHoras Then Exit Sub
+        If columna IsNot colHoras Then Exit Sub
 
         'una celda vacia es valida: la linea queda pendiente
         Dim texto As String = e.FormattedValue.ToString().Trim
@@ -866,10 +851,8 @@ Public Class FrmOrdenGestion
             aviso = "Ingrese un número, con hasta dos decimales."
         ElseIf valor < 0 Then
             aviso = "El valor no puede ser negativo."
-        ElseIf columna Is colHoras AndAlso valor > 999.99D Then
-            aviso = "Las horas reales no pueden superar 999,99."
-        ElseIf columna Is colReal AndAlso valor > 9999999999.99D Then
-            aviso = "La cantidad real es demasiado grande."
+        ElseIf valor > 999.99D Then
+            aviso = "Las horas trabajadas no pueden superar 999,99."
         End If
 
         If aviso <> "" Then
@@ -888,13 +871,13 @@ Public Class FrmOrdenGestion
     End Sub
 
     Private Sub dgvDetalle_CellValueChanged(sender As Object, e As DataGridViewCellEventArgs) Handles dgvDetalle.CellValueChanged
-        'al tildar una aprobacion o cargar un valor real actualizo el contador de la etapa
+        'al tildar una aprobacion o cargar las horas actualizo el contador de la etapa
         If cargando Then Exit Sub
         If e.RowIndex < 0 Then Exit Sub
 
         Dim columna As DataGridViewColumn = dgvDetalle.Columns(e.ColumnIndex)
 
-        If codigoEstado = "EN_PROCESO" AndAlso (columna Is colReal OrElse columna Is colHoras) Then
+        If codigoEstado = "EN_PROCESO" AndAlso columna Is colHoras Then
             'hay avance escrito que todavia no se guardo
             avanceSinGuardar = True
             'vuelvo a dibujar la fila para que cambie su marca de lista o pendiente
@@ -1633,7 +1616,7 @@ Public Class FrmOrdenGestion
     End Sub
 
     Sub GuardarAvance()
-        'guardo lo cargado hasta ahora del trabajo en proceso: lo real de cada linea y las observaciones
+        'guardo lo cargado hasta ahora del trabajo en proceso: las horas de cada linea y las observaciones
         'no cambia el estado de la orden ni deja fila en el historial
 
         'cierro la edicion de la celda para que el ultimo valor escrito quede en la grilla
@@ -1689,17 +1672,17 @@ Public Class FrmOrdenGestion
         'cierro la edicion de la celda para que el ultimo valor escrito quede en la grilla
         If Not dgvDetalle.EndEdit() Then Exit Sub
 
-        'toda linea aprobada tiene que tener cargada su ejecucion real
+        'toda linea aprobada tiene que tener cargadas sus horas trabajadas
         'lo compruebo antes de guardar, asi lo ya escrito sigue en pantalla
         Dim faltantes As Integer = 0
         For Each fila As DataGridViewRow In dgvDetalle.Rows
-            If IsDBNull(fila.Cells("colReal").Value) OrElse IsDBNull(fila.Cells("colHoras").Value) Then
+            If IsDBNull(fila.Cells("colHoras").Value) Then
                 faltantes = faltantes + 1
             End If
         Next
         If faltantes > 0 Then
-            MessageBox.Show("Falta cargar la cantidad real y las horas reales en " & faltantes &
-                            " línea(s) aprobada(s). Complete las columnas ""Real"" y ""Horas"".")
+            MessageBox.Show("Falta cargar las horas trabajadas en " & faltantes &
+                            " línea(s) aprobada(s). Complete la columna ""Horas trabajadas"".")
             dgvDetalle.Focus()
             Exit Sub
         End If
@@ -1718,7 +1701,7 @@ Public Class FrmOrdenGestion
             Using cn As New MySqlConnection(CADENA)
                 cn.Open()
 
-                'lo real de cada linea, las observaciones, la fecha, el estado y el historial se guardan juntos o ninguno
+                'las horas de cada linea, las observaciones, la fecha, el estado y el historial se guardan juntos o ninguno
                 Dim transaccion As MySqlTransaction = cn.BeginTransaction()
                 Try
                     If LeerCodigoEstado(cn, transaccion) <> "EN_PROCESO" Then
@@ -1731,15 +1714,15 @@ Public Class FrmOrdenGestion
                         'el mismo guardado que hace "Guardar avance"
                         GuardarEjecucion(cn, transaccion, notas)
 
-                        'vuelvo a comprobar en la base que no quede ninguna linea aprobada sin su ejecucion
+                        'vuelvo a comprobar en la base que no quede ninguna linea aprobada sin sus horas
                         consulta = "SELECT COUNT(*) FROM ot_detalle " &
                                    "WHERE id_orden_trabajo = @id_orden_trabajo AND aprobado = 1 " &
-                                   "AND (cantidad_real IS NULL OR horas_reales IS NULL);"
+                                   "AND horas_reales IS NULL;"
                         Using cmd As New MySqlCommand(consulta, cn, transaccion)
                             cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
                             Dim sinEjecucion As Integer = CInt(cmd.ExecuteScalar())
                             If sinEjecucion > 0 Then
-                                aviso = "Falta cargar la cantidad real y las horas reales en " & sinEjecucion &
+                                aviso = "Falta cargar las horas trabajadas en " & sinEjecucion &
                                         " línea(s) aprobada(s). Se recargó la orden: revísela y vuelva a intentar."
                             End If
                         End Using
