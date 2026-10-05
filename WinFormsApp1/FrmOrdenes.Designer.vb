@@ -89,6 +89,7 @@ Partial Class FrmOrdenes
         picTablero = New PictureBox()
         lblTablero = New Label()
         btnGestionar = New Button()
+        dlgFoto = New OpenFileDialog()
         tlpEstados.SuspendLayout()
         pnlEstado1.SuspendLayout()
         pnlEstado2.SuspendLayout()
@@ -916,6 +917,11 @@ Partial Class FrmOrdenes
         btnGestionar.Text = "Gestionar orden"
         btnGestionar.UseVisualStyleBackColor = False
         '
+        ' dlgFoto
+        '
+        dlgFoto.Filter = "Imágenes (*.jpg;*.jpeg;*.png)|*.jpg;*.jpeg;*.png"
+        dlgFoto.Title = "Seleccionar foto"
+        '
         ' FrmOrdenes
         '
         AutoScaleDimensions = New SizeF(8F, 20F)
@@ -1021,4 +1027,5 @@ Partial Class FrmOrdenes
     Friend WithEvents picTablero As PictureBox
     Friend WithEvents lblTablero As Label
     Friend WithEvents btnGestionar As Button
+    Friend WithEvents dlgFoto As OpenFileDialog
 End Class

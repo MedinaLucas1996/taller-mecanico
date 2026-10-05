@@ -69,6 +69,15 @@ Las tres pantallas están disponibles para el administrador y el operador.
 
 Las fotos se leen de la base recién al elegir la orden. Un clic en una miniatura con foto la abre ampliada en una ventana aparte (`FrmFoto`). "Gestionar orden" abre la gestión de la orden seleccionada; al cerrarla, las tarjetas y la grilla se recargan y la orden sigue seleccionada si continúa en la lista.
 
+Las fotos también se pueden cargar después de la recepción, desde las miniaturas del detalle:
+
+| Acción | Cuándo se permite | Cómo |
+|---|---|---|
+| Agregar una foto que falta | Mientras la orden no esté en un estado final | Un clic en la miniatura vacía, que se muestra con borde punteado y "Cargar foto". |
+| Reemplazar o quitar una foto cargada | Solo con la orden en `RECEPCIONADA` | Un clic en la miniatura abre la foto ampliada, con los botones "Reemplazar foto" y "Quitar foto". |
+
+Cada foto guarda quién la cargó y cuándo, y pasa por el mismo proceso que en la recepción (JPG o PNG, reducida a 1280 píxeles, guardada como JPEG).
+
 Las fotos se guardan en la base de datos, en la tabla `ot_foto`.
 
 **Gestión de la orden** (`FrmOrdenGestion`) lleva una orden desde `RECEPCIONADA` hasta `ENTREGADA`. Muestra los datos de la orden, su presupuesto, su mecánico y su historial de estados. Cada botón se habilita solo en el estado que le corresponde.

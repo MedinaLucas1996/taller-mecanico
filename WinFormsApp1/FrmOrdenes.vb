@@ -21,6 +21,15 @@ Public Class FrmOrdenes
     'evita reaccionar a los cambios de filtros y de seleccion mientras se recarga la grilla
     Private cargandoOrdenes As Boolean = False
 
+    'estado de la orden seleccionada, decide que se puede hacer con sus fotos
+    'en un estado no final se pueden agregar las que faltan
+    Private ordenAdmiteFotos As Boolean = False
+    'solo recien recepcionada se pueden ademas reemplazar o quitar las cargadas
+    Private ordenRecepcionada As Boolean = False
+
+    'camara que se dibuja en las miniaturas vacias donde se puede cargar una foto
+    Private iconoCamara As Image
+
     Function ColorEstado(codigo As String) As Color
         'color de fondo de cada estado, se decide por el codigo y no por la descripcion
         'los estados abiertos van en azules, el trabajo en proceso se distingue en amarillo
@@ -122,7 +131,7 @@ Public Class FrmOrdenes
                     "e.descripcion AS estado, ot.fecha_prometida, " &
                     "CASE WHEN ot.fecha_prometida < @hoy AND e.es_estado_final = 0 " &
                     "THEN 'Demorada' ELSE '' END AS situacion, " &
-                    "e.codigo AS codigo_estado, ot.total_presupuestado " &
+                    "e.codigo AS codigo_estado, e.es_estado_final AS estado_final, ot.total_presupuestado " &
                     "FROM orden_trabajo AS ot " &
                     "JOIN vehiculo AS v ON v.id_vehiculo = ot.id_vehiculo " &
                     "JOIN modelo AS mo ON mo.id_modelo = v.id_modelo " &
@@ -166,6 +175,7 @@ Public Class FrmOrdenes
                     'la clave, el codigo del estado y el total se usan en el detalle, no se muestran
                     dgvOrdenes.Columns("id_orden_trabajo").Visible = False
                     dgvOrdenes.Columns("codigo_estado").Visible = False
+                    dgvOrdenes.Columns("estado_final").Visible = False
                     dgvOrdenes.Columns("total_presupuestado").Visible = False
 
                     'pongo titulos legibles en las columnas
@@ -284,6 +294,8 @@ Public Class FrmOrdenes
     Sub OcultarDetalle()
         'olvido la orden seleccionada: la tarjeta de detalle muestra solo la ayuda
         idOrdenSeleccionada = 0
+        ordenAdmiteFotos = False
+        ordenRecepcionada = False
         pnlDatosOrden.Visible = False
         lblAyuda.Visible = True
 
@@ -318,9 +330,163 @@ Public Class FrmOrdenes
 
         lblDetTotal.Text = CDec(fila.Cells("total_presupuestado").Value).ToString("C2")
 
+        'el estado decide que se puede hacer con las fotos de la orden
+        ordenAdmiteFotos = Not Convert.ToBoolean(fila.Cells("estado_final").Value)
+        ordenRecepcionada = (fila.Cells("codigo_estado").Value.ToString() = "RECEPCIONADA")
+        AcomodarCuadros()
+
         'muestro el contenido de la tarjeta, con el boton para gestionar la orden
         lblAyuda.Visible = False
         pnlDatosOrden.Visible = True
+    End Sub
+
+    Sub AcomodarCuadro(pic As PictureBox, aviso As Label)
+        'dejo una miniatura con el aspecto que le toca segun tenga foto y segun el estado de la orden
+        If pic.Image IsNot Nothing Then
+            pic.BorderStyle = BorderStyle.FixedSingle
+            Exit Sub
+        End If
+
+        'una foto guardada que no se pudo leer sigue ocupando su angulo: no se ofrece cargar otra
+        If ordenAdmiteFotos AndAlso aviso.Text <> "Ilegible" Then
+            'miniatura vacia donde se puede cargar: sin aviso, con la mano, y Foto_Paint dibuja el borde punteado
+            aviso.Visible = False
+            pic.BorderStyle = BorderStyle.None
+            pic.Cursor = Cursors.Hand
+        Else
+            'miniatura vacia de una orden cerrada: solo el aviso, sin accion
+            aviso.Visible = True
+            pic.BorderStyle = BorderStyle.FixedSingle
+            pic.Cursor = Cursors.Default
+        End If
+
+        pic.Invalidate()
+    End Sub
+
+    Sub AcomodarCuadros()
+        'acomodo las cinco miniaturas de la orden seleccionada
+        AcomodarCuadro(picFrente, lblSinFrente)
+        AcomodarCuadro(picTrasera, lblSinTrasera)
+        AcomodarCuadro(picLateralIzq, lblSinLateralIzq)
+        AcomodarCuadro(picLateralDer, lblSinLateralDer)
+        AcomodarCuadro(picTablero, lblSinTablero)
+    End Sub
+
+    Function AnguloDe(pic As PictureBox) As String
+        'angulo de la miniatura tal como lo guarda la base
+        If pic Is picFrente Then Return "FRENTE"
+        If pic Is picTrasera Then Return "TRASERA"
+        If pic Is picLateralIzq Then Return "LATERAL_IZQUIERDO"
+        If pic Is picLateralDer Then Return "LATERAL_DERECHO"
+        Return "TABLERO"
+    End Function
+
+    Function NombreAnguloDe(pic As PictureBox) As String
+        'angulo de la miniatura como lo lee el usuario
+        If pic Is picFrente Then Return "Frente"
+        If pic Is picTrasera Then Return "Trasera"
+        If pic Is picLateralIzq Then Return "Lateral izquierdo"
+        If pic Is picLateralDer Then Return "Lateral derecho"
+        Return "Tablero"
+    End Function
+
+    Sub RecargarTodo()
+        'vuelvo a contar, a listar y a traer las fotos de la orden que sigue seleccionada
+        CargarTarjetas()
+        CargarOrdenes()
+        If idOrdenSeleccionada <> 0 Then CargarFotos(idOrdenSeleccionada)
+    End Sub
+
+    Sub AgregarFoto(pic As PictureBox)
+        'cargo desde el disco la foto que le falta a la orden seleccionada y la guardo en ot_foto
+        If dlgFoto.ShowDialog() <> DialogResult.OK Then Exit Sub
+
+        'mismo proceso que en la recepcion: reducida, enderezada y en JPEG
+        Dim bytes() As Byte = LeerFotoComoJpeg(dlgFoto.FileName)
+        If bytes Is Nothing Then
+            MessageBox.Show("El archivo elegido no es una imagen válida. Elija una foto JPG o PNG.")
+            Exit Sub
+        End If
+
+        Dim aviso As String = ""
+
+        Try
+            Using cn As New MySqlConnection(CADENA)
+                cn.Open()
+
+                'la comprobacion del estado y el guardado van juntos en una transaccion
+                Dim transaccion As MySqlTransaction = cn.BeginTransaction()
+                Try
+                    'bloqueo solo la fila de la orden y leo su estado actual
+                    Dim idEstado As Integer = 0
+                    Dim consulta As String =
+                        "SELECT id_estado_ot FROM orden_trabajo WHERE id_orden_trabajo = @id_orden_trabajo FOR UPDATE;"
+                    Using cmd As New MySqlCommand(consulta, cn, transaccion)
+                        cmd.Parameters.AddWithValue("@id_orden_trabajo", idOrdenSeleccionada)
+                        Dim resultado As Object = cmd.ExecuteScalar()
+                        If resultado IsNot Nothing Then idEstado = Convert.ToInt32(resultado)
+                    End Using
+
+                    'el dato del estado se lee aparte, sin bloquear el catalogo de estados
+                    Dim esFinal As Boolean = True
+                    consulta = "SELECT es_estado_final FROM estado_ot WHERE id_estado_ot = @id_estado_ot;"
+                    Using cmd As New MySqlCommand(consulta, cn, transaccion)
+                        cmd.Parameters.AddWithValue("@id_estado_ot", idEstado)
+                        Dim resultado As Object = cmd.ExecuteScalar()
+                        If resultado IsNot Nothing Then esFinal = Convert.ToBoolean(resultado)
+                    End Using
+
+                    'en un estado final ya no se agregan fotos
+                    If esFinal Then
+                        aviso = "La orden ya está cerrada (estado final): no se le pueden agregar fotos."
+                    End If
+
+                    If aviso = "" Then
+                        'la fecha y hora las pone la base en el momento de esta carga
+                        consulta =
+                            "INSERT INTO ot_foto (id_orden_trabajo, angulo, imagen, id_usuario) " &
+                            "VALUES (@id_orden_trabajo, @angulo, @imagen, @id_usuario);"
+                        Using cmd As New MySqlCommand(consulta, cn, transaccion)
+                            cmd.Parameters.AddWithValue("@id_orden_trabajo", idOrdenSeleccionada)
+                            cmd.Parameters.AddWithValue("@angulo", AnguloDe(pic))
+                            cmd.Parameters.AddWithValue("@imagen", bytes)
+                            cmd.Parameters.AddWithValue("@id_usuario", Sesion.IdUsuario)
+                            cmd.ExecuteNonQuery()
+                        End Using
+                    End If
+                Catch ex As Exception
+                    'algo fallo antes de confirmar: deshago todo y dejo que el error llegue a los mensajes de abajo
+                    transaccion.Rollback()
+                    Throw
+                End Try
+
+                'confirmo fuera del Try de arriba: si el Commit falla no se intenta deshacer una transaccion ya cerrada
+                If aviso = "" Then
+                    transaccion.Commit()
+                Else
+                    transaccion.Rollback()
+                End If
+            End Using
+        Catch ex As MySqlException When ex.Number = 1062
+            'error 1062: otro puesto cargo la foto de ese angulo al mismo tiempo (una sola por orden y angulo)
+            MessageBox.Show("Otro puesto ya cargó la foto de """ & NombreAnguloDe(pic) & """ para esta orden. " &
+                            "No se guardó la suya; se muestran las fotos actuales.")
+            CargarFotos(idOrdenSeleccionada)
+            Exit Sub
+        Catch ex As Exception
+            MessageBox.Show("No se pudo guardar la foto: " & ex.Message)
+            Exit Sub
+        End Try
+
+        If aviso <> "" Then
+            MessageBox.Show(aviso)
+            'la orden cambio de estado desde otro puesto: muestro como quedo
+            RecargarTodo()
+            Exit Sub
+        End If
+
+        'muestro la foto recien guardada en su miniatura
+        CargarFotos(idOrdenSeleccionada)
     End Sub
 
     Sub CargarFotos(idOrden As Integer)
@@ -359,6 +525,9 @@ Public Class FrmOrdenes
         Catch ex As Exception
             MessageBox.Show("Error al cargar las fotos de la orden: " & ex.Message)
         End Try
+
+        'las miniaturas que quedaron vacias se ofrecen para cargar, si el estado de la orden lo permite
+        AcomodarCuadros()
     End Sub
 
     Private Sub FrmOrdenes_Load(sender As Object, e As EventArgs) Handles MyBase.Load
@@ -375,6 +544,9 @@ Public Class FrmOrdenes
             dgvOrdenes.Enabled = False
             Exit Sub
         End If
+
+        'icono de las miniaturas vacias, si falta se dibuja solo el borde y el texto
+        iconoCamara = LeerIcono("camara-oscuro.png")
 
         'cargo las tarjetas y la grilla al abrir el formulario
         CargarTarjetas()
@@ -507,25 +679,64 @@ Public Class FrmOrdenes
     Private Sub Foto_Click(sender As Object, e As EventArgs) Handles _
         picFrente.Click, picTrasera.Click, picLateralIzq.Click, picLateralDer.Click, picTablero.Click
 
-        'amplio la foto de la miniatura en una ventana aparte
+        'una miniatura con foto se amplia en una ventana aparte, una vacia sirve para cargar la que falta
         Dim pic As PictureBox = CType(sender, PictureBox)
+        If idOrdenSeleccionada = 0 Then Exit Sub
 
-        'una miniatura sin foto no hace nada
-        If pic.Image Is Nothing Then Exit Sub
+        If pic.Image Is Nothing Then
+            'solo las miniaturas con el aspecto de "cargar" (sin borde fijo) aceptan una foto nueva
+            If pic.BorderStyle = BorderStyle.None Then AgregarFoto(pic)
+            Exit Sub
+        End If
 
-        'el titulo de la ventana es el angulo de la foto
-        Dim titulo As String = "Foto de recepción"
-        If pic Is picFrente Then titulo = "Frente"
-        If pic Is picTrasera Then titulo = "Trasera"
-        If pic Is picLateralIzq Then titulo = "Lateral izquierdo"
-        If pic Is picLateralDer Then titulo = "Lateral derecho"
-        If pic Is picTablero Then titulo = "Tablero"
+        Dim huboCambios As Boolean = False
 
         Using formulario As New FrmFoto
-            formulario.Text = titulo & " - " & lblDetNumero.Text
+            'el titulo de la ventana es el angulo de la foto y el numero de la orden
+            formulario.Text = NombreAnguloDe(pic) & " - " & lblDetNumero.Text
             'la ventana muestra la misma foto de la miniatura, no la libera al cerrarse
             formulario.picFoto.Image = pic.Image
+            'datos para reemplazar o quitar la foto, que solo se permite con la orden recien recepcionada
+            formulario.IdOrdenTrabajo = idOrdenSeleccionada
+            formulario.Angulo = AnguloDe(pic)
+            formulario.PermiteCambios = ordenRecepcionada
             formulario.ShowDialog()
+            huboCambios = formulario.HuboCambios
+        End Using
+
+        'si la foto cambio, o la orden ya no estaba como se veia, muestro el estado actual
+        If huboCambios Then RecargarTodo()
+    End Sub
+
+    Private Sub Foto_Paint(sender As Object, e As PaintEventArgs) Handles _
+        picFrente.Paint, picTrasera.Paint, picLateralIzq.Paint, picLateralDer.Paint, picTablero.Paint
+
+        'una miniatura vacia donde se puede cargar se dibuja con borde punteado, camara y texto
+        Dim pic As PictureBox = CType(sender, PictureBox)
+        If pic.Image IsNot Nothing Then Exit Sub
+        If pic.BorderStyle <> BorderStyle.None Then Exit Sub
+
+        ControlPaint.DrawBorder(e.Graphics, pic.ClientRectangle, Color.DarkGray, ButtonBorderStyle.Dashed)
+
+        Using fuente As New Font("Segoe UI", 7.0F)
+            'el texto completo solo entra en miniaturas anchas, si no va la palabra corta
+            Dim texto As String = "Cargar foto"
+            If TextRenderer.MeasureText(texto, fuente).Width > pic.ClientSize.Width - 4 Then texto = "Cargar"
+            Dim altoTexto As Integer = TextRenderer.MeasureText(texto, fuente).Height
+
+            'la camara y el texto van centrados, uno debajo del otro
+            Dim altoIcono As Integer = 0
+            If iconoCamara IsNot Nothing Then altoIcono = iconoCamara.Height
+            Dim arriba As Integer = (pic.ClientSize.Height - altoIcono - altoTexto) \ 2
+            If arriba < 1 Then arriba = 1
+
+            If iconoCamara IsNot Nothing Then
+                e.Graphics.DrawImage(iconoCamara, (pic.ClientSize.Width - iconoCamara.Width) \ 2, arriba)
+            End If
+
+            Dim zonaTexto As New Rectangle(0, arriba + altoIcono, pic.ClientSize.Width, altoTexto)
+            TextRenderer.DrawText(e.Graphics, texto, fuente, zonaTexto, Color.Gray,
+                                  TextFormatFlags.HorizontalCenter Or TextFormatFlags.Top)
         End Using
     End Sub
 

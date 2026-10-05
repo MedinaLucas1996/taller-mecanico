@@ -305,6 +305,13 @@ En la recepción se puede cargar una foto por cada uno de los cinco ángulos del
 
 Las fotos son opcionales: si falta alguna, el sistema lo advierte y permite continuar. Cada orden admite una sola foto por ángulo.
 
+Las fotos también se pueden cargar después de la recepción, desde el tablero de órdenes de trabajo:
+
+- **Agregar** una foto que falta: mientras la orden no esté en un estado final.
+- **Reemplazar o quitar** una foto ya cargada: solo mientras la orden esté en estado `RECEPCIONADA`.
+
+Pueden hacerlo el administrador y el operador. Cada foto registra el usuario que la cargó y la fecha y hora de esa carga, y pasa por el mismo proceso que en la recepción.
+
 ### 8.9 Órdenes demoradas
 
 Una orden está demorada cuando su fecha prometida de entrega es anterior a la fecha actual y su estado no es final. Las órdenes sin fecha prometida no se consideran demoradas.
