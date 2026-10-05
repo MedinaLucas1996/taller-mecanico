@@ -1,21 +1,131 @@
-﻿Public Class FrmPrincipal
+﻿Imports System.IO
+
+Public Class FrmPrincipal
 
     'indica que el formulario se cierra por cerrar sesion y no por salir del sistema
     Private cerrandoSesion As Boolean = False
+
+    'el menu arranca expandido, el boton de arriba lo contrae a una columna de iconos
+    Private menuColapsado As Boolean = False
+
+    'secciones del menu que ve el rol que ingreso, deciden que titulos se muestran
+    Private verOperaciones As Boolean = False
+    Private verReportes As Boolean = False
+    Private verDatosMaestros As Boolean = False
+
+    'los botones de opciones del menu, para recorrerlos con un For
+    Private botonesMenu() As Button
+
+    'iconos del boton que contrae y expande el menu
+    Private iconoContraer As Image
+    Private iconoExpandir As Image
+
+    Function LeerIcono(archivo As String) As Image
+        'leo un icono de la carpeta Recursos\iconos que esta junto al ejecutable
+        Try
+            Dim ruta As String = Path.Combine(AppContext.BaseDirectory, "Recursos", "iconos", archivo)
+            Using imagen As Image = Image.FromFile(ruta)
+                'copio el icono a un bitmap nuevo para no dejar el archivo abierto
+                Return New Bitmap(imagen)
+            End Using
+        Catch ex As Exception
+            'si el archivo falta o no se puede leer, la opcion queda sin icono y el sistema sigue
+            Return Nothing
+        End Try
+    End Function
+
+    Sub AplicarMenu()
+        'acomodo el menu segun este expandido o contraido
+        'el panel de contenido ocupa solo el ancho que el menu deja libre
+        panelMenu.SuspendLayout()
+
+        If menuColapsado Then
+            'contraido: una columna angosta, sin el nombre del sistema
+            panelMenu.Width = 56
+            lblLogo.Visible = False
+            btnMenu.Image = iconoExpandir
+            tipMenu.SetToolTip(btnMenu, "Expandir menú")
+        Else
+            panelMenu.Width = 230
+            lblLogo.Visible = True
+            btnMenu.Image = iconoContraer
+            tipMenu.SetToolTip(btnMenu, "Contraer menú")
+        End If
+
+        'si falta el icono del boton, muestro un simbolo para que se pueda seguir usando
+        If btnMenu.Image Is Nothing Then
+            btnMenu.Text = "≡"
+        Else
+            btnMenu.Text = ""
+        End If
+
+        'los titulos de seccion solo se ven con el menu expandido y si el rol tiene opciones en esa seccion
+        lblTituloOperaciones.Visible = verOperaciones AndAlso Not menuColapsado
+        lblTituloReportes.Visible = verReportes AndAlso Not menuColapsado
+        lblTituloDatosMaestros.Visible = verDatosMaestros AndAlso Not menuColapsado
+
+        For Each boton As Button In botonesMenu
+            'el nombre de cada opcion esta guardado una sola vez, en el Tag del boton
+            Dim nombre As String = boton.Tag.ToString()
+
+            If menuColapsado Then
+                'contraido: solo el icono centrado, el nombre aparece al pasar el mouse
+                boton.Text = ""
+                boton.TextImageRelation = TextImageRelation.Overlay
+                boton.ImageAlign = ContentAlignment.MiddleCenter
+                boton.TextAlign = ContentAlignment.MiddleCenter
+                boton.Padding = Padding.Empty
+                tipMenu.SetToolTip(boton, nombre)
+
+                'una opcion sin icono muestra su inicial para no quedar vacia
+                If boton.Image Is Nothing Then boton.Text = nombre.Substring(0, 1)
+            Else
+                'expandido: el icono a la izquierda y el nombre a continuacion
+                boton.Text = "  " & nombre
+                boton.TextImageRelation = TextImageRelation.ImageBeforeText
+                boton.ImageAlign = ContentAlignment.MiddleLeft
+                boton.TextAlign = ContentAlignment.MiddleLeft
+                boton.Padding = New Padding(16, 0, 0, 0)
+                tipMenu.SetToolTip(boton, "")
+            End If
+        Next
+
+        panelMenu.ResumeLayout()
+    End Sub
 
     Private Sub FrmPrincipal_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         'muestro el usuario que inicio sesion
         lblUsuario.Text = "Usuario: " & Sesion.NombreCompleto & " (" & Sesion.Rol & ")"
 
+        'junto los botones del menu en el orden en que se ven
+        botonesMenu = {btnRecepcion, btnOrdenes, btnHistorial, btnReportes, btnClientes, btnVehiculos,
+                       btnMarcasModelos, btnServicios, btnCategorias, btnMecanicos, btnUsuarios}
+
+        'cargo el icono de cada opcion, si alguno falta ese boton queda sin icono
+        btnRecepcion.Image = LeerIcono("recepcion.png")
+        btnOrdenes.Image = LeerIcono("ordenes.png")
+        btnHistorial.Image = LeerIcono("historial.png")
+        btnReportes.Image = LeerIcono("reportes.png")
+        btnClientes.Image = LeerIcono("clientes.png")
+        btnVehiculos.Image = LeerIcono("vehiculos.png")
+        btnMarcasModelos.Image = LeerIcono("marcas.png")
+        btnServicios.Image = LeerIcono("servicios.png")
+        btnCategorias.Image = LeerIcono("categorias.png")
+        btnMecanicos.Image = LeerIcono("mecanicos.png")
+        btnUsuarios.Image = LeerIcono("usuarios.png")
+        btnCerrarSesion.Image = LeerIcono("cerrar-sesion.png")
+        iconoContraer = LeerIcono("menu-contraer.png")
+        iconoExpandir = LeerIcono("menu-expandir.png")
+
         'las opciones del menu arrancan ocultas, muestro las que corresponden a cada rol
 
         'el administrador ve todo el menu
         If Sesion.Rol = "ADMINISTRADOR" Then
-            lblTituloOperaciones.Visible = True
+            verOperaciones = True
             btnRecepcion.Visible = True
             btnOrdenes.Visible = True
             btnHistorial.Visible = True
-            lblTituloDatosMaestros.Visible = True
+            verDatosMaestros = True
             btnClientes.Visible = True
             btnVehiculos.Visible = True
             btnMarcasModelos.Visible = True
@@ -23,17 +133,17 @@
             btnCategorias.Visible = True
             btnMecanicos.Visible = True
             btnUsuarios.Visible = True
-            lblTituloReportes.Visible = True
+            verReportes = True
             btnReportes.Visible = True
         End If
 
         'el operador ve las operaciones y los datos de clientes y vehiculos
         If Sesion.Rol = "OPERADOR" Then
-            lblTituloOperaciones.Visible = True
+            verOperaciones = True
             btnRecepcion.Visible = True
             btnOrdenes.Visible = True
             btnHistorial.Visible = True
-            lblTituloDatosMaestros.Visible = True
+            verDatosMaestros = True
             btnClientes.Visible = True
             btnVehiculos.Visible = True
             btnMarcasModelos.Visible = True
@@ -41,9 +151,18 @@
 
         'el mecanico solo ve el historial
         If Sesion.Rol = "MECANICO" Then
-            lblTituloOperaciones.Visible = True
+            verOperaciones = True
             btnHistorial.Visible = True
         End If
+
+        'muestro los titulos de las secciones del rol y dejo el menu expandido
+        AplicarMenu()
+    End Sub
+
+    Private Sub btnMenu_Click(sender As Object, e As EventArgs) Handles btnMenu.Click
+        'contraigo el menu a una columna de iconos, o lo vuelvo a expandir
+        menuColapsado = Not menuColapsado
+        AplicarMenu()
     End Sub
 
     Private Sub AbrirFormulario(formulario As Form)
