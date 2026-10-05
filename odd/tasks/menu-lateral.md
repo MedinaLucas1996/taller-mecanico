@@ -65,6 +65,8 @@ Mode: disabled (no test project). Checks: `dotnet build WinFormsApp1.slnx --no-i
 
 Decided by the writer beyond the plan: no separator lines when collapsed; a collapsed button without icon shows its initial; logo text 14 pt left-aligned next to the toggle; "Cerrar sesión" got its icon; a missing icon gives no message.
 
+Verified by the user at runtime on 2026-10-05 ("funciona todo"); the agent did not observe it. Native review of `ef200e7`: medium, granted, approved and acknowledged (`review-3dbd78d788230328`); open non-blocking notes: menu widths 230 and 56 are fixed pixels (may clip under display scaling) and the icon bitmaps are not disposed.
+
 ## Next step
 
-The user opens `FrmPrincipal` in the Visual Studio designer and checks the menu as `admin`, `operador` and `mecanico`, expanded and collapsed.
+Nothing pending for this feature.
