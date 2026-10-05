@@ -69,23 +69,26 @@ Repositorio: https://github.com/MedinaLucas1996/taller-mecanico (público).
       - El tablero pasa a `FrmFoto` la orden, el ángulo y si se permiten cambios en campos públicos, y lee `HuboCambios` al cerrarse para recargar.
     - Proceso de imagen compartido: `Module Fotos` (`Fotos.vb`) tiene `CargarImagenReducida`, `ImagenABytes`, `LeerFotoComoJpeg` y `LeerIcono`. Lo usan `FrmRecepcion`, `FrmOrdenes` y `FrmFoto`, de modo que las fotos se procesan igual en la recepción y en el tablero.
     - "Gestionar orden": abre `FrmOrdenGestion` como ventana modal (`ShowDialog`) y, al cerrarla, recarga las tarjetas y la grilla. La orden queda seleccionada si sigue en la lista; si un filtro la deja fuera, el detalle vuelve a la ayuda.
-  - **Gestión de la orden** (`FrmOrdenGestion`, administrador y operador): ventana modal que lleva una orden desde `RECEPCIONADA` hasta `ENTREGADA`. Recibe la orden en el campo público `IdOrdenTrabajo`. La rutina `CargarOrden` lee la orden y su estado (`estado_ot.codigo`, `permite_edicion_detalle`, `es_estado_final`), habilita los controles que corresponden a ese estado y se vuelve a ejecutar después de cada guardado.
-    - Cabecera (solo lectura): número, estado, vehículo, cliente de la orden, kilometraje de ingreso, fechas de recepción, prometida, finalización y entrega, síntoma y observaciones de recepción.
-    - Presupuesto (`ot_detalle`): combo de servicios activos con su precio, cantidad, "Agregar", "Actualizar cantidad" y "Quitar". Solo se edita cuando el estado tiene `permite_edicion_detalle = 1`. Cada cambio recalcula `total_presupuestado` y `total_aprobado` en la misma transacción.
-    - Mecánico: combo de mecánicos activos con la opción "(sin asignar)" y "Guardar mecánico", en cualquier estado no final.
-    - Cambios de estado: un botón por transición (ver la tabla siguiente). Cada uno vuelve a leer el estado dentro de su transacción, actualiza la orden e inserta una fila en `ot_historial_estado` con `Sesion.IdUsuario`.
-    - Ejecución: cantidad real y horas reales de la línea aprobada seleccionada ("Guardar ejecución") y observaciones del mecánico, que se escriben con la orden en `EN_PROCESO` y se guardan al finalizar.
-    - Historial: grilla de solo lectura de `ot_historial_estado`, el cambio más reciente primero.
+  - **Gestión de la orden** (`FrmOrdenGestion`, administrador y operador): ventana modal, redimensionable, que lleva una orden desde `RECEPCIONADA` hasta `ENTREGADA`. Recibe la orden en el campo público `IdOrdenTrabajo`. Se organiza por etapa: `CargarOrden` lee la orden y su estado y `MostrarEtapa` deja a la vista solo las partes que usa ese estado; las dos se vuelven a ejecutar después de cada guardado.
+    - Cabecera: "Orden N.º n · patente vehículo", el estado a la derecha con el mismo color que en el tablero, y debajo el cliente y la fecha prometida.
+    - Barra de etapas (`tlpEtapas`, seis celdas iguales, solo informativa): `PintarEtapa` marca en verde las etapas cumplidas, resalta la actual y atenúa las que faltan. La etapa más avanzada se toma del historial, de modo que una orden `RECHAZADA` o `ANULADA` conserva marcadas las etapas que alcanzó, sin ninguna resaltada, y debajo de la barra se lee "Orden rechazada" u "Orden anulada" con el motivo guardado en el historial.
+    - Área de trabajo (`pnlTrabajo`): una sola grilla de líneas, con columnas declaradas en el diseñador, y paneles acoplados que se muestran según el estado: el editor del presupuesto (servicio, cantidad, "Agregar"), los botones "Actualizar cantidad" y "Quitar" con los totales, el aviso del mecánico y las observaciones del mecánico. Cada etapa tiene un título y una frase que dice qué hacer.
+    - Datos de la orden (a la derecha): mecánico (combo con "(sin asignar)" y "Guardar mecánico" mientras el estado no es final; después, solo el nombre), kilometraje de ingreso, fecha de recepción, síntoma, observaciones de recepción, y las fechas de finalización y de entrega cuando existen.
+    - Historial (a la derecha): lista de `ot_historial_estado`, el cambio más reciente primero; cada fila se dibuja en dos renglones (`dgvHistorial_CellPainting`): el estado, y debajo fecha, usuario y nota en gris.
+    - Pie: "Anular orden" (solo `ADMINISTRADOR`, en un estado no final), la leyenda "Próximo paso", un botón secundario cuando la etapa lo tiene y un único botón principal (`btnPrimario`) cuyo texto es el próximo paso; en un estado final dice "Cerrar".
 
-    | Botón | Transición | Condiciones y efecto |
-    |---|---|---|
-    | Presupuestar | `RECEPCIONADA` → `PRESUPUESTADA` | Exige al menos una línea. |
-    | Registrar aprobación | `PRESUPUESTADA` → `APROBADA` | La columna "Aprobado" de la grilla se tilda línea por línea (solo es editable en `PRESUPUESTADA`). Exige al menos una línea aprobada, pide confirmación con el total aprobado y guarda las tildes y los totales. |
-    | Rechazar | `PRESUPUESTADA` → `RECHAZADA` | Pide confirmación. Deja todas las líneas sin aprobar y el total aprobado en cero. |
-    | Iniciar trabajo | `APROBADA` → `EN_PROCESO` | Exige un mecánico asignado. |
-    | Finalizar | `EN_PROCESO` → `FINALIZADA` | Exige cantidad real y horas reales en todas las líneas aprobadas y las observaciones del mecánico. Guarda `observaciones_mecanico` y `fecha_finalizacion = NOW()`. |
-    | Entregar | `FINALIZADA` → `ENTREGADA` | Pide confirmación. Guarda `fecha_entrega = NOW()` y sube `vehiculo.km_actual` al `km_ingreso` de la orden cuando es mayor. |
-    | Anular | Estado no final → `ANULADA` | Solo visible para el administrador. Exige un motivo (hasta 255 caracteres), que se guarda como observación del historial. No borra ninguna fila. |
+    | Estado | Área de trabajo | Principal | Secundario |
+    |---|---|---|---|
+    | `RECEPCIONADA` | Editor del presupuesto y total presupuestado. Cada cambio recalcula `total_presupuestado` y `total_aprobado` en la misma transacción. | "Presupuestar": exige al menos una línea. | — |
+    | `PRESUPUESTADA` | El mismo editor más la columna "Aprobado", editable; contador "Aprobadas n de m" y total aprobado según las tildes. Las tildes hechas se conservan si se agrega, quita o cambia una línea o se guarda el mecánico. | "Registrar aprobación": exige al menos una línea aprobada, pide confirmación con el total y guarda las tildes y los totales. | "Rechazar": pide confirmación, deja todas las líneas sin aprobar. |
+    | `APROBADA` | Líneas de solo lectura con su aprobación, totales, y el mecánico asignado o un aviso si falta. | "Iniciar trabajo": exige un mecánico. | — |
+    | `EN_PROCESO` | Solo las líneas aprobadas, con "Presup.", "Real" y "Horas"; las dos últimas se editan en la grilla (dos decimales, no negativas, horas hasta 999,99; un valor inválido se rechaza con un mensaje y la celda conserva el anterior). Marca de lista o pendiente por línea, contador "Faltan n de m" y observaciones del mecánico. | "Finalizar trabajo": guarda lo cargado y finaliza en la misma transacción; exige cantidad y horas reales en todas las líneas aprobadas y las observaciones. Guarda `fecha_finalizacion = NOW()`. | "Guardar avance": guarda lo real de cada línea (NULL si la celda está vacía) y `observaciones_mecanico`, sin cambiar el estado ni el historial. |
+    | `FINALIZADA` | Resumen de solo lectura: líneas aprobadas con lo presupuestado y lo real, observaciones del mecánico y total aprobado. | "Entregar vehículo": pide confirmación, guarda `fecha_entrega = NOW()` y sube `vehiculo.km_actual` al `km_ingreso` de la orden cuando es mayor. | — |
+    | `ENTREGADA`, `RECHAZADA`, `ANULADA` | El mismo resumen. | "Cerrar". | — |
+
+    - "Guardar avance" y "Finalizar trabajo" comparten la rutina `GuardarEjecucion`, que escribe dentro de la transacción de cada botón. Si hay avance escrito sin guardar, cerrar la ventana pide confirmación y "Guardar mecánico" pide guardarlo antes.
+    - Anulación: "Anular orden" abre `FrmAnularOrden`, una ventana modal que explica la acción y pide el motivo (obligatorio, hasta 255 caracteres). Esa ventana no toca la base: devuelve el motivo y la anulación se hace en `FrmOrdenGestion`, con el motivo como observación del historial. No borra ninguna fila.
+    - Cada escritura vuelve a leer el estado dentro de su transacción bloqueando solo la fila de la orden (`LeerCodigoEstado`), y confirma con `Commit` después del bloque que hace el `Rollback` ante un error.
 
 - Pendiente en el flujo de la orden de trabajo: vista del mecánico e impresión del presupuesto o de la comanda de taller.
 - Opciones de menú sin pantalla (el botón existe pero no tiene evento): Historial y Reportes.
@@ -257,7 +260,7 @@ Reglas agregadas con la gestión de la orden:
 - Subtotal de la línea = cantidad × precio unitario. `total_presupuestado` es la suma de los subtotales y `total_aprobado` la suma de los subtotales de las líneas aprobadas; los dos se escriben en un solo `UPDATE` por el CHECK `total_aprobado <= total_presupuestado`.
 - La aprobación exige al menos una línea aprobada; si el cliente no aprueba ninguna, la orden se rechaza. `RECHAZADA` solo se alcanza desde `PRESUPUESTADA`.
 - Para iniciar el trabajo la orden debe tener mecánico, y desde `EN_PROCESO` no puede quedar sin mecánico.
-- Para finalizar, todas las líneas aprobadas deben tener cantidad real y horas reales (hasta 999,99), y las observaciones del mecánico son obligatorias.
+- Para finalizar, todas las líneas aprobadas deben tener cantidad real y horas reales (hasta 999,99), y las observaciones del mecánico son obligatorias. Lo cargado se puede guardar antes con "Guardar avance", que no cambia el estado.
 - La anulación es exclusiva del administrador, exige un motivo y se permite en cualquier estado no final, es decir, hasta `FINALIZADA`. La orden, sus líneas y su historial se conservan.
 - Las fechas de finalización y de entrega son la fecha y hora del servidor (`NOW()`). En la entrega, `vehiculo.km_actual` toma el `km_ingreso` de la orden solo cuando es mayor al valor actual.
 
@@ -326,7 +329,7 @@ sequenceDiagram
 | Fotos de recepción guardadas en la base (`ot_foto.imagen`, `LONGBLOB`), reducidas a 1280 píxeles y en JPEG | La base queda completa por sí sola, sin una carpeta de archivos que mantener junto a ella; la reducción limita el tamaño de cada fila. El tablero de órdenes lee las imágenes solo de la orden seleccionada. | `database/01_ddl_estructura.sql`, `FrmRecepcion.vb`, `FrmOrdenes.vb` |
 | Alta de la orden en una sola transacción (`BeginTransaction`) | La orden, su primera fila de historial y sus fotos se guardan todas o ninguna, como pide la especificación. | `FrmRecepcion.vb` |
 | Cada cambio del presupuesto y cada cambio de estado en una transacción que vuelve a leer el estado de la orden con `SELECT ... FOR UPDATE` | Otro puesto puede haber cambiado la orden después de cargarla en pantalla; la lectura con bloqueo evita guardar sobre un estado que ya no es el esperado. La línea, los totales, el estado y la fila de historial se guardan todos o ninguno. | `FrmOrdenGestion.vb` |
-| Rutinas del formulario que reciben la conexión y la transacción (`PermiteEditarDetalle`, `LeerCodigoEstado`, `RecalcularTotales`, `CambiarEstado`) | Evitan repetir en cada botón la lectura del estado, el recálculo de totales y el cambio de estado con su fila de historial. Son rutinas del propio formulario, no clases de acceso a datos. | `FrmOrdenGestion.vb` |
+| Rutinas del formulario que reciben la conexión y la transacción (`LeerCodigoEstado`, `PermiteEditarDetalle`, `EstadoEsFinal`, `RecalcularTotales`, `CambiarEstado`, `GuardarEjecucion`) | Evitan repetir en cada botón la lectura del estado, el recálculo de totales y el cambio de estado con su fila de historial. Son rutinas del propio formulario, no clases de acceso a datos. | `FrmOrdenGestion.vb` |
 | Música del login con `winmm.dll` (`mciSendStringW`) | Permite reproducir un MP3 sin dependencias adicionales. | `FrmLogin.vb` |
 | Recursos del login copiados al directorio de salida (`CopyToOutputDirectory`) | La imagen y la música se leen desde `AppContext.BaseDirectory\Recursos`. | `WinFormsApp1.vbproj`, `FrmLogin.vb` |
 
@@ -377,13 +380,15 @@ Casos manejados en el código:
 - **Servicio repetido o dado de baja** (gestión de la orden): un servicio que ya está en el presupuesto se rechaza con el aviso de cambiar la cantidad; un servicio que dejó de estar activo tampoco se agrega.
 - **Línea quitada desde otro puesto** (gestión de la orden): si "Actualizar cantidad" o "Quitar" no encuentran la línea, se avisa que ya no existe y no se guarda nada.
 - **Aprobación sin líneas aprobadas o presupuesto vacío** (gestión de la orden): "Registrar aprobación" se rechaza e indica usar "Rechazar".
-- **Línea no aprobada** (gestión de la orden): "Guardar ejecución" la rechaza; solo se ejecutan las líneas aprobadas.
+- **Valor inválido en "Real" u "Horas"** (gestión de la orden): un texto que no es un número, un valor negativo o más de 999,99 horas se rechaza con un mensaje y la celda conserva su valor anterior. Con el trabajo en proceso solo se listan las líneas aprobadas.
+- **Avance sin guardar** (gestión de la orden): con cantidades, horas u observaciones escritas y sin guardar, cerrar la ventana pide confirmación y "Guardar mecánico" pide usar antes "Guardar avance".
+- **Orden rechazada o anulada** (gestión de la orden): la barra de etapas conserva las etapas alcanzadas y debajo se muestra el motivo guardado en el historial.
 - **Mecánico de la orden dado de baja** (gestión de la orden): se agrega al combo para poder mostrarlo.
 
 Riesgos conocidos no cubiertos:
 
 - Los permisos por rol se aplican solo en el menú, ocultando opciones (ver [Menú por rol](#menú-por-rol)). Las pantallas no vuelven a comprobar el rol al abrirse, salvo `FrmUsuarios`, `FrmMecanicos`, `FrmServicios`, `FrmCategorias`, `FrmRecepcion`, `FrmOrdenes` y `FrmOrdenGestion`, y dentro de cada pantalla no hay permisos por botón, salvo "Anular" en `FrmOrdenGestion`, que es solo del administrador.
-- En la gestión de la orden, las tildes de aprobación y las observaciones del mecánico viven en pantalla hasta presionar "Registrar aprobación" o "Finalizar": las tildes se pierden si antes se modifica el presupuesto o se guarda el mecánico, y las observaciones se pierden si se cierra la ventana.
+- En la gestión de la orden, las tildes de aprobación viven en pantalla hasta presionar "Registrar aprobación": se conservan al recargar la orden dentro de la ventana, pero se pierden si se cierra la ventana.
 - Una base creada con la versión anterior de los scripts y sin `database/07_recepcion_fotos.sql` no tiene `orden_trabajo.fecha_prometida` ni `ot_foto`: Recepción y Órdenes de trabajo muestran el error de MariaDB y no funcionan hasta ejecutar la migración.
 - Las fotos se guardan dentro de la base, por lo que su tamaño y el de sus copias de respaldo crecen con cada recepción (hasta cinco imágenes por orden).
 - El tablero de órdenes trae todas las órdenes que cumplen los filtros, sin paginar, y no se actualiza solo: los cambios hechos desde otro puesto se ven al cambiar un filtro, elegir una tarjeta de estado o presionar "Limpiar filtros".

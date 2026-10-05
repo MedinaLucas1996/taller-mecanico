@@ -80,20 +80,22 @@ Cada foto guarda quién la cargó y cuándo, y pasa por el mismo proceso que en 
 
 Las fotos se guardan en la base de datos, en la tabla `ot_foto`.
 
-**Gestión de la orden** (`FrmOrdenGestion`) lleva una orden desde `RECEPCIONADA` hasta `ENTREGADA`. Muestra los datos de la orden, su presupuesto, su mecánico y su historial de estados. Cada botón se habilita solo en el estado que le corresponde.
+**Gestión de la orden** (`FrmOrdenGestion`) lleva una orden desde `RECEPCIONADA` hasta `ENTREGADA`. La ventana se organiza según la etapa en la que está la orden: muestra solo lo que hay que hacer en esa etapa y un único botón principal con el próximo paso.
 
-| Acción | Estado de la orden | Qué hace |
-|---|---|---|
-| Agregar, quitar o cambiar la cantidad de una línea | `RECEPCIONADA` o `PRESUPUESTADA` | Edita el presupuesto. La descripción y el precio se copian del servicio y no se modifican en la línea. Cada servicio va una sola vez por orden. |
-| Guardar mecánico | Cualquiera que no sea final | Asigna o cambia el mecánico. Desde `EN_PROCESO` la orden no puede quedar sin mecánico. |
-| Presupuestar | `RECEPCIONADA` → `PRESUPUESTADA` | Exige al menos una línea. |
-| Registrar aprobación | `PRESUPUESTADA` → `APROBADA` | Guarda las líneas tildadas como aprobadas y el total aprobado. Exige al menos una línea aprobada. |
-| Rechazar | `PRESUPUESTADA` → `RECHAZADA` | Cierra la orden sin líneas aprobadas. |
-| Iniciar trabajo | `APROBADA` → `EN_PROCESO` | Exige un mecánico asignado. |
-| Guardar ejecución | `EN_PROCESO` | Guarda la cantidad real y las horas reales de la línea aprobada seleccionada. |
-| Finalizar | `EN_PROCESO` → `FINALIZADA` | Exige la ejecución cargada en todas las líneas aprobadas y las observaciones del mecánico. Guarda la fecha de finalización. |
-| Entregar | `FINALIZADA` → `ENTREGADA` | Guarda la fecha de entrega y sube el kilometraje del vehículo al de la orden. |
-| Anular | Cualquiera que no sea final → `ANULADA` | Solo el administrador. Exige un motivo, que queda en el historial. No se borra ningún dato. |
+- Arriba, el número de orden, la patente y el vehículo, con el estado a la derecha, y una barra con las seis etapas: las cumplidas con una marca verde, la actual resaltada y las que faltan atenuadas. Una orden rechazada o anulada lo indica debajo de la barra, con su motivo.
+- A la derecha, los datos de la orden (mecánico, que se puede cambiar mientras el estado no sea final; kilometraje; síntoma; observaciones de recepción; fechas de finalización y entrega) y el historial de estados, el más reciente primero.
+- Al pie, "Anular orden" (solo el administrador, en un estado no final) y el botón del próximo paso.
+
+| Estado | Qué se hace en la ventana | Botón principal | Botón secundario |
+|---|---|---|---|
+| `RECEPCIONADA` | Armar el presupuesto: agregar servicios, cambiar cantidades, quitar líneas. | Presupuestar (exige al menos una línea) | — |
+| `PRESUPUESTADA` | Tildar las líneas que el cliente aprueba; el presupuesto todavía se puede ajustar sin perder las tildes. | Registrar aprobación (exige al menos una línea aprobada) | Rechazar |
+| `APROBADA` | Revisar las líneas aprobadas y el mecánico asignado; se avisa si falta. | Iniciar trabajo (exige un mecánico) | — |
+| `EN_PROCESO` | Cargar en la grilla la cantidad real y las horas reales de cada línea aprobada, y las observaciones del mecánico. | Finalizar trabajo (exige todo cargado) | Guardar avance |
+| `FINALIZADA` | Resumen de solo lectura con lo presupuestado y lo real. | Entregar vehículo | — |
+| `ENTREGADA`, `RECHAZADA`, `ANULADA` | El mismo resumen, solo de consulta. | Cerrar | — |
+
+"Guardar avance" guarda lo cargado del trabajo sin cambiar el estado, para seguir después. "Anular orden" abre una ventana que pide el motivo (`FrmAnularOrden`). El precio y la descripción se copian del servicio y no se modifican en la línea; cada servicio va una sola vez por orden. La entrega sube el kilometraje del vehículo al de la orden.
 
 Cada cambio de estado se guarda en una transacción junto con su fila en el historial de estados: si algo falla, no se guarda nada.
 

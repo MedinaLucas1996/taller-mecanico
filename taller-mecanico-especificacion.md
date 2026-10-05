@@ -182,6 +182,8 @@ El mecánico realiza las tareas aprobadas. Sobre cada línea aprobada se registr
 
 Ese contraste entre estimado y real alimenta el reporte de productividad.
 
+La cantidad y las horas reales se cargan línea por línea y se pueden guardar en cualquier momento, junto con las observaciones del mecánico, sin cerrar el trabajo ("Guardar avance").
+
 Para iniciar el trabajo la orden debe tener un mecánico asignado.
 
 **Estado resultante:** `EN_PROCESO`
@@ -298,6 +300,8 @@ Un usuario tiene mecánico asociado si y solo si su rol es `MECANICO`.
 Las órdenes anuladas conservan su registro y su historial. No se eliminan físicamente.
 
 La anulación exige un motivo, que queda registrado en el historial de estados, y se permite en cualquier estado no final, es decir, hasta `FINALIZADA` inclusive.
+
+El motivo se pide en una ventana propia al anular, que explica que la acción no tiene vuelta atrás.
 
 ### 8.8 Fotos de recepción
 
