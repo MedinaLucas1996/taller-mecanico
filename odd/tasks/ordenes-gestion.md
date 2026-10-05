@@ -164,6 +164,8 @@ Review of the whole branch (`f90c074..5053a48`, asked by the stop hook): medium,
 - `Commit` sits inside the `Try` whose `Catch` calls `Rollback`; a failed commit is reported as "nothing saved" although the outcome is unknown. Same shape in all twelve handlers.
 - None of the transitions was executed; a scripted pass against a database with the test data is the cheapest proof.
 
+Follow-up after the user ran the form on 2026-10-05 (the whole flow worked as `operador`): commit `64bcf2b` makes the dialog 1064 x 916 with `AutoScroll`, both grids 216 high (about six rows), buttons 34 high, and the history grid not sortable and scrolled to its newest row. Build 0 errors; not seen on screen by the agent. Review: medium, 97 lines, under budget, pending in the slice.
+
 ## Next step
 
 The user opens `FrmOrdenGestion` in the Visual Studio designer and tests the acceptance criteria as `operador` and `admin` (script 07 must be applied first); then decides push / PR for `feature/TM-0006`. Next feature in the roadmap: "Mis órdenes asignadas" (mechanic screen).
