@@ -24,7 +24,7 @@ Partial Class FrmPrincipal
     Private Sub InitializeComponent()
         components = New ComponentModel.Container()
         panelMenu = New Panel()
-        panelMenuAbajo = New Panel()
+        panelMenuAbajo = New TableLayoutPanel()
         lblTituloDatosMaestros = New Label()
         btnClientes = New Button()
         btnVehiculos = New Button()
@@ -33,7 +33,7 @@ Partial Class FrmPrincipal
         btnCategorias = New Button()
         btnMecanicos = New Button()
         btnUsuarios = New Button()
-        panelMenuArriba = New Panel()
+        panelMenuArriba = New TableLayoutPanel()
         lblTituloOperaciones = New Label()
         btnRecepcion = New Button()
         btnOrdenes = New Button()
@@ -73,26 +73,39 @@ Partial Class FrmPrincipal
         '
         ' panelMenuAbajo
         '
-        panelMenuAbajo.Controls.Add(lblTituloDatosMaestros)
-        panelMenuAbajo.Controls.Add(btnClientes)
-        panelMenuAbajo.Controls.Add(btnVehiculos)
-        panelMenuAbajo.Controls.Add(btnMarcasModelos)
-        panelMenuAbajo.Controls.Add(btnServicios)
-        panelMenuAbajo.Controls.Add(btnCategorias)
-        panelMenuAbajo.Controls.Add(btnMecanicos)
-        panelMenuAbajo.Controls.Add(btnUsuarios)
+        panelMenuAbajo.AutoSize = True
+        panelMenuAbajo.ColumnCount = 1
+        panelMenuAbajo.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 100F))
+        panelMenuAbajo.Controls.Add(lblTituloDatosMaestros, 0, 0)
+        panelMenuAbajo.Controls.Add(btnClientes, 0, 1)
+        panelMenuAbajo.Controls.Add(btnVehiculos, 0, 2)
+        panelMenuAbajo.Controls.Add(btnMarcasModelos, 0, 3)
+        panelMenuAbajo.Controls.Add(btnServicios, 0, 4)
+        panelMenuAbajo.Controls.Add(btnCategorias, 0, 5)
+        panelMenuAbajo.Controls.Add(btnMecanicos, 0, 6)
+        panelMenuAbajo.Controls.Add(btnUsuarios, 0, 7)
         panelMenuAbajo.Dock = DockStyle.Bottom
         panelMenuAbajo.Location = New Point(0, 445)
         panelMenuAbajo.Name = "panelMenuAbajo"
+        panelMenuAbajo.RowCount = 8
+        panelMenuAbajo.RowStyles.Add(New RowStyle())
+        panelMenuAbajo.RowStyles.Add(New RowStyle())
+        panelMenuAbajo.RowStyles.Add(New RowStyle())
+        panelMenuAbajo.RowStyles.Add(New RowStyle())
+        panelMenuAbajo.RowStyles.Add(New RowStyle())
+        panelMenuAbajo.RowStyles.Add(New RowStyle())
+        panelMenuAbajo.RowStyles.Add(New RowStyle())
+        panelMenuAbajo.RowStyles.Add(New RowStyle())
         panelMenuAbajo.Size = New Size(230, 316)
         panelMenuAbajo.TabIndex = 2
         '
         ' lblTituloDatosMaestros
         '
-        lblTituloDatosMaestros.Dock = DockStyle.Bottom
+        lblTituloDatosMaestros.Anchor = AnchorStyles.Left Or AnchorStyles.Right
         lblTituloDatosMaestros.Font = New Font("Segoe UI", 9F, FontStyle.Bold)
         lblTituloDatosMaestros.ForeColor = Color.FromArgb(CByte(150), CByte(160), CByte(170))
         lblTituloDatosMaestros.Location = New Point(0, 0)
+        lblTituloDatosMaestros.Margin = New Padding(0)
         lblTituloDatosMaestros.Name = "lblTituloDatosMaestros"
         lblTituloDatosMaestros.Padding = New Padding(20, 13, 0, 0)
         lblTituloDatosMaestros.Size = New Size(230, 36)
@@ -102,9 +115,9 @@ Partial Class FrmPrincipal
         '
         ' btnClientes
         '
+        btnClientes.Anchor = AnchorStyles.Left Or AnchorStyles.Right
         btnClientes.BackColor = Color.FromArgb(CByte(30), CByte(39), CByte(46))
         btnClientes.Cursor = Cursors.Hand
-        btnClientes.Dock = DockStyle.Bottom
         btnClientes.FlatAppearance.BorderSize = 0
         btnClientes.FlatAppearance.MouseOverBackColor = Color.FromArgb(CByte(52), CByte(73), CByte(94))
         btnClientes.FlatStyle = FlatStyle.Flat
@@ -112,6 +125,7 @@ Partial Class FrmPrincipal
         btnClientes.ForeColor = Color.White
         btnClientes.ImageAlign = ContentAlignment.MiddleLeft
         btnClientes.Location = New Point(0, 36)
+        btnClientes.Margin = New Padding(0)
         btnClientes.Name = "btnClientes"
         btnClientes.Padding = New Padding(16, 0, 0, 0)
         btnClientes.Size = New Size(230, 40)
@@ -125,9 +139,9 @@ Partial Class FrmPrincipal
         '
         ' btnVehiculos
         '
+        btnVehiculos.Anchor = AnchorStyles.Left Or AnchorStyles.Right
         btnVehiculos.BackColor = Color.FromArgb(CByte(30), CByte(39), CByte(46))
         btnVehiculos.Cursor = Cursors.Hand
-        btnVehiculos.Dock = DockStyle.Bottom
         btnVehiculos.FlatAppearance.BorderSize = 0
         btnVehiculos.FlatAppearance.MouseOverBackColor = Color.FromArgb(CByte(52), CByte(73), CByte(94))
         btnVehiculos.FlatStyle = FlatStyle.Flat
@@ -135,6 +149,7 @@ Partial Class FrmPrincipal
         btnVehiculos.ForeColor = Color.White
         btnVehiculos.ImageAlign = ContentAlignment.MiddleLeft
         btnVehiculos.Location = New Point(0, 76)
+        btnVehiculos.Margin = New Padding(0)
         btnVehiculos.Name = "btnVehiculos"
         btnVehiculos.Padding = New Padding(16, 0, 0, 0)
         btnVehiculos.Size = New Size(230, 40)
@@ -148,9 +163,9 @@ Partial Class FrmPrincipal
         '
         ' btnMarcasModelos
         '
+        btnMarcasModelos.Anchor = AnchorStyles.Left Or AnchorStyles.Right
         btnMarcasModelos.BackColor = Color.FromArgb(CByte(30), CByte(39), CByte(46))
         btnMarcasModelos.Cursor = Cursors.Hand
-        btnMarcasModelos.Dock = DockStyle.Bottom
         btnMarcasModelos.FlatAppearance.BorderSize = 0
         btnMarcasModelos.FlatAppearance.MouseOverBackColor = Color.FromArgb(CByte(52), CByte(73), CByte(94))
         btnMarcasModelos.FlatStyle = FlatStyle.Flat
@@ -158,6 +173,7 @@ Partial Class FrmPrincipal
         btnMarcasModelos.ForeColor = Color.White
         btnMarcasModelos.ImageAlign = ContentAlignment.MiddleLeft
         btnMarcasModelos.Location = New Point(0, 116)
+        btnMarcasModelos.Margin = New Padding(0)
         btnMarcasModelos.Name = "btnMarcasModelos"
         btnMarcasModelos.Padding = New Padding(16, 0, 0, 0)
         btnMarcasModelos.Size = New Size(230, 40)
@@ -171,9 +187,9 @@ Partial Class FrmPrincipal
         '
         ' btnServicios
         '
+        btnServicios.Anchor = AnchorStyles.Left Or AnchorStyles.Right
         btnServicios.BackColor = Color.FromArgb(CByte(30), CByte(39), CByte(46))
         btnServicios.Cursor = Cursors.Hand
-        btnServicios.Dock = DockStyle.Bottom
         btnServicios.FlatAppearance.BorderSize = 0
         btnServicios.FlatAppearance.MouseOverBackColor = Color.FromArgb(CByte(52), CByte(73), CByte(94))
         btnServicios.FlatStyle = FlatStyle.Flat
@@ -181,6 +197,7 @@ Partial Class FrmPrincipal
         btnServicios.ForeColor = Color.White
         btnServicios.ImageAlign = ContentAlignment.MiddleLeft
         btnServicios.Location = New Point(0, 156)
+        btnServicios.Margin = New Padding(0)
         btnServicios.Name = "btnServicios"
         btnServicios.Padding = New Padding(16, 0, 0, 0)
         btnServicios.Size = New Size(230, 40)
@@ -194,9 +211,9 @@ Partial Class FrmPrincipal
         '
         ' btnCategorias
         '
+        btnCategorias.Anchor = AnchorStyles.Left Or AnchorStyles.Right
         btnCategorias.BackColor = Color.FromArgb(CByte(30), CByte(39), CByte(46))
         btnCategorias.Cursor = Cursors.Hand
-        btnCategorias.Dock = DockStyle.Bottom
         btnCategorias.FlatAppearance.BorderSize = 0
         btnCategorias.FlatAppearance.MouseOverBackColor = Color.FromArgb(CByte(52), CByte(73), CByte(94))
         btnCategorias.FlatStyle = FlatStyle.Flat
@@ -204,6 +221,7 @@ Partial Class FrmPrincipal
         btnCategorias.ForeColor = Color.White
         btnCategorias.ImageAlign = ContentAlignment.MiddleLeft
         btnCategorias.Location = New Point(0, 196)
+        btnCategorias.Margin = New Padding(0)
         btnCategorias.Name = "btnCategorias"
         btnCategorias.Padding = New Padding(16, 0, 0, 0)
         btnCategorias.Size = New Size(230, 40)
@@ -217,9 +235,9 @@ Partial Class FrmPrincipal
         '
         ' btnMecanicos
         '
+        btnMecanicos.Anchor = AnchorStyles.Left Or AnchorStyles.Right
         btnMecanicos.BackColor = Color.FromArgb(CByte(30), CByte(39), CByte(46))
         btnMecanicos.Cursor = Cursors.Hand
-        btnMecanicos.Dock = DockStyle.Bottom
         btnMecanicos.FlatAppearance.BorderSize = 0
         btnMecanicos.FlatAppearance.MouseOverBackColor = Color.FromArgb(CByte(52), CByte(73), CByte(94))
         btnMecanicos.FlatStyle = FlatStyle.Flat
@@ -227,6 +245,7 @@ Partial Class FrmPrincipal
         btnMecanicos.ForeColor = Color.White
         btnMecanicos.ImageAlign = ContentAlignment.MiddleLeft
         btnMecanicos.Location = New Point(0, 236)
+        btnMecanicos.Margin = New Padding(0)
         btnMecanicos.Name = "btnMecanicos"
         btnMecanicos.Padding = New Padding(16, 0, 0, 0)
         btnMecanicos.Size = New Size(230, 40)
@@ -240,9 +259,9 @@ Partial Class FrmPrincipal
         '
         ' btnUsuarios
         '
+        btnUsuarios.Anchor = AnchorStyles.Left Or AnchorStyles.Right
         btnUsuarios.BackColor = Color.FromArgb(CByte(30), CByte(39), CByte(46))
         btnUsuarios.Cursor = Cursors.Hand
-        btnUsuarios.Dock = DockStyle.Bottom
         btnUsuarios.FlatAppearance.BorderSize = 0
         btnUsuarios.FlatAppearance.MouseOverBackColor = Color.FromArgb(CByte(52), CByte(73), CByte(94))
         btnUsuarios.FlatStyle = FlatStyle.Flat
@@ -250,6 +269,7 @@ Partial Class FrmPrincipal
         btnUsuarios.ForeColor = Color.White
         btnUsuarios.ImageAlign = ContentAlignment.MiddleLeft
         btnUsuarios.Location = New Point(0, 276)
+        btnUsuarios.Margin = New Padding(0)
         btnUsuarios.Name = "btnUsuarios"
         btnUsuarios.Padding = New Padding(16, 0, 0, 0)
         btnUsuarios.Size = New Size(230, 40)
@@ -263,24 +283,35 @@ Partial Class FrmPrincipal
         '
         ' panelMenuArriba
         '
-        panelMenuArriba.Controls.Add(btnReportes)
-        panelMenuArriba.Controls.Add(lblTituloReportes)
-        panelMenuArriba.Controls.Add(btnHistorial)
-        panelMenuArriba.Controls.Add(btnOrdenes)
-        panelMenuArriba.Controls.Add(btnRecepcion)
-        panelMenuArriba.Controls.Add(lblTituloOperaciones)
+        panelMenuArriba.AutoSize = True
+        panelMenuArriba.ColumnCount = 1
+        panelMenuArriba.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 100F))
+        panelMenuArriba.Controls.Add(lblTituloOperaciones, 0, 0)
+        panelMenuArriba.Controls.Add(btnRecepcion, 0, 1)
+        panelMenuArriba.Controls.Add(btnOrdenes, 0, 2)
+        panelMenuArriba.Controls.Add(btnHistorial, 0, 3)
+        panelMenuArriba.Controls.Add(lblTituloReportes, 0, 4)
+        panelMenuArriba.Controls.Add(btnReportes, 0, 5)
         panelMenuArriba.Dock = DockStyle.Top
         panelMenuArriba.Location = New Point(0, 76)
         panelMenuArriba.Name = "panelMenuArriba"
+        panelMenuArriba.RowCount = 6
+        panelMenuArriba.RowStyles.Add(New RowStyle())
+        panelMenuArriba.RowStyles.Add(New RowStyle())
+        panelMenuArriba.RowStyles.Add(New RowStyle())
+        panelMenuArriba.RowStyles.Add(New RowStyle())
+        panelMenuArriba.RowStyles.Add(New RowStyle())
+        panelMenuArriba.RowStyles.Add(New RowStyle())
         panelMenuArriba.Size = New Size(230, 232)
         panelMenuArriba.TabIndex = 1
         '
         ' lblTituloOperaciones
         '
-        lblTituloOperaciones.Dock = DockStyle.Top
+        lblTituloOperaciones.Anchor = AnchorStyles.Left Or AnchorStyles.Right
         lblTituloOperaciones.Font = New Font("Segoe UI", 9F, FontStyle.Bold)
         lblTituloOperaciones.ForeColor = Color.FromArgb(CByte(150), CByte(160), CByte(170))
         lblTituloOperaciones.Location = New Point(0, 0)
+        lblTituloOperaciones.Margin = New Padding(0)
         lblTituloOperaciones.Name = "lblTituloOperaciones"
         lblTituloOperaciones.Padding = New Padding(20, 13, 0, 0)
         lblTituloOperaciones.Size = New Size(230, 36)
@@ -290,9 +321,9 @@ Partial Class FrmPrincipal
         '
         ' btnRecepcion
         '
+        btnRecepcion.Anchor = AnchorStyles.Left Or AnchorStyles.Right
         btnRecepcion.BackColor = Color.FromArgb(CByte(30), CByte(39), CByte(46))
         btnRecepcion.Cursor = Cursors.Hand
-        btnRecepcion.Dock = DockStyle.Top
         btnRecepcion.FlatAppearance.BorderSize = 0
         btnRecepcion.FlatAppearance.MouseOverBackColor = Color.FromArgb(CByte(52), CByte(73), CByte(94))
         btnRecepcion.FlatStyle = FlatStyle.Flat
@@ -300,6 +331,7 @@ Partial Class FrmPrincipal
         btnRecepcion.ForeColor = Color.White
         btnRecepcion.ImageAlign = ContentAlignment.MiddleLeft
         btnRecepcion.Location = New Point(0, 36)
+        btnRecepcion.Margin = New Padding(0)
         btnRecepcion.Name = "btnRecepcion"
         btnRecepcion.Padding = New Padding(16, 0, 0, 0)
         btnRecepcion.Size = New Size(230, 40)
@@ -313,9 +345,9 @@ Partial Class FrmPrincipal
         '
         ' btnOrdenes
         '
+        btnOrdenes.Anchor = AnchorStyles.Left Or AnchorStyles.Right
         btnOrdenes.BackColor = Color.FromArgb(CByte(30), CByte(39), CByte(46))
         btnOrdenes.Cursor = Cursors.Hand
-        btnOrdenes.Dock = DockStyle.Top
         btnOrdenes.FlatAppearance.BorderSize = 0
         btnOrdenes.FlatAppearance.MouseOverBackColor = Color.FromArgb(CByte(52), CByte(73), CByte(94))
         btnOrdenes.FlatStyle = FlatStyle.Flat
@@ -323,6 +355,7 @@ Partial Class FrmPrincipal
         btnOrdenes.ForeColor = Color.White
         btnOrdenes.ImageAlign = ContentAlignment.MiddleLeft
         btnOrdenes.Location = New Point(0, 76)
+        btnOrdenes.Margin = New Padding(0)
         btnOrdenes.Name = "btnOrdenes"
         btnOrdenes.Padding = New Padding(16, 0, 0, 0)
         btnOrdenes.Size = New Size(230, 40)
@@ -336,9 +369,9 @@ Partial Class FrmPrincipal
         '
         ' btnHistorial
         '
+        btnHistorial.Anchor = AnchorStyles.Left Or AnchorStyles.Right
         btnHistorial.BackColor = Color.FromArgb(CByte(30), CByte(39), CByte(46))
         btnHistorial.Cursor = Cursors.Hand
-        btnHistorial.Dock = DockStyle.Top
         btnHistorial.FlatAppearance.BorderSize = 0
         btnHistorial.FlatAppearance.MouseOverBackColor = Color.FromArgb(CByte(52), CByte(73), CByte(94))
         btnHistorial.FlatStyle = FlatStyle.Flat
@@ -346,6 +379,7 @@ Partial Class FrmPrincipal
         btnHistorial.ForeColor = Color.White
         btnHistorial.ImageAlign = ContentAlignment.MiddleLeft
         btnHistorial.Location = New Point(0, 116)
+        btnHistorial.Margin = New Padding(0)
         btnHistorial.Name = "btnHistorial"
         btnHistorial.Padding = New Padding(16, 0, 0, 0)
         btnHistorial.Size = New Size(230, 40)
@@ -359,10 +393,11 @@ Partial Class FrmPrincipal
         '
         ' lblTituloReportes
         '
-        lblTituloReportes.Dock = DockStyle.Top
+        lblTituloReportes.Anchor = AnchorStyles.Left Or AnchorStyles.Right
         lblTituloReportes.Font = New Font("Segoe UI", 9F, FontStyle.Bold)
         lblTituloReportes.ForeColor = Color.FromArgb(CByte(150), CByte(160), CByte(170))
         lblTituloReportes.Location = New Point(0, 156)
+        lblTituloReportes.Margin = New Padding(0)
         lblTituloReportes.Name = "lblTituloReportes"
         lblTituloReportes.Padding = New Padding(20, 13, 0, 0)
         lblTituloReportes.Size = New Size(230, 36)
@@ -372,9 +407,9 @@ Partial Class FrmPrincipal
         '
         ' btnReportes
         '
+        btnReportes.Anchor = AnchorStyles.Left Or AnchorStyles.Right
         btnReportes.BackColor = Color.FromArgb(CByte(30), CByte(39), CByte(46))
         btnReportes.Cursor = Cursors.Hand
-        btnReportes.Dock = DockStyle.Top
         btnReportes.FlatAppearance.BorderSize = 0
         btnReportes.FlatAppearance.MouseOverBackColor = Color.FromArgb(CByte(52), CByte(73), CByte(94))
         btnReportes.FlatStyle = FlatStyle.Flat
@@ -382,6 +417,7 @@ Partial Class FrmPrincipal
         btnReportes.ForeColor = Color.White
         btnReportes.ImageAlign = ContentAlignment.MiddleLeft
         btnReportes.Location = New Point(0, 192)
+        btnReportes.Margin = New Padding(0)
         btnReportes.Name = "btnReportes"
         btnReportes.Padding = New Padding(16, 0, 0, 0)
         btnReportes.Size = New Size(230, 40)
@@ -529,7 +565,9 @@ Partial Class FrmPrincipal
         WindowState = FormWindowState.Maximized
         panelMenu.ResumeLayout(False)
         panelMenuAbajo.ResumeLayout(False)
+        panelMenuAbajo.PerformLayout()
         panelMenuArriba.ResumeLayout(False)
+        panelMenuArriba.PerformLayout()
         panelLogo.ResumeLayout(False)
         panelSuperior.ResumeLayout(False)
         panelSuperior.PerformLayout()
@@ -539,7 +577,7 @@ Partial Class FrmPrincipal
     End Sub
 
     Friend WithEvents panelMenu As Panel
-    Friend WithEvents panelMenuAbajo As Panel
+    Friend WithEvents panelMenuAbajo As TableLayoutPanel
     Friend WithEvents lblTituloDatosMaestros As Label
     Friend WithEvents btnClientes As Button
     Friend WithEvents btnVehiculos As Button
@@ -548,7 +586,7 @@ Partial Class FrmPrincipal
     Friend WithEvents btnCategorias As Button
     Friend WithEvents btnMecanicos As Button
     Friend WithEvents btnUsuarios As Button
-    Friend WithEvents panelMenuArriba As Panel
+    Friend WithEvents panelMenuArriba As TableLayoutPanel
     Friend WithEvents lblTituloOperaciones As Label
     Friend WithEvents btnRecepcion As Button
     Friend WithEvents btnOrdenes As Button
