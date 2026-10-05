@@ -375,7 +375,7 @@ Partial Class FrmOrdenGestion
         pnlDetalle.Controls.Add(btnGuardarEjecucion)
         pnlDetalle.Location = New Point(30, 216)
         pnlDetalle.Name = "pnlDetalle"
-        pnlDetalle.Size = New Size(730, 254)
+        pnlDetalle.Size = New Size(730, 386)
         pnlDetalle.TabIndex = 3
         '
         ' lblDetalle
@@ -435,9 +435,9 @@ Partial Class FrmOrdenGestion
         btnAgregar.FlatStyle = FlatStyle.Flat
         btnAgregar.Font = New Font("Segoe UI", 9F, FontStyle.Bold)
         btnAgregar.ForeColor = Color.White
-        btnAgregar.Location = New Point(632, 34)
+        btnAgregar.Location = New Point(632, 32)
         btnAgregar.Name = "btnAgregar"
-        btnAgregar.Size = New Size(82, 30)
+        btnAgregar.Size = New Size(82, 34)
         btnAgregar.TabIndex = 5
         btnAgregar.Text = "Agregar"
         btnAgregar.UseVisualStyleBackColor = False
@@ -451,7 +451,7 @@ Partial Class FrmOrdenGestion
         dgvDetalle.BackgroundColor = Color.White
         dgvDetalle.BorderStyle = BorderStyle.FixedSingle
         dgvDetalle.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize
-        dgvDetalle.Location = New Point(16, 70)
+        dgvDetalle.Location = New Point(16, 72)
         dgvDetalle.MultiSelect = False
         dgvDetalle.Name = "dgvDetalle"
         dgvDetalle.ReadOnly = True
@@ -459,7 +459,7 @@ Partial Class FrmOrdenGestion
         dgvDetalle.RowHeadersWidth = 51
         dgvDetalle.RowTemplate.Height = 22
         dgvDetalle.SelectionMode = DataGridViewSelectionMode.FullRowSelect
-        dgvDetalle.Size = New Size(698, 100)
+        dgvDetalle.Size = New Size(698, 216)
         dgvDetalle.TabIndex = 6
         '
         ' btnActualizar
@@ -468,9 +468,9 @@ Partial Class FrmOrdenGestion
         btnActualizar.Cursor = Cursors.Hand
         btnActualizar.FlatAppearance.BorderColor = Color.Silver
         btnActualizar.FlatStyle = FlatStyle.Flat
-        btnActualizar.Location = New Point(16, 178)
+        btnActualizar.Location = New Point(16, 296)
         btnActualizar.Name = "btnActualizar"
-        btnActualizar.Size = New Size(170, 30)
+        btnActualizar.Size = New Size(170, 34)
         btnActualizar.TabIndex = 7
         btnActualizar.Text = "Actualizar cantidad"
         btnActualizar.UseVisualStyleBackColor = False
@@ -481,9 +481,9 @@ Partial Class FrmOrdenGestion
         btnQuitar.Cursor = Cursors.Hand
         btnQuitar.FlatAppearance.BorderColor = Color.Silver
         btnQuitar.FlatStyle = FlatStyle.Flat
-        btnQuitar.Location = New Point(196, 178)
+        btnQuitar.Location = New Point(196, 296)
         btnQuitar.Name = "btnQuitar"
-        btnQuitar.Size = New Size(90, 30)
+        btnQuitar.Size = New Size(90, 34)
         btnQuitar.TabIndex = 8
         btnQuitar.Text = "Quitar"
         btnQuitar.UseVisualStyleBackColor = False
@@ -491,7 +491,7 @@ Partial Class FrmOrdenGestion
         ' lblTotalPresupuestado
         '
         lblTotalPresupuestado.Font = New Font("Segoe UI", 9F, FontStyle.Bold)
-        lblTotalPresupuestado.Location = New Point(350, 174)
+        lblTotalPresupuestado.Location = New Point(350, 294)
         lblTotalPresupuestado.Name = "lblTotalPresupuestado"
         lblTotalPresupuestado.Size = New Size(364, 20)
         lblTotalPresupuestado.TabIndex = 9
@@ -501,7 +501,7 @@ Partial Class FrmOrdenGestion
         ' lblTotalAprobado
         '
         lblTotalAprobado.ForeColor = Color.DimGray
-        lblTotalAprobado.Location = New Point(350, 196)
+        lblTotalAprobado.Location = New Point(350, 316)
         lblTotalAprobado.Name = "lblTotalAprobado"
         lblTotalAprobado.Size = New Size(364, 20)
         lblTotalAprobado.TabIndex = 10
@@ -511,7 +511,7 @@ Partial Class FrmOrdenGestion
         ' lblCantidadReal
         '
         lblCantidadReal.AutoSize = True
-        lblCantidadReal.Location = New Point(16, 224)
+        lblCantidadReal.Location = New Point(16, 349)
         lblCantidadReal.Name = "lblCantidadReal"
         lblCantidadReal.Size = New Size(99, 20)
         lblCantidadReal.TabIndex = 11
@@ -520,7 +520,7 @@ Partial Class FrmOrdenGestion
         ' nudCantidadReal
         '
         nudCantidadReal.DecimalPlaces = 2
-        nudCantidadReal.Location = New Point(120, 221)
+        nudCantidadReal.Location = New Point(120, 346)
         nudCantidadReal.Maximum = New Decimal(New Integer() {999999999, 0, 0, 131072})
         nudCantidadReal.Name = "nudCantidadReal"
         nudCantidadReal.Size = New Size(90, 27)
@@ -530,7 +530,7 @@ Partial Class FrmOrdenGestion
         ' lblHorasReales
         '
         lblHorasReales.AutoSize = True
-        lblHorasReales.Location = New Point(226, 224)
+        lblHorasReales.Location = New Point(226, 349)
         lblHorasReales.Name = "lblHorasReales"
         lblHorasReales.Size = New Size(92, 20)
         lblHorasReales.TabIndex = 13
@@ -539,7 +539,7 @@ Partial Class FrmOrdenGestion
         ' nudHorasReales
         '
         nudHorasReales.DecimalPlaces = 2
-        nudHorasReales.Location = New Point(324, 221)
+        nudHorasReales.Location = New Point(324, 346)
         nudHorasReales.Maximum = New Decimal(New Integer() {99999, 0, 0, 131072})
         nudHorasReales.Name = "nudHorasReales"
         nudHorasReales.Size = New Size(80, 27)
@@ -552,9 +552,9 @@ Partial Class FrmOrdenGestion
         btnGuardarEjecucion.Cursor = Cursors.Hand
         btnGuardarEjecucion.FlatAppearance.BorderColor = Color.Silver
         btnGuardarEjecucion.FlatStyle = FlatStyle.Flat
-        btnGuardarEjecucion.Location = New Point(416, 219)
+        btnGuardarEjecucion.Location = New Point(416, 342)
         btnGuardarEjecucion.Name = "btnGuardarEjecucion"
-        btnGuardarEjecucion.Size = New Size(160, 30)
+        btnGuardarEjecucion.Size = New Size(160, 34)
         btnGuardarEjecucion.TabIndex = 15
         btnGuardarEjecucion.Text = "Guardar ejecución"
         btnGuardarEjecucion.UseVisualStyleBackColor = False
@@ -569,7 +569,7 @@ Partial Class FrmOrdenGestion
         pnlMecanico.Controls.Add(txtNotasTecnicas)
         pnlMecanico.Location = New Point(770, 216)
         pnlMecanico.Name = "pnlMecanico"
-        pnlMecanico.Size = New Size(264, 254)
+        pnlMecanico.Size = New Size(264, 386)
         pnlMecanico.TabIndex = 4
         '
         ' lblMecanico
@@ -599,7 +599,7 @@ Partial Class FrmOrdenGestion
         btnGuardarMecanico.FlatStyle = FlatStyle.Flat
         btnGuardarMecanico.Location = New Point(16, 72)
         btnGuardarMecanico.Name = "btnGuardarMecanico"
-        btnGuardarMecanico.Size = New Size(160, 30)
+        btnGuardarMecanico.Size = New Size(160, 34)
         btnGuardarMecanico.TabIndex = 2
         btnGuardarMecanico.Text = "Guardar mecánico"
         btnGuardarMecanico.UseVisualStyleBackColor = False
@@ -608,7 +608,7 @@ Partial Class FrmOrdenGestion
         '
         lblNotasTecnicas.AutoSize = True
         lblNotasTecnicas.Font = New Font("Segoe UI", 10F, FontStyle.Bold)
-        lblNotasTecnicas.Location = New Point(16, 110)
+        lblNotasTecnicas.Location = New Point(16, 116)
         lblNotasTecnicas.Name = "lblNotasTecnicas"
         lblNotasTecnicas.Size = New Size(236, 23)
         lblNotasTecnicas.TabIndex = 3
@@ -616,13 +616,13 @@ Partial Class FrmOrdenGestion
         '
         ' txtNotasTecnicas
         '
-        txtNotasTecnicas.Location = New Point(16, 138)
+        txtNotasTecnicas.Location = New Point(16, 144)
         txtNotasTecnicas.MaxLength = 2000
         txtNotasTecnicas.Multiline = True
         txtNotasTecnicas.Name = "txtNotasTecnicas"
         txtNotasTecnicas.ReadOnly = True
         txtNotasTecnicas.ScrollBars = ScrollBars.Vertical
-        txtNotasTecnicas.Size = New Size(232, 106)
+        txtNotasTecnicas.Size = New Size(232, 232)
         txtNotasTecnicas.TabIndex = 4
         '
         ' pnlAcciones
@@ -636,9 +636,9 @@ Partial Class FrmOrdenGestion
         pnlAcciones.Controls.Add(btnEntregar)
         pnlAcciones.Controls.Add(txtMotivoAnulacion)
         pnlAcciones.Controls.Add(btnAnular)
-        pnlAcciones.Location = New Point(30, 478)
+        pnlAcciones.Location = New Point(30, 610)
         pnlAcciones.Name = "pnlAcciones"
-        pnlAcciones.Size = New Size(1004, 44)
+        pnlAcciones.Size = New Size(1004, 50)
         pnlAcciones.TabIndex = 5
         '
         ' btnPresupuestar
@@ -647,9 +647,9 @@ Partial Class FrmOrdenGestion
         btnPresupuestar.Cursor = Cursors.Hand
         btnPresupuestar.FlatAppearance.BorderColor = Color.Silver
         btnPresupuestar.FlatStyle = FlatStyle.Flat
-        btnPresupuestar.Location = New Point(16, 7)
+        btnPresupuestar.Location = New Point(16, 8)
         btnPresupuestar.Name = "btnPresupuestar"
-        btnPresupuestar.Size = New Size(110, 30)
+        btnPresupuestar.Size = New Size(110, 34)
         btnPresupuestar.TabIndex = 0
         btnPresupuestar.Text = "Presupuestar"
         btnPresupuestar.UseVisualStyleBackColor = False
@@ -660,9 +660,9 @@ Partial Class FrmOrdenGestion
         btnAprobar.Cursor = Cursors.Hand
         btnAprobar.FlatAppearance.BorderColor = Color.Silver
         btnAprobar.FlatStyle = FlatStyle.Flat
-        btnAprobar.Location = New Point(132, 7)
+        btnAprobar.Location = New Point(132, 8)
         btnAprobar.Name = "btnAprobar"
-        btnAprobar.Size = New Size(160, 30)
+        btnAprobar.Size = New Size(160, 34)
         btnAprobar.TabIndex = 1
         btnAprobar.Text = "Registrar aprobación"
         btnAprobar.UseVisualStyleBackColor = False
@@ -673,9 +673,9 @@ Partial Class FrmOrdenGestion
         btnRechazar.Cursor = Cursors.Hand
         btnRechazar.FlatAppearance.BorderColor = Color.Silver
         btnRechazar.FlatStyle = FlatStyle.Flat
-        btnRechazar.Location = New Point(298, 7)
+        btnRechazar.Location = New Point(298, 8)
         btnRechazar.Name = "btnRechazar"
-        btnRechazar.Size = New Size(80, 30)
+        btnRechazar.Size = New Size(80, 34)
         btnRechazar.TabIndex = 2
         btnRechazar.Text = "Rechazar"
         btnRechazar.UseVisualStyleBackColor = False
@@ -686,9 +686,9 @@ Partial Class FrmOrdenGestion
         btnIniciar.Cursor = Cursors.Hand
         btnIniciar.FlatAppearance.BorderColor = Color.Silver
         btnIniciar.FlatStyle = FlatStyle.Flat
-        btnIniciar.Location = New Point(384, 7)
+        btnIniciar.Location = New Point(384, 8)
         btnIniciar.Name = "btnIniciar"
-        btnIniciar.Size = New Size(115, 30)
+        btnIniciar.Size = New Size(115, 34)
         btnIniciar.TabIndex = 3
         btnIniciar.Text = "Iniciar trabajo"
         btnIniciar.UseVisualStyleBackColor = False
@@ -699,9 +699,9 @@ Partial Class FrmOrdenGestion
         btnFinalizar.Cursor = Cursors.Hand
         btnFinalizar.FlatAppearance.BorderColor = Color.Silver
         btnFinalizar.FlatStyle = FlatStyle.Flat
-        btnFinalizar.Location = New Point(505, 7)
+        btnFinalizar.Location = New Point(505, 8)
         btnFinalizar.Name = "btnFinalizar"
-        btnFinalizar.Size = New Size(80, 30)
+        btnFinalizar.Size = New Size(80, 34)
         btnFinalizar.TabIndex = 4
         btnFinalizar.Text = "Finalizar"
         btnFinalizar.UseVisualStyleBackColor = False
@@ -712,16 +712,16 @@ Partial Class FrmOrdenGestion
         btnEntregar.Cursor = Cursors.Hand
         btnEntregar.FlatAppearance.BorderColor = Color.Silver
         btnEntregar.FlatStyle = FlatStyle.Flat
-        btnEntregar.Location = New Point(591, 7)
+        btnEntregar.Location = New Point(591, 8)
         btnEntregar.Name = "btnEntregar"
-        btnEntregar.Size = New Size(80, 30)
+        btnEntregar.Size = New Size(80, 34)
         btnEntregar.TabIndex = 5
         btnEntregar.Text = "Entregar"
         btnEntregar.UseVisualStyleBackColor = False
         '
         ' txtMotivoAnulacion
         '
-        txtMotivoAnulacion.Location = New Point(700, 9)
+        txtMotivoAnulacion.Location = New Point(700, 12)
         txtMotivoAnulacion.MaxLength = 255
         txtMotivoAnulacion.Name = "txtMotivoAnulacion"
         txtMotivoAnulacion.PlaceholderText = "Motivo de la anulación"
@@ -734,9 +734,9 @@ Partial Class FrmOrdenGestion
         btnAnular.Cursor = Cursors.Hand
         btnAnular.FlatAppearance.BorderColor = Color.Silver
         btnAnular.FlatStyle = FlatStyle.Flat
-        btnAnular.Location = New Point(916, 7)
+        btnAnular.Location = New Point(916, 8)
         btnAnular.Name = "btnAnular"
-        btnAnular.Size = New Size(72, 30)
+        btnAnular.Size = New Size(72, 34)
         btnAnular.TabIndex = 7
         btnAnular.Text = "Anular"
         btnAnular.UseVisualStyleBackColor = False
@@ -745,7 +745,7 @@ Partial Class FrmOrdenGestion
         '
         lblHistorial.AutoSize = True
         lblHistorial.ForeColor = Color.DimGray
-        lblHistorial.Location = New Point(30, 526)
+        lblHistorial.Location = New Point(30, 666)
         lblHistorial.Name = "lblHistorial"
         lblHistorial.Size = New Size(146, 20)
         lblHistorial.TabIndex = 6
@@ -760,7 +760,7 @@ Partial Class FrmOrdenGestion
         dgvHistorial.BackgroundColor = Color.White
         dgvHistorial.BorderStyle = BorderStyle.FixedSingle
         dgvHistorial.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize
-        dgvHistorial.Location = New Point(30, 549)
+        dgvHistorial.Location = New Point(30, 689)
         dgvHistorial.MultiSelect = False
         dgvHistorial.Name = "dgvHistorial"
         dgvHistorial.ReadOnly = True
@@ -768,7 +768,7 @@ Partial Class FrmOrdenGestion
         dgvHistorial.RowHeadersWidth = 51
         dgvHistorial.RowTemplate.Height = 22
         dgvHistorial.SelectionMode = DataGridViewSelectionMode.FullRowSelect
-        dgvHistorial.Size = New Size(1004, 91)
+        dgvHistorial.Size = New Size(1004, 216)
         dgvHistorial.TabIndex = 7
         dgvHistorial.TabStop = False
         '
@@ -776,8 +776,9 @@ Partial Class FrmOrdenGestion
         '
         AutoScaleDimensions = New SizeF(8F, 20F)
         AutoScaleMode = AutoScaleMode.Font
+        AutoScroll = True
         BackColor = Color.FromArgb(CByte(245), CByte(246), CByte(250))
-        ClientSize = New Size(1064, 650)
+        ClientSize = New Size(1064, 916)
         Controls.Add(dgvHistorial)
         Controls.Add(lblHistorial)
         Controls.Add(pnlAcciones)

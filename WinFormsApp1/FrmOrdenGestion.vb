@@ -183,6 +183,11 @@ Public Class FrmOrdenGestion
                     dgvHistorial.Columns("fecha_hora").AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells
                     dgvHistorial.Columns("estado").AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells
                     dgvHistorial.Columns("observacion").FillWeight = 200
+
+                    'el historial queda siempre en el orden de la consulta: no se reordena con un click en el titulo
+                    For Each columna As DataGridViewColumn In dgvHistorial.Columns
+                        columna.SortMode = DataGridViewColumnSortMode.NotSortable
+                    Next
                 End Using
             End Using
         Catch ex As Exception
@@ -446,6 +451,11 @@ Public Class FrmOrdenGestion
     Private Sub dgvHistorial_DataBindingComplete(sender As Object, e As DataGridViewBindingCompleteEventArgs) Handles dgvHistorial.DataBindingComplete
         'el historial es solo de consulta, no dejo ninguna fila marcada
         dgvHistorial.ClearSelection()
+
+        'dejo a la vista la primera fila, que es el cambio de estado mas nuevo
+        If dgvHistorial.Rows.Count > 0 AndAlso dgvHistorial.DisplayedRowCount(True) > 0 Then
+            dgvHistorial.FirstDisplayedScrollingRowIndex = 0
+        End If
     End Sub
 
     Private Sub dgvDetalle_SelectionChanged(sender As Object, e As EventArgs) Handles dgvDetalle.SelectionChanged
