@@ -198,6 +198,10 @@ Public Class FrmPrincipal
         AbrirFormulario(New FrmMarcasModelos())
     End Sub
 
+    Private Sub btnServicios_Click(sender As Object, e As EventArgs) Handles btnServicios.Click
+        AbrirFormulario(New FrmServicios())
+    End Sub
+
     Private Sub btnMecanicos_Click(sender As Object, e As EventArgs) Handles btnMecanicos.Click
         AbrirFormulario(New FrmMecanicos())
     End Sub
