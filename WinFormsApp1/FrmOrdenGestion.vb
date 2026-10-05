@@ -10,9 +10,6 @@ Public Class FrmOrdenGestion
     Private permiteEdicion As Boolean = False
     Private esEstadoFinal As Boolean = True
 
-    'linea del presupuesto elegida en la grilla, queda en 0 mientras no haya una seleccionada
-    Private idDetalleSeleccionado As Integer = 0
-
     Sub CargarComboMecanicos()
         'cargo los mecanicos activos en el combo
         Try
@@ -87,15 +84,12 @@ Public Class FrmOrdenGestion
 
     Sub CargarDetalle()
         'cargo la grilla con las lineas del presupuesto de la orden
-
-        'al recargar la grilla ya no hay una linea seleccionada
-        idDetalleSeleccionado = 0
-
         Try
             Using cn As New MySqlConnection(CADENA)
                 cn.Open()
                 Dim consulta As String =
-                    "SELECT id_ot_detalle, descripcion, cantidad, precio_unitario, subtotal, aprobado " &
+                    "SELECT id_ot_detalle, descripcion, cantidad, precio_unitario, subtotal, aprobado, " &
+                    "cantidad_real, horas_reales " &
                     "FROM ot_detalle " &
                     "WHERE id_orden_trabajo = @id_orden_trabajo " &
                     "ORDER BY id_ot_detalle;"
@@ -116,22 +110,39 @@ Public Class FrmOrdenGestion
                     dgvDetalle.Columns("descripcion").HeaderText = "Descripción"
                     dgvDetalle.Columns("cantidad").HeaderText = "Cantidad"
                     dgvDetalle.Columns("cantidad").DefaultCellStyle.Format = "N2"
-                    dgvDetalle.Columns("precio_unitario").HeaderText = "Precio unitario"
+                    dgvDetalle.Columns("precio_unitario").HeaderText = "Precio"
                     dgvDetalle.Columns("precio_unitario").DefaultCellStyle.Format = "C2"
                     dgvDetalle.Columns("subtotal").HeaderText = "Subtotal"
                     dgvDetalle.Columns("subtotal").DefaultCellStyle.Format = "C2"
                     dgvDetalle.Columns("aprobado").HeaderText = "Aprobado"
+                    dgvDetalle.Columns("cantidad_real").HeaderText = "Cant. real"
+                    dgvDetalle.Columns("cantidad_real").DefaultCellStyle.Format = "N2"
+                    dgvDetalle.Columns("horas_reales").HeaderText = "Horas"
+                    dgvDetalle.Columns("horas_reales").DefaultCellStyle.Format = "N2"
 
                     'los numeros van alineados a la derecha
                     dgvDetalle.Columns("cantidad").DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight
                     dgvDetalle.Columns("precio_unitario").DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight
                     dgvDetalle.Columns("subtotal").DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight
+                    dgvDetalle.Columns("cantidad_real").DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight
+                    dgvDetalle.Columns("horas_reales").DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight
 
                     'las columnas de datos cortos se ajustan al contenido, la descripcion ocupa el resto
                     dgvDetalle.Columns("cantidad").AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells
                     dgvDetalle.Columns("precio_unitario").AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells
                     dgvDetalle.Columns("subtotal").AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells
                     dgvDetalle.Columns("aprobado").AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells
+                    dgvDetalle.Columns("cantidad_real").AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells
+                    dgvDetalle.Columns("horas_reales").AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells
+
+                    'la aprobacion se marca linea por linea solo con la orden presupuestada,
+                    'el resto de las columnas nunca se edita en la grilla
+                    dgvDetalle.ReadOnly = (codigoEstado <> "PRESUPUESTADA")
+                    If codigoEstado = "PRESUPUESTADA" Then
+                        For Each columna As DataGridViewColumn In dgvDetalle.Columns
+                            columna.ReadOnly = (columna.Name <> "aprobado")
+                        Next
+                    End If
                 End Using
             End Using
         Catch ex As Exception
@@ -190,6 +201,7 @@ Public Class FrmOrdenGestion
 
         Dim encontrada As Boolean = False
         Dim idMecanico As Integer = 0
+        Dim notasGuardadas As String = ""
 
         Try
             Using cn As New MySqlConnection(CADENA)
@@ -197,8 +209,9 @@ Public Class FrmOrdenGestion
                 'el cliente es el de la orden (titular al recepcionar), no el titular actual del vehiculo
                 Dim consulta As String =
                     "SELECT ot.nro_orden, ot.fecha_recepcion, ot.fecha_prometida, ot.km_ingreso, " &
-                    "ot.sintoma_reportado, ot.observaciones_recepcion, ot.id_mecanico, " &
-                    "ot.total_presupuestado, ot.total_aprobado, v.patente, " &
+                    "ot.fecha_finalizacion, ot.fecha_entrega, " &
+                    "ot.sintoma_reportado, ot.observaciones_recepcion, ot.observaciones_mecanico, " &
+                    "ot.id_mecanico, ot.total_presupuestado, ot.total_aprobado, v.patente, " &
                     "CONCAT(ma.descripcion, ' ', mo.descripcion) AS vehiculo, " &
                     "c.razon_social AS cliente, " &
                     "e.codigo, e.descripcion AS estado, e.permite_edicion_detalle, e.es_estado_final " &
@@ -232,8 +245,23 @@ Public Class FrmOrdenGestion
                                 lblFechaPrometida.Text = CDate(lector("fecha_prometida")).ToString("dd/MM/yyyy")
                             End If
 
+                            'las fechas de cierre y de entrega existen recien cuando la orden llega a esos estados
+                            If IsDBNull(lector("fecha_finalizacion")) Then
+                                lblFechaFinalizacion.Text = "-"
+                            Else
+                                lblFechaFinalizacion.Text = CDate(lector("fecha_finalizacion")).ToString("dd/MM/yyyy HH:mm")
+                            End If
+                            If IsDBNull(lector("fecha_entrega")) Then
+                                lblFechaEntrega.Text = "-"
+                            Else
+                                lblFechaEntrega.Text = CDate(lector("fecha_entrega")).ToString("dd/MM/yyyy HH:mm")
+                            End If
+
                             'la orden puede no tener mecanico asignado
                             If Not IsDBNull(lector("id_mecanico")) Then idMecanico = CInt(lector("id_mecanico"))
+
+                            'observaciones del mecanico, se guardan al finalizar
+                            notasGuardadas = lector("observaciones_mecanico").ToString()
 
                             'totales guardados en la cabecera de la orden
                             lblTotalPresupuestado.Text = "Total presupuestado: " & CDec(lector("total_presupuestado")).ToString("C2")
@@ -255,6 +283,10 @@ Public Class FrmOrdenGestion
             'marco en el combo al mecanico de la orden, la clave 0 es "(sin asignar)"
             If cboMecanico.DataSource IsNot Nothing Then cboMecanico.SelectedValue = idMecanico
 
+            'con el trabajo en proceso las observaciones se estan escribiendo y todavia no se guardaron:
+            'no las piso con lo que hay en la base
+            If codigoEstado <> "EN_PROCESO" Then txtNotasTecnicas.Text = notasGuardadas
+
             CargarDetalle()
             CargarHistorial()
         End If
@@ -270,8 +302,25 @@ Public Class FrmOrdenGestion
         btnActualizar.Enabled = permiteEdicion
         btnQuitar.Enabled = permiteEdicion
 
+        'la ejecucion real y las observaciones del mecanico se cargan con el trabajo en proceso
+        nudCantidadReal.Enabled = (codigoEstado = "EN_PROCESO")
+        nudHorasReales.Enabled = (codigoEstado = "EN_PROCESO")
+        btnGuardarEjecucion.Enabled = (codigoEstado = "EN_PROCESO")
+        txtNotasTecnicas.ReadOnly = (codigoEstado <> "EN_PROCESO")
+
         'cada boton de cambio de estado se habilita solo en su estado de origen
         btnPresupuestar.Enabled = (codigoEstado = "RECEPCIONADA")
+        btnAprobar.Enabled = (codigoEstado = "PRESUPUESTADA")
+        btnRechazar.Enabled = (codigoEstado = "PRESUPUESTADA")
+        btnIniciar.Enabled = (codigoEstado = "APROBADA")
+        btnFinalizar.Enabled = (codigoEstado = "EN_PROCESO")
+        btnEntregar.Enabled = (codigoEstado = "FINALIZADA")
+
+        'la anulacion es solo del administrador y vale en cualquier estado que no sea final
+        txtMotivoAnulacion.Visible = (Sesion.Rol = "ADMINISTRADOR")
+        btnAnular.Visible = (Sesion.Rol = "ADMINISTRADOR")
+        txtMotivoAnulacion.Enabled = Not esEstadoFinal
+        btnAnular.Enabled = Not esEstadoFinal
     End Sub
 
     Function PermiteEditarDetalle(cn As MySqlConnection, transaccion As MySqlTransaction) As Boolean
@@ -290,6 +339,22 @@ Public Class FrmOrdenGestion
         End Using
     End Function
 
+    Function LeerCodigoEstado(cn As MySqlConnection, transaccion As MySqlTransaction) As String
+        'vuelvo a leer el codigo del estado de la orden dentro de la transaccion: otro puesto pudo cambiarlo
+        'FOR UPDATE bloquea la orden hasta terminar, asi nadie le cambia el estado en el medio
+        Dim consulta As String =
+            "SELECT e.codigo " &
+            "FROM orden_trabajo AS ot " &
+            "JOIN estado_ot AS e ON e.id_estado_ot = ot.id_estado_ot " &
+            "WHERE ot.id_orden_trabajo = @id_orden_trabajo FOR UPDATE;"
+        Using cmd As New MySqlCommand(consulta, cn, transaccion)
+            cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
+            Dim resultado As Object = cmd.ExecuteScalar()
+            If resultado Is Nothing Then Return ""
+            Return resultado.ToString()
+        End Using
+    End Function
+
     Sub RecalcularTotales(cn As MySqlConnection, transaccion As MySqlTransaction)
         'recalculo los dos totales de la cabecera a partir de las lineas
         'van en un solo UPDATE porque la tabla exige total_aprobado <= total_presupuestado
@@ -302,6 +367,43 @@ Public Class FrmOrdenGestion
             "WHERE id_orden_trabajo = @id_orden_trabajo;"
         Using cmd As New MySqlCommand(consulta, cn, transaccion)
             cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
+            cmd.ExecuteNonQuery()
+        End Using
+    End Sub
+
+    Sub CambiarEstado(cn As MySqlConnection, transaccion As MySqlTransaction, codigoDestino As String, observacion As String)
+        'paso la orden al estado indicado y dejo su fila en el historial, dentro de la transaccion del boton
+
+        'busco la clave del estado por su codigo
+        Dim idEstado As Integer
+        Dim consulta As String = "SELECT id_estado_ot FROM estado_ot WHERE codigo = @codigo;"
+        Using cmd As New MySqlCommand(consulta, cn, transaccion)
+            cmd.Parameters.AddWithValue("@codigo", codigoDestino)
+            Dim resultado As Object = cmd.ExecuteScalar()
+            If resultado Is Nothing Then
+                Throw New Exception("no existe el estado " & codigoDestino & " en la tabla estado_ot.")
+            End If
+            idEstado = CInt(resultado)
+        End Using
+
+        'cambio el estado de la orden
+        consulta = "UPDATE orden_trabajo SET id_estado_ot = @id_estado_ot " &
+                   "WHERE id_orden_trabajo = @id_orden_trabajo;"
+        Using cmd As New MySqlCommand(consulta, cn, transaccion)
+            cmd.Parameters.AddWithValue("@id_estado_ot", idEstado)
+            cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
+            cmd.ExecuteNonQuery()
+        End Using
+
+        'guardo la fila del historial de estados
+        consulta =
+            "INSERT INTO ot_historial_estado (id_orden_trabajo, id_estado_ot, id_usuario, observacion) " &
+            "VALUES (@id_orden_trabajo, @id_estado_ot, @id_usuario, @observacion);"
+        Using cmd As New MySqlCommand(consulta, cn, transaccion)
+            cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
+            cmd.Parameters.AddWithValue("@id_estado_ot", idEstado)
+            cmd.Parameters.AddWithValue("@id_usuario", Sesion.IdUsuario)
+            cmd.Parameters.AddWithValue("@observacion", observacion)
             cmd.ExecuteNonQuery()
         End Using
     End Sub
@@ -334,16 +436,11 @@ Public Class FrmOrdenGestion
     End Sub
 
     Private Sub dgvDetalle_DataBindingComplete(sender As Object, e As DataGridViewBindingCompleteEventArgs) Handles dgvDetalle.DataBindingComplete
-        'la grilla selecciona sola la primera fila, la desmarco
-        dgvDetalle.ClearSelection()
-
-        'si se reordeno la grilla, vuelvo a marcar la linea elegida
-        If idDetalleSeleccionado = 0 Then Exit Sub
-        For Each fila As DataGridViewRow In dgvDetalle.Rows
-            If CInt(fila.Cells("id_ot_detalle").Value) = idDetalleSeleccionado Then
-                fila.Selected = True
-            End If
-        Next
+        'al cargar o reordenar la grilla no dejo ninguna linea marcada: hay que elegirla
+        'al tildar una aprobacion la grilla tambien pasa por aca, ahi la seleccion no se toca
+        If e.ListChangedType = System.ComponentModel.ListChangedType.Reset Then
+            dgvDetalle.ClearSelection()
+        End If
     End Sub
 
     Private Sub dgvHistorial_DataBindingComplete(sender As Object, e As DataGridViewBindingCompleteEventArgs) Handles dgvHistorial.DataBindingComplete
@@ -351,26 +448,40 @@ Public Class FrmOrdenGestion
         dgvHistorial.ClearSelection()
     End Sub
 
-    Private Sub dgvDetalle_CellClick(sender As Object, e As DataGridViewCellEventArgs) Handles dgvDetalle.CellClick
-        'recuerdo la linea elegida y traigo su cantidad para poder cambiarla
-        'si e.RowIndex es mayor o igual a 0, se hizo click en una fila valida
-        If e.RowIndex < 0 Then Exit Sub
+    Private Sub dgvDetalle_SelectionChanged(sender As Object, e As EventArgs) Handles dgvDetalle.SelectionChanged
+        'traigo los valores de la linea elegida con el mouse o con el teclado para poder cambiarlos
+        'al recargar la grilla el foco esta en otro control y los campos no se tocan
+        If Not dgvDetalle.Focused Then Exit Sub
+        If dgvDetalle.SelectedRows.Count = 0 Then Exit Sub
 
-        Dim fila = dgvDetalle.Rows(e.RowIndex)
-        idDetalleSeleccionado = CInt(fila.Cells("id_ot_detalle").Value)
+        Dim fila As DataGridViewRow = dgvDetalle.SelectedRows(0)
 
         Dim cantidad As Decimal = CDec(fila.Cells("cantidad").Value)
         If cantidad <= nudCantidad.Maximum Then nudCantidad.Value = cantidad
+
+        'si la linea todavia no tiene cantidad real propongo la presupuestada
+        Dim cantidadReal As Decimal = cantidad
+        If Not IsDBNull(fila.Cells("cantidad_real").Value) Then cantidadReal = CDec(fila.Cells("cantidad_real").Value)
+        If cantidadReal <= nudCantidadReal.Maximum Then nudCantidadReal.Value = cantidadReal
+
+        Dim horasReales As Decimal = 0D
+        If Not IsDBNull(fila.Cells("horas_reales").Value) Then horasReales = CDec(fila.Cells("horas_reales").Value)
+        If horasReales <= nudHorasReales.Maximum Then nudHorasReales.Value = horasReales
     End Sub
 
     Private Sub btnGuardarMecanico_Click(sender As Object, e As EventArgs) Handles btnGuardarMecanico.Click
         'guardo el mecanico elegido en la orden
 
-        'la clave 0 es "(sin asignar)" y se guarda como NULL
-        Dim idMecanico As Object = DBNull.Value
-        If TypeOf cboMecanico.SelectedValue Is Integer AndAlso CInt(cboMecanico.SelectedValue) > 0 Then
-            idMecanico = CInt(cboMecanico.SelectedValue)
+        'si el combo no se pudo cargar no hay nada confiable para guardar
+        If cboMecanico.DataSource Is Nothing OrElse cboMecanico.SelectedValue Is Nothing Then
+            MessageBox.Show("No se pudo leer el mecánico elegido. Cierre la ventana y vuelva a abrir la orden.")
+            Exit Sub
         End If
+
+        'la clave 0 es "(sin asignar)" y se guarda como NULL
+        Dim idElegido As Integer = Convert.ToInt32(cboMecanico.SelectedValue)
+        Dim idMecanico As Object = DBNull.Value
+        If idElegido > 0 Then idMecanico = idElegido
 
         Dim aviso As String = ""
 
@@ -380,21 +491,34 @@ Public Class FrmOrdenGestion
 
                 Dim transaccion As MySqlTransaction = cn.BeginTransaction()
                 Try
-                    'vuelvo a leer el estado: en un estado final ya no se cambia el mecanico
+                    'vuelvo a leer el estado: otro puesto pudo cambiarlo
+                    Dim codigoActual As String = ""
                     Dim esFinal As Boolean = True
                     Dim consulta As String =
-                        "SELECT e.es_estado_final " &
+                        "SELECT e.codigo, e.es_estado_final " &
                         "FROM orden_trabajo AS ot " &
                         "JOIN estado_ot AS e ON e.id_estado_ot = ot.id_estado_ot " &
                         "WHERE ot.id_orden_trabajo = @id_orden_trabajo FOR UPDATE;"
                     Using cmd As New MySqlCommand(consulta, cn, transaccion)
                         cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
-                        Dim resultado As Object = cmd.ExecuteScalar()
-                        If resultado IsNot Nothing Then esFinal = Convert.ToBoolean(resultado)
+                        Using lector As MySqlDataReader = cmd.ExecuteReader
+                            If lector.Read() Then
+                                codigoActual = lector("codigo").ToString()
+                                esFinal = Convert.ToBoolean(lector("es_estado_final"))
+                            End If
+                        End Using
                     End Using
 
+                    'en un estado final ya no se cambia el mecanico
                     If esFinal Then
                         aviso = "La orden ya está en un estado final y no se puede cambiar su mecánico."
+                    End If
+
+                    'desde que el trabajo se inicia la orden no puede quedar sin mecanico
+                    If aviso = "" AndAlso idElegido = 0 Then
+                        If codigoActual = "EN_PROCESO" OrElse codigoActual = "FINALIZADA" Then
+                            aviso = "El trabajo ya se inició: la orden no puede quedar sin mecánico."
+                        End If
                     End If
 
                     If aviso = "" Then
@@ -438,12 +562,12 @@ Public Class FrmOrdenGestion
         'agrego un servicio al presupuesto de la orden
 
         'la clave 0 es "(seleccione un servicio)"
-        If Not TypeOf cboServicio.SelectedValue Is Integer OrElse CInt(cboServicio.SelectedValue) = 0 Then
+        If cboServicio.SelectedValue Is Nothing OrElse Convert.ToInt32(cboServicio.SelectedValue) = 0 Then
             MessageBox.Show("Seleccione un servicio")
             cboServicio.Focus()
             Exit Sub
         End If
-        Dim idServicio As Integer = CInt(cboServicio.SelectedValue)
+        Dim idServicio As Integer = Convert.ToInt32(cboServicio.SelectedValue)
 
         'la cantidad admite dos decimales y tiene que ser mayor a cero
         Dim cantidad As Decimal = Math.Round(nudCantidad.Value, 2, MidpointRounding.AwayFromZero)
@@ -554,10 +678,13 @@ Public Class FrmOrdenGestion
 
     Private Sub btnActualizar_Click(sender As Object, e As EventArgs) Handles btnActualizar.Click
         'cambio la cantidad de la linea seleccionada
-        If idDetalleSeleccionado = 0 Then
+
+        'tomo la linea marcada en la grilla en este momento
+        If dgvDetalle.SelectedRows.Count = 0 Then
             MessageBox.Show("Debe seleccionar una línea del presupuesto para cambiar su cantidad")
             Exit Sub
         End If
+        Dim idDetalle As Integer = CInt(dgvDetalle.SelectedRows(0).Cells("id_ot_detalle").Value)
 
         'la cantidad admite dos decimales y tiene que ser mayor a cero
         Dim cantidad As Decimal = Math.Round(nudCantidad.Value, 2, MidpointRounding.AwayFromZero)
@@ -588,13 +715,16 @@ Public Class FrmOrdenGestion
                             "WHERE id_ot_detalle = @id_ot_detalle AND id_orden_trabajo = @id_orden_trabajo;"
                         Using cmd As New MySqlCommand(consulta, cn, transaccion)
                             cmd.Parameters.AddWithValue("@cantidad", cantidad)
-                            cmd.Parameters.AddWithValue("@id_ot_detalle", idDetalleSeleccionado)
+                            cmd.Parameters.AddWithValue("@id_ot_detalle", idDetalle)
                             cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
-                            cmd.ExecuteNonQuery()
+                            'si no se actualizo ninguna fila, otro puesto quito la linea
+                            If cmd.ExecuteNonQuery() = 0 Then
+                                aviso = "La línea seleccionada ya no existe en el presupuesto."
+                            End If
                         End Using
-
-                        RecalcularTotales(cn, transaccion)
                     End If
+
+                    If aviso = "" Then RecalcularTotales(cn, transaccion)
 
                     'confirmo solo si se pudo guardar
                     If aviso = "" Then
@@ -622,14 +752,18 @@ Public Class FrmOrdenGestion
 
     Private Sub btnQuitar_Click(sender As Object, e As EventArgs) Handles btnQuitar.Click
         'quito del presupuesto la linea seleccionada
-        If idDetalleSeleccionado = 0 Then
+
+        'tomo la linea marcada en la grilla en este momento
+        If dgvDetalle.SelectedRows.Count = 0 Then
             MessageBox.Show("Debe seleccionar una línea del presupuesto para quitarla")
             Exit Sub
         End If
+        Dim fila As DataGridViewRow = dgvDetalle.SelectedRows(0)
+        Dim idDetalle As Integer = CInt(fila.Cells("id_ot_detalle").Value)
 
         'pido confirmacion antes de quitar
         Dim respuesta As DialogResult = MessageBox.Show(
-            "¿Quitar del presupuesto la línea seleccionada?",
+            "¿Quitar del presupuesto la línea """ & fila.Cells("descripcion").Value.ToString() & """?",
             "Quitar línea",
             MessageBoxButtons.YesNo,
             MessageBoxIcon.Warning)
@@ -654,13 +788,16 @@ Public Class FrmOrdenGestion
                             "DELETE FROM ot_detalle " &
                             "WHERE id_ot_detalle = @id_ot_detalle AND id_orden_trabajo = @id_orden_trabajo;"
                         Using cmd As New MySqlCommand(consulta, cn, transaccion)
-                            cmd.Parameters.AddWithValue("@id_ot_detalle", idDetalleSeleccionado)
+                            cmd.Parameters.AddWithValue("@id_ot_detalle", idDetalle)
                             cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
-                            cmd.ExecuteNonQuery()
+                            'si no se borro ninguna fila, otro puesto ya habia quitado la linea
+                            If cmd.ExecuteNonQuery() = 0 Then
+                                aviso = "La línea seleccionada ya no existe en el presupuesto."
+                            End If
                         End Using
-
-                        RecalcularTotales(cn, transaccion)
                     End If
+
+                    If aviso = "" Then RecalcularTotales(cn, transaccion)
 
                     'confirmo solo si se pudo guardar
                     If aviso = "" Then
@@ -698,26 +835,14 @@ Public Class FrmOrdenGestion
                 'el cambio de estado y su fila de historial se guardan juntos o ninguno
                 Dim transaccion As MySqlTransaction = cn.BeginTransaction()
                 Try
-                    'vuelvo a leer el estado de la orden: otro puesto pudo cambiarlo
-                    Dim codigoActual As String = ""
-                    Dim consulta As String =
-                        "SELECT e.codigo " &
-                        "FROM orden_trabajo AS ot " &
-                        "JOIN estado_ot AS e ON e.id_estado_ot = ot.id_estado_ot " &
-                        "WHERE ot.id_orden_trabajo = @id_orden_trabajo FOR UPDATE;"
-                    Using cmd As New MySqlCommand(consulta, cn, transaccion)
-                        cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
-                        Dim resultado As Object = cmd.ExecuteScalar()
-                        If resultado IsNot Nothing Then codigoActual = resultado.ToString()
-                    End Using
-
-                    If codigoActual <> "RECEPCIONADA" Then
+                    If LeerCodigoEstado(cn, transaccion) <> "RECEPCIONADA" Then
                         aviso = "La orden ya no está recepcionada, no se puede presupuestar."
                     End If
 
                     'no se presupuesta una orden sin lineas
                     If aviso = "" Then
-                        consulta = "SELECT COUNT(*) FROM ot_detalle WHERE id_orden_trabajo = @id_orden_trabajo;"
+                        Dim consulta As String =
+                            "SELECT COUNT(*) FROM ot_detalle WHERE id_orden_trabajo = @id_orden_trabajo;"
                         Using cmd As New MySqlCommand(consulta, cn, transaccion)
                             cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
                             If CInt(cmd.ExecuteScalar()) = 0 Then
@@ -726,39 +851,7 @@ Public Class FrmOrdenGestion
                         End Using
                     End If
 
-                    If aviso = "" Then
-                        'busco la clave del estado PRESUPUESTADA por su codigo
-                        Dim idEstado As Integer
-                        consulta = "SELECT id_estado_ot FROM estado_ot WHERE codigo = 'PRESUPUESTADA';"
-                        Using cmd As New MySqlCommand(consulta, cn, transaccion)
-                            Dim resultado As Object = cmd.ExecuteScalar()
-                            If resultado Is Nothing Then
-                                Throw New Exception("no existe el estado PRESUPUESTADA en la tabla estado_ot.")
-                            End If
-                            idEstado = CInt(resultado)
-                        End Using
-
-                        'cambio el estado de la orden
-                        consulta = "UPDATE orden_trabajo SET id_estado_ot = @id_estado_ot " &
-                                   "WHERE id_orden_trabajo = @id_orden_trabajo;"
-                        Using cmd As New MySqlCommand(consulta, cn, transaccion)
-                            cmd.Parameters.AddWithValue("@id_estado_ot", idEstado)
-                            cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
-                            cmd.ExecuteNonQuery()
-                        End Using
-
-                        'guardo la fila del historial de estados
-                        consulta =
-                            "INSERT INTO ot_historial_estado (id_orden_trabajo, id_estado_ot, id_usuario, observacion) " &
-                            "VALUES (@id_orden_trabajo, @id_estado_ot, @id_usuario, @observacion);"
-                        Using cmd As New MySqlCommand(consulta, cn, transaccion)
-                            cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
-                            cmd.Parameters.AddWithValue("@id_estado_ot", idEstado)
-                            cmd.Parameters.AddWithValue("@id_usuario", Sesion.IdUsuario)
-                            cmd.Parameters.AddWithValue("@observacion", "Presupuesto cargado")
-                            cmd.ExecuteNonQuery()
-                        End Using
-                    End If
+                    If aviso = "" Then CambiarEstado(cn, transaccion, "PRESUPUESTADA", "Presupuesto cargado")
 
                     'confirmo solo si se pudo guardar
                     If aviso = "" Then
@@ -782,6 +875,592 @@ Public Class FrmOrdenGestion
             MessageBox.Show(aviso)
         Else
             MessageBox.Show("Orden presupuestada.")
+        End If
+
+        'vuelvo a cargar la orden con su estado actual
+        CargarOrden()
+    End Sub
+
+    Private Sub btnAprobar_Click(sender As Object, e As EventArgs) Handles btnAprobar.Click
+        'registro la aprobacion del cliente: paso la orden de PRESUPUESTADA a APROBADA
+        'con las lineas que quedaron tildadas en la grilla
+
+        'cierro la edicion de la celda para que la ultima tilde quede en la grilla
+        dgvDetalle.EndEdit()
+
+        'cuento las lineas aprobadas y sumo su importe
+        Dim lineasAprobadas As Integer = 0
+        Dim totalAprobado As Decimal = 0D
+        For Each fila As DataGridViewRow In dgvDetalle.Rows
+            If Convert.ToBoolean(fila.Cells("aprobado").Value) Then
+                lineasAprobadas = lineasAprobadas + 1
+                totalAprobado = totalAprobado + CDec(fila.Cells("subtotal").Value)
+            End If
+        Next
+
+        If lineasAprobadas = 0 Then
+            MessageBox.Show("Marque como aprobada al menos una línea del presupuesto." & vbCrLf &
+                            "Si el cliente no aprueba ninguna, use ""Rechazar"".")
+            Exit Sub
+        End If
+
+        'pido confirmacion mostrando lo que aprueba el cliente
+        Dim respuesta As DialogResult = MessageBox.Show(
+            "¿Registrar la aprobación del cliente?" & vbCrLf &
+            "Líneas aprobadas: " & lineasAprobadas & " de " & dgvDetalle.Rows.Count & vbCrLf &
+            "Total aprobado: " & totalAprobado.ToString("C2"),
+            "Registrar aprobación",
+            MessageBoxButtons.YesNo,
+            MessageBoxIcon.Question)
+
+        If respuesta = DialogResult.No Then Exit Sub
+
+        Dim aviso As String = ""
+
+        Try
+            Using cn As New MySqlConnection(CADENA)
+                cn.Open()
+
+                'las aprobaciones, los totales, el estado y el historial se guardan juntos o ninguno
+                Dim transaccion As MySqlTransaction = cn.BeginTransaction()
+                Try
+                    If LeerCodigoEstado(cn, transaccion) <> "PRESUPUESTADA" Then
+                        aviso = "La orden ya no está presupuestada, no se puede registrar la aprobación."
+                    End If
+
+                    Dim consulta As String
+
+                    'si otro puesto agrego o quito lineas, lo que se confirmo ya no es el presupuesto actual
+                    If aviso = "" Then
+                        consulta = "SELECT COUNT(*) FROM ot_detalle WHERE id_orden_trabajo = @id_orden_trabajo;"
+                        Using cmd As New MySqlCommand(consulta, cn, transaccion)
+                            cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
+                            If CInt(cmd.ExecuteScalar()) <> dgvDetalle.Rows.Count Then
+                                aviso = "El presupuesto fue modificado desde otro puesto. " &
+                                        "Revise las líneas y vuelva a registrar la aprobación."
+                            End If
+                        End Using
+                    End If
+
+                    If aviso = "" Then
+                        'guardo la aprobacion de cada linea tal como quedo en la grilla
+                        consulta = "UPDATE ot_detalle SET aprobado = @aprobado " &
+                                   "WHERE id_ot_detalle = @id_ot_detalle AND id_orden_trabajo = @id_orden_trabajo;"
+                        For Each fila As DataGridViewRow In dgvDetalle.Rows
+                            Using cmd As New MySqlCommand(consulta, cn, transaccion)
+                                cmd.Parameters.AddWithValue("@aprobado", Convert.ToBoolean(fila.Cells("aprobado").Value))
+                                cmd.Parameters.AddWithValue("@id_ot_detalle", CInt(fila.Cells("id_ot_detalle").Value))
+                                cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
+                                cmd.ExecuteNonQuery()
+                            End Using
+                        Next
+
+                        'compruebo en la base que quedo al menos una linea aprobada
+                        consulta = "SELECT COUNT(*) FROM ot_detalle " &
+                                   "WHERE id_orden_trabajo = @id_orden_trabajo AND aprobado = 1;"
+                        Using cmd As New MySqlCommand(consulta, cn, transaccion)
+                            cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
+                            If CInt(cmd.ExecuteScalar()) = 0 Then
+                                aviso = "No quedó ninguna línea aprobada. Si el cliente no aprueba ninguna, use ""Rechazar""."
+                            End If
+                        End Using
+                    End If
+
+                    If aviso = "" Then
+                        RecalcularTotales(cn, transaccion)
+                        CambiarEstado(cn, transaccion, "APROBADA", "Aprobación del cliente registrada")
+                    End If
+
+                    'confirmo solo si se pudo guardar
+                    If aviso = "" Then
+                        transaccion.Commit()
+                    Else
+                        transaccion.Rollback()
+                    End If
+                Catch ex As Exception
+                    'algo fallo: deshago todo y dejo que el error llegue al mensaje de abajo
+                    transaccion.Rollback()
+                    Throw
+                End Try
+            End Using
+        Catch ex As Exception
+            MessageBox.Show("No se pudo registrar la aprobación y no se guardó ningún dato." & vbCrLf &
+                            "Detalle: " & ex.Message)
+            Exit Sub
+        End Try
+
+        If aviso <> "" Then
+            MessageBox.Show(aviso)
+        Else
+            MessageBox.Show("Aprobación registrada.")
+        End If
+
+        'vuelvo a cargar la orden con su estado actual
+        CargarOrden()
+    End Sub
+
+    Private Sub btnRechazar_Click(sender As Object, e As EventArgs) Handles btnRechazar.Click
+        'el cliente no aprueba el presupuesto: paso la orden de PRESUPUESTADA a RECHAZADA
+
+        'pido confirmacion, la orden queda cerrada
+        Dim respuesta As DialogResult = MessageBox.Show(
+            "¿Registrar que el cliente rechazó el presupuesto? La orden queda cerrada.",
+            "Rechazar presupuesto",
+            MessageBoxButtons.YesNo,
+            MessageBoxIcon.Warning)
+
+        If respuesta = DialogResult.No Then Exit Sub
+
+        Dim aviso As String = ""
+
+        Try
+            Using cn As New MySqlConnection(CADENA)
+                cn.Open()
+
+                'las lineas, los totales, el estado y el historial se guardan juntos o ninguno
+                Dim transaccion As MySqlTransaction = cn.BeginTransaction()
+                Try
+                    If LeerCodigoEstado(cn, transaccion) <> "PRESUPUESTADA" Then
+                        aviso = "La orden ya no está presupuestada, no se puede rechazar."
+                    End If
+
+                    If aviso = "" Then
+                        'ninguna linea queda aprobada, las lineas no se borran
+                        Dim consulta As String =
+                            "UPDATE ot_detalle SET aprobado = 0 WHERE id_orden_trabajo = @id_orden_trabajo;"
+                        Using cmd As New MySqlCommand(consulta, cn, transaccion)
+                            cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
+                            cmd.ExecuteNonQuery()
+                        End Using
+
+                        RecalcularTotales(cn, transaccion)
+                        CambiarEstado(cn, transaccion, "RECHAZADA", "Presupuesto rechazado por el cliente")
+                    End If
+
+                    'confirmo solo si se pudo guardar
+                    If aviso = "" Then
+                        transaccion.Commit()
+                    Else
+                        transaccion.Rollback()
+                    End If
+                Catch ex As Exception
+                    'algo fallo: deshago todo y dejo que el error llegue al mensaje de abajo
+                    transaccion.Rollback()
+                    Throw
+                End Try
+            End Using
+        Catch ex As Exception
+            MessageBox.Show("No se pudo rechazar el presupuesto y no se guardó ningún dato." & vbCrLf &
+                            "Detalle: " & ex.Message)
+            Exit Sub
+        End Try
+
+        If aviso <> "" Then
+            MessageBox.Show(aviso)
+        Else
+            MessageBox.Show("Presupuesto rechazado.")
+        End If
+
+        'vuelvo a cargar la orden con su estado actual
+        CargarOrden()
+    End Sub
+
+    Private Sub btnIniciar_Click(sender As Object, e As EventArgs) Handles btnIniciar.Click
+        'paso la orden de APROBADA a EN_PROCESO
+
+        Dim aviso As String = ""
+
+        Try
+            Using cn As New MySqlConnection(CADENA)
+                cn.Open()
+
+                'el cambio de estado y su fila de historial se guardan juntos o ninguno
+                Dim transaccion As MySqlTransaction = cn.BeginTransaction()
+                Try
+                    If LeerCodigoEstado(cn, transaccion) <> "APROBADA" Then
+                        aviso = "La orden ya no está aprobada, no se puede iniciar el trabajo."
+                    End If
+
+                    'el trabajo no se inicia sin un mecanico asignado
+                    If aviso = "" Then
+                        Dim consulta As String =
+                            "SELECT id_mecanico FROM orden_trabajo WHERE id_orden_trabajo = @id_orden_trabajo;"
+                        Using cmd As New MySqlCommand(consulta, cn, transaccion)
+                            cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
+                            Dim resultado As Object = cmd.ExecuteScalar()
+                            If resultado Is Nothing OrElse IsDBNull(resultado) Then
+                                aviso = "Asigne un mecánico a la orden y presione ""Guardar mecánico"" antes de iniciar el trabajo."
+                            End If
+                        End Using
+                    End If
+
+                    If aviso = "" Then CambiarEstado(cn, transaccion, "EN_PROCESO", "Inicio del trabajo")
+
+                    'confirmo solo si se pudo guardar
+                    If aviso = "" Then
+                        transaccion.Commit()
+                    Else
+                        transaccion.Rollback()
+                    End If
+                Catch ex As Exception
+                    'algo fallo: deshago todo y dejo que el error llegue al mensaje de abajo
+                    transaccion.Rollback()
+                    Throw
+                End Try
+            End Using
+        Catch ex As Exception
+            MessageBox.Show("No se pudo iniciar el trabajo y no se guardó ningún dato." & vbCrLf &
+                            "Detalle: " & ex.Message)
+            Exit Sub
+        End Try
+
+        If aviso <> "" Then
+            MessageBox.Show(aviso)
+        Else
+            MessageBox.Show("Trabajo iniciado.")
+        End If
+
+        'vuelvo a cargar la orden con su estado actual
+        CargarOrden()
+    End Sub
+
+    Private Sub btnGuardarEjecucion_Click(sender As Object, e As EventArgs) Handles btnGuardarEjecucion.Click
+        'guardo la cantidad real y las horas reales de la linea seleccionada
+        'no cambia el estado de la orden ni deja fila en el historial
+
+        'tomo la linea marcada en la grilla en este momento
+        If dgvDetalle.SelectedRows.Count = 0 Then
+            MessageBox.Show("Debe seleccionar una línea del presupuesto para cargar su ejecución")
+            Exit Sub
+        End If
+        Dim fila As DataGridViewRow = dgvDetalle.SelectedRows(0)
+        Dim idDetalle As Integer = CInt(fila.Cells("id_ot_detalle").Value)
+
+        'solo se ejecutan las lineas que aprobo el cliente
+        If Not Convert.ToBoolean(fila.Cells("aprobado").Value) Then
+            MessageBox.Show("La línea seleccionada no fue aprobada por el cliente, no se ejecuta.")
+            Exit Sub
+        End If
+
+        'los dos valores admiten dos decimales y no pueden ser negativos
+        Dim cantidadReal As Decimal = Math.Round(nudCantidadReal.Value, 2, MidpointRounding.AwayFromZero)
+        Dim horasReales As Decimal = Math.Round(nudHorasReales.Value, 2, MidpointRounding.AwayFromZero)
+        If cantidadReal < 0 Then
+            MessageBox.Show("La cantidad real no puede ser negativa")
+            nudCantidadReal.Focus()
+            Exit Sub
+        End If
+        If horasReales < 0 OrElse horasReales > 999.99D Then
+            MessageBox.Show("Las horas reales deben estar entre 0 y 999,99")
+            nudHorasReales.Focus()
+            Exit Sub
+        End If
+
+        Dim aviso As String = ""
+
+        Try
+            Using cn As New MySqlConnection(CADENA)
+                cn.Open()
+
+                Dim transaccion As MySqlTransaction = cn.BeginTransaction()
+                Try
+                    If LeerCodigoEstado(cn, transaccion) <> "EN_PROCESO" Then
+                        aviso = "La orden ya no está en proceso, no se puede cargar la ejecución."
+                    End If
+
+                    If aviso = "" Then
+                        Dim consulta As String =
+                            "UPDATE ot_detalle SET cantidad_real = @cantidad_real, horas_reales = @horas_reales " &
+                            "WHERE id_ot_detalle = @id_ot_detalle AND id_orden_trabajo = @id_orden_trabajo " &
+                            "AND aprobado = 1;"
+                        Using cmd As New MySqlCommand(consulta, cn, transaccion)
+                            cmd.Parameters.AddWithValue("@cantidad_real", cantidadReal)
+                            cmd.Parameters.AddWithValue("@horas_reales", horasReales)
+                            cmd.Parameters.AddWithValue("@id_ot_detalle", idDetalle)
+                            cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
+                            If cmd.ExecuteNonQuery() = 0 Then
+                                aviso = "La línea seleccionada ya no existe o no está aprobada."
+                            End If
+                        End Using
+                    End If
+
+                    'confirmo solo si se pudo guardar
+                    If aviso = "" Then
+                        transaccion.Commit()
+                    Else
+                        transaccion.Rollback()
+                    End If
+                Catch ex As Exception
+                    'algo fallo: deshago todo y dejo que el error llegue al mensaje de abajo
+                    transaccion.Rollback()
+                    Throw
+                End Try
+            End Using
+        Catch ex As Exception
+            MessageBox.Show("No se pudo guardar la ejecución y no se guardó ningún dato." & vbCrLf &
+                            "Detalle: " & ex.Message)
+            Exit Sub
+        End Try
+
+        If aviso <> "" Then MessageBox.Show(aviso)
+
+        'vuelvo a cargar la orden con sus lineas actuales
+        CargarOrden()
+    End Sub
+
+    Private Sub btnFinalizar_Click(sender As Object, e As EventArgs) Handles btnFinalizar.Click
+        'cierre tecnico: paso la orden de EN_PROCESO a FINALIZADA
+
+        'las observaciones del mecanico son obligatorias para cerrar el trabajo
+        Dim notas As String = txtNotasTecnicas.Text.Trim
+        If notas = "" Then
+            MessageBox.Show("Faltan las observaciones del mecánico")
+            txtNotasTecnicas.Focus()
+            Exit Sub
+        End If
+
+        Dim aviso As String = ""
+
+        Try
+            Using cn As New MySqlConnection(CADENA)
+                cn.Open()
+
+                'las observaciones, la fecha, el estado y el historial se guardan juntos o ninguno
+                Dim transaccion As MySqlTransaction = cn.BeginTransaction()
+                Try
+                    If LeerCodigoEstado(cn, transaccion) <> "EN_PROCESO" Then
+                        aviso = "La orden ya no está en proceso, no se puede finalizar."
+                    End If
+
+                    Dim consulta As String
+
+                    'toda linea aprobada tiene que tener cargada su ejecucion real
+                    If aviso = "" Then
+                        consulta = "SELECT COUNT(*) FROM ot_detalle " &
+                                   "WHERE id_orden_trabajo = @id_orden_trabajo AND aprobado = 1 " &
+                                   "AND (cantidad_real IS NULL OR horas_reales IS NULL);"
+                        Using cmd As New MySqlCommand(consulta, cn, transaccion)
+                            cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
+                            Dim faltantes As Integer = CInt(cmd.ExecuteScalar())
+                            If faltantes > 0 Then
+                                aviso = "Falta cargar la cantidad real y las horas reales en " & faltantes &
+                                        " línea(s) aprobada(s). Seleccione cada una y use ""Guardar ejecución""."
+                            End If
+                        End Using
+                    End If
+
+                    If aviso = "" Then
+                        'la fecha de finalizacion es la fecha y hora del servidor
+                        consulta = "UPDATE orden_trabajo SET observaciones_mecanico = @observaciones_mecanico, " &
+                                   "fecha_finalizacion = NOW() " &
+                                   "WHERE id_orden_trabajo = @id_orden_trabajo;"
+                        Using cmd As New MySqlCommand(consulta, cn, transaccion)
+                            cmd.Parameters.AddWithValue("@observaciones_mecanico", notas)
+                            cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
+                            cmd.ExecuteNonQuery()
+                        End Using
+
+                        CambiarEstado(cn, transaccion, "FINALIZADA", "Trabajo finalizado")
+                    End If
+
+                    'confirmo solo si se pudo guardar
+                    If aviso = "" Then
+                        transaccion.Commit()
+                    Else
+                        transaccion.Rollback()
+                    End If
+                Catch ex As Exception
+                    'algo fallo: deshago todo y dejo que el error llegue al mensaje de abajo
+                    transaccion.Rollback()
+                    Throw
+                End Try
+            End Using
+        Catch ex As Exception
+            MessageBox.Show("No se pudo finalizar la orden y no se guardó ningún dato." & vbCrLf &
+                            "Detalle: " & ex.Message)
+            Exit Sub
+        End Try
+
+        If aviso <> "" Then
+            MessageBox.Show(aviso)
+        Else
+            MessageBox.Show("Orden finalizada.")
+        End If
+
+        'vuelvo a cargar la orden con su estado actual
+        CargarOrden()
+    End Sub
+
+    Private Sub btnEntregar_Click(sender As Object, e As EventArgs) Handles btnEntregar.Click
+        'entrego el vehiculo: paso la orden de FINALIZADA a ENTREGADA
+
+        'pido confirmacion, la orden queda cerrada
+        Dim respuesta As DialogResult = MessageBox.Show(
+            "¿Registrar la entrega del vehículo al cliente? La orden queda cerrada.",
+            "Entregar vehículo",
+            MessageBoxButtons.YesNo,
+            MessageBoxIcon.Question)
+
+        If respuesta = DialogResult.No Then Exit Sub
+
+        Dim aviso As String = ""
+
+        Try
+            Using cn As New MySqlConnection(CADENA)
+                cn.Open()
+
+                'la fecha, el kilometraje del vehiculo, el estado y el historial se guardan juntos o ninguno
+                Dim transaccion As MySqlTransaction = cn.BeginTransaction()
+                Try
+                    If LeerCodigoEstado(cn, transaccion) <> "FINALIZADA" Then
+                        aviso = "La orden ya no está finalizada, no se puede entregar."
+                    End If
+
+                    If aviso = "" Then
+                        'leo el vehiculo de la orden y el kilometraje con el que ingreso
+                        Dim idVehiculo As Integer
+                        Dim kmIngreso As Integer
+                        Dim consulta As String =
+                            "SELECT id_vehiculo, km_ingreso FROM orden_trabajo " &
+                            "WHERE id_orden_trabajo = @id_orden_trabajo;"
+                        Using cmd As New MySqlCommand(consulta, cn, transaccion)
+                            cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
+                            Using lector As MySqlDataReader = cmd.ExecuteReader
+                                If Not lector.Read() Then
+                                    Throw New Exception("no se encontró la orden de trabajo.")
+                                End If
+                                idVehiculo = CInt(lector("id_vehiculo"))
+                                kmIngreso = CInt(lector("km_ingreso"))
+                            End Using
+                        End Using
+
+                        'la fecha de entrega es la fecha y hora del servidor
+                        consulta = "UPDATE orden_trabajo SET fecha_entrega = NOW() " &
+                                   "WHERE id_orden_trabajo = @id_orden_trabajo;"
+                        Using cmd As New MySqlCommand(consulta, cn, transaccion)
+                            cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
+                            cmd.ExecuteNonQuery()
+                        End Using
+
+                        'el kilometraje del vehiculo sube al de la orden, nunca baja
+                        consulta = "UPDATE vehiculo SET km_actual = @km " &
+                                   "WHERE id_vehiculo = @id_vehiculo AND km_actual < @km;"
+                        Using cmd As New MySqlCommand(consulta, cn, transaccion)
+                            cmd.Parameters.AddWithValue("@km", kmIngreso)
+                            cmd.Parameters.AddWithValue("@id_vehiculo", idVehiculo)
+                            cmd.ExecuteNonQuery()
+                        End Using
+
+                        CambiarEstado(cn, transaccion, "ENTREGADA", "Vehículo entregado al cliente")
+                    End If
+
+                    'confirmo solo si se pudo guardar
+                    If aviso = "" Then
+                        transaccion.Commit()
+                    Else
+                        transaccion.Rollback()
+                    End If
+                Catch ex As Exception
+                    'algo fallo: deshago todo y dejo que el error llegue al mensaje de abajo
+                    transaccion.Rollback()
+                    Throw
+                End Try
+            End Using
+        Catch ex As Exception
+            MessageBox.Show("No se pudo registrar la entrega y no se guardó ningún dato." & vbCrLf &
+                            "Detalle: " & ex.Message)
+            Exit Sub
+        End Try
+
+        If aviso <> "" Then
+            MessageBox.Show(aviso)
+        Else
+            MessageBox.Show("Vehículo entregado.")
+        End If
+
+        'vuelvo a cargar la orden con su estado actual
+        CargarOrden()
+    End Sub
+
+    Private Sub btnAnular_Click(sender As Object, e As EventArgs) Handles btnAnular.Click
+        'anulo la orden desde cualquier estado que no sea final
+
+        'el boton solo lo ve el administrador, igual vuelvo a comprobar el rol
+        If Sesion.Rol <> "ADMINISTRADOR" Then
+            MessageBox.Show("Solo el administrador puede anular órdenes de trabajo.")
+            Exit Sub
+        End If
+
+        'el motivo es obligatorio y queda en el historial de estados
+        Dim motivo As String = txtMotivoAnulacion.Text.Trim
+        If motivo = "" Then
+            MessageBox.Show("Falta el motivo de la anulación")
+            txtMotivoAnulacion.Focus()
+            Exit Sub
+        End If
+
+        'pido confirmacion, la anulacion no tiene vuelta atras
+        Dim respuesta As DialogResult = MessageBox.Show(
+            "¿Anular la orden de trabajo? Esta acción no se puede deshacer." & vbCrLf &
+            "Motivo: " & motivo,
+            "Anular orden",
+            MessageBoxButtons.YesNo,
+            MessageBoxIcon.Warning)
+
+        If respuesta = DialogResult.No Then Exit Sub
+
+        Dim aviso As String = ""
+
+        Try
+            Using cn As New MySqlConnection(CADENA)
+                cn.Open()
+
+                'el cambio de estado y su fila de historial se guardan juntos o ninguno
+                Dim transaccion As MySqlTransaction = cn.BeginTransaction()
+                Try
+                    'vuelvo a leer el estado de la orden: otro puesto pudo cerrarla
+                    Dim esFinal As Boolean = True
+                    Dim consulta As String =
+                        "SELECT e.es_estado_final " &
+                        "FROM orden_trabajo AS ot " &
+                        "JOIN estado_ot AS e ON e.id_estado_ot = ot.id_estado_ot " &
+                        "WHERE ot.id_orden_trabajo = @id_orden_trabajo FOR UPDATE;"
+                    Using cmd As New MySqlCommand(consulta, cn, transaccion)
+                        cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
+                        Dim resultado As Object = cmd.ExecuteScalar()
+                        If resultado IsNot Nothing Then esFinal = Convert.ToBoolean(resultado)
+                    End Using
+
+                    If esFinal Then
+                        aviso = "La orden ya está en un estado final y no se puede anular."
+                    End If
+
+                    'no se borra ninguna fila: la orden, sus lineas y su historial se conservan
+                    If aviso = "" Then CambiarEstado(cn, transaccion, "ANULADA", motivo)
+
+                    'confirmo solo si se pudo guardar
+                    If aviso = "" Then
+                        transaccion.Commit()
+                    Else
+                        transaccion.Rollback()
+                    End If
+                Catch ex As Exception
+                    'algo fallo: deshago todo y dejo que el error llegue al mensaje de abajo
+                    transaccion.Rollback()
+                    Throw
+                End Try
+            End Using
+        Catch ex As Exception
+            MessageBox.Show("No se pudo anular la orden y no se guardó ningún dato." & vbCrLf &
+                            "Detalle: " & ex.Message)
+            Exit Sub
+        End Try
+
+        If aviso <> "" Then
+            MessageBox.Show(aviso)
+        Else
+            MessageBox.Show("Orden anulada.")
+            txtMotivoAnulacion.Clear()
         End If
 
         'vuelvo a cargar la orden con su estado actual
