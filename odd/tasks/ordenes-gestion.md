@@ -155,7 +155,7 @@ Known gaps, accepted for now:
 - Specification section 9 still lists the transition buttons without "Rechazar", "Guardar ejecución" and "Anular".
 - No automated test covers the transactions.
 
-Review of T2 and T3: pending the user's consent for the range `92d5ae8..` (see the conversation of 2026-10-05).
+Review of T2 and T3 (range `92d5ae8..cdc1267`): assessed medium, declined by the user on 2026-10-05 for this candidate; no review ran. Verification of record is the writer's build plus the parent's rebuild and read-back above.
 
 ## Next step
 
