@@ -50,9 +50,17 @@ Las tres pantallas están disponibles para el administrador y el operador.
 - A la derecha, la tarjeta "Resumen de la recepción" está siempre a la vista y se completa a medida que se avanza: vehículo, cliente, kilometraje, combustible, mecánico, fecha prometida, cantidad de fotos y síntoma.
 - Al pie quedan siempre en el mismo lugar "Cancelar", "Anterior" y el botón principal, que dice "Siguiente" en los pasos 1 a 3 y "Confirmar recepción" en el paso 4.
 
+**Registro rápido** (`FrmAltaRapida`): cuando la patente buscada no existe, "Registrar vehículo" abre una ventana para darla de alta sin salir de la recepción.
+
+1. Titular: se busca un cliente ya registrado por documento o nombre y se lo elige de la lista, o se elige "Cliente nuevo" y se cargan nombre o razón social, documento y, si se quiere, teléfono.
+2. Vehículo: patente (viene cargada con la que se buscó), marca y modelo de las listas, y año y color opcionales. La marca y el modelo no se crean aquí: se agregan en "Marcas y modelos".
+3. "Registrar y continuar" guarda el cliente nuevo y el vehículo juntos; si algo falla no se guarda ninguno. La recepción busca esa patente y sigue como con cualquier vehículo.
+
+El cliente y el vehículo quedan registrados aunque después se cancele la recepción.
+
 | Paso | Qué se hace |
 |---|---|
-| 1. Vehículo | Se busca el vehículo por su patente exacta. Se muestran sus datos, el titular y sus órdenes anteriores. El vehículo debe estar registrado y activo, y no puede tener otra orden abierta. |
+| 1. Vehículo | Se busca el vehículo por su patente exacta. Se muestran sus datos, el titular y sus órdenes anteriores. Si la patente no está registrada, el paso lo avisa y ofrece "Registrar vehículo" (ver más abajo). El vehículo debe estar activo, y no puede tener otra orden abierta. |
 | 2. Datos de ingreso | Kilometraje de ingreso (no menor al último registrado), nivel de combustible, síntoma reportado (obligatorio), observaciones de recepción, mecánico (opcional) y fecha prometida de entrega (opcional, no anterior a hoy). |
 | 3. Fotos | Una foto por ángulo: frente, trasera, lateral izquierdo, lateral derecho y tablero. Se eligen del disco (JPG o PNG), se reducen a 1280 píxeles en su lado mayor y se pueden quitar. Son opcionales. |
 | 4. Confirmación | Resumen de solo lectura. Al confirmar se avisa qué fotos faltan y se guardan, en una sola transacción, la orden con el número siguiente en estado `RECEPCIONADA`, la primera fila del historial de estados y las fotos cargadas. |

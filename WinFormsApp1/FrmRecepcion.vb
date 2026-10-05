@@ -23,6 +23,7 @@ Public Class FrmRecepcion
     Sub CargarIconos()
         'pongo los iconos de los botones, de las fotos y de las filas del resumen
         btnBuscar.Image = LeerIcono("buscar.png")
+        btnRegistrarVehiculo.Image = LeerIcono("agregar.png")
         btnCancelar.Image = LeerIcono("cancelar-oscuro.png")
         btnAnterior.Image = LeerIcono("anterior-oscuro.png")
         btnSiguiente.Image = LeerIcono("siguiente.png")
@@ -259,6 +260,7 @@ Public Class FrmRecepcion
         lblAnteriores.Visible = False
         dgvAnteriores.Visible = False
         lblAyudaPatente.Visible = True
+        pnlNoRegistrada.Visible = False
 
         'los datos de ingreso eran de ese vehiculo: salen del resumen hasta volver a pasar por el paso 2
         pasoAlcanzado = 1
@@ -515,20 +517,30 @@ Public Class FrmRecepcion
                 Dim titular As String
                 Dim documento As String
 
-                'busco el vehiculo activo con esa patente exacta, con su marca, modelo y titular
+                'busco el vehiculo con esa patente exacta, activo o no, con su marca, modelo y titular
                 Dim consulta As String =
-                    "SELECT v.id_vehiculo, v.id_cliente, v.anio, v.color, v.km_actual, " &
+                    "SELECT v.id_vehiculo, v.id_cliente, v.anio, v.color, v.km_actual, v.activo, " &
                     "ma.descripcion AS marca, mo.descripcion AS modelo, c.razon_social, c.documento " &
                     "FROM vehiculo AS v " &
                     "JOIN cliente AS c ON c.id_cliente = v.id_cliente " &
                     "JOIN modelo AS mo ON mo.id_modelo = v.id_modelo " &
                     "JOIN marca AS ma ON ma.id_marca = mo.id_marca " &
-                    "WHERE v.patente = @patente AND v.activo = 1;"
+                    "WHERE v.patente = @patente;"
 
                 Using cmd As New MySqlCommand(consulta, cn)
                     cmd.Parameters.AddWithValue("@patente", patente)
                     Using lector As MySqlDataReader = cmd.ExecuteReader
                         If Not lector.Read() Then
+                            'la patente no existe: aviso en el mismo paso y ofrezco registrarla sin salir de la recepcion
+                            lblNoRegistrada.Text = "La patente " & patente & " no está registrada."
+                            lblAyudaPatente.Visible = False
+                            pnlNoRegistrada.Visible = True
+                            btnRegistrarVehiculo.Focus()
+                            Exit Sub
+                        End If
+
+                        'el vehiculo existe pero esta dado de baja: no se recepciona ni se registra de nuevo
+                        If Not Convert.ToBoolean(lector("activo")) Then
                             MessageBox.Show("No hay un vehículo activo con la patente " & patente & "." & vbCrLf &
                                             "Regístrelo primero en ""Vehículos"" y vuelva a buscarlo.")
                             txtPatente.Focus()
@@ -637,6 +649,22 @@ Public Class FrmRecepcion
             LimpiarVehiculo()
             MessageBox.Show("Error al buscar el vehículo: " & ex.Message)
         End Try
+    End Sub
+
+    Private Sub btnRegistrarVehiculo_Click(sender As Object, e As EventArgs) Handles btnRegistrarVehiculo.Click
+        'registro el vehiculo, y su titular si hace falta, sin salir de la recepcion
+        Dim patenteRegistrada As String = ""
+
+        Using formulario As New FrmAltaRapida
+            'la ventana arranca con la patente que se busco
+            formulario.Patente = txtPatente.Text.Trim
+            If formulario.ShowDialog() <> DialogResult.OK Then Exit Sub
+            patenteRegistrada = formulario.Patente
+        End Using
+
+        'busco la patente recien registrada con el boton de siempre: el paso sigue igual que con cualquier vehiculo
+        txtPatente.Text = patenteRegistrada
+        btnBuscar.PerformClick()
     End Sub
 
     Private Sub btnCargarFrente_Click(sender As Object, e As EventArgs) Handles btnCargarFrente.Click

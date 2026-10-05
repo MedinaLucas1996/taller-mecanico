@@ -124,7 +124,7 @@ El administrador deja cargado el catálogo antes de operar: categorías de servi
 El operador busca el vehículo por patente.
 
 - **Si existe:** el sistema recupera el vehículo, su titular y el historial de órdenes anteriores.
-- **Si no existe:** se dan de alta cliente y vehículo en el momento, eligiendo marca y modelo en cascada.
+- **Si no existe:** el vehículo se da de alta en el momento, sin salir de la recepción: se elige como titular un cliente ya registrado o se carga uno nuevo (nombre o razón social, documento y teléfono opcional), y se indican la patente, la marca y el modelo en cascada y, opcionalmente, el año y el color. El alta queda guardada aunque la recepción no se complete. La marca y el modelo se eligen de los ya cargados.
 
 Se abre la orden de trabajo registrando:
 
