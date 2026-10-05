@@ -957,17 +957,33 @@ Public Class FrmOrdenGestion
             Exit Sub
         End If
 
-        If codigoEstado = "RECEPCIONADA" Then Presupuestar()
-        If codigoEstado = "PRESUPUESTADA" Then RegistrarAprobacion()
-        If codigoEstado = "APROBADA" Then IniciarTrabajo()
-        If codigoEstado = "EN_PROCESO" Then FinalizarTrabajo()
-        If codigoEstado = "FINALIZADA" Then EntregarVehiculo()
+        'tomo el estado que se ve en pantalla al hacer clic: cada paso recarga la orden y cambia
+        'codigoEstado, y un clic tiene que hacer un solo paso, nunca encadenar el siguiente
+        Dim estadoAlClic As String = codigoEstado
+
+        If estadoAlClic = "RECEPCIONADA" Then
+            Presupuestar()
+        ElseIf estadoAlClic = "PRESUPUESTADA" Then
+            RegistrarAprobacion()
+        ElseIf estadoAlClic = "APROBADA" Then
+            IniciarTrabajo()
+        ElseIf estadoAlClic = "EN_PROCESO" Then
+            FinalizarTrabajo()
+        ElseIf estadoAlClic = "FINALIZADA" Then
+            EntregarVehiculo()
+        End If
     End Sub
 
     Private Sub btnSecundario_Click(sender As Object, e As EventArgs) Handles btnSecundario.Click
         'el boton secundario es la otra accion de la etapa: rechazar el presupuesto o guardar el avance
-        If codigoEstado = "PRESUPUESTADA" Then RechazarPresupuesto()
-        If codigoEstado = "EN_PROCESO" Then GuardarAvance()
+        'igual que en el principal, un clic hace una sola accion
+        Dim estadoAlClic As String = codigoEstado
+
+        If estadoAlClic = "PRESUPUESTADA" Then
+            RechazarPresupuesto()
+        ElseIf estadoAlClic = "EN_PROCESO" Then
+            GuardarAvance()
+        End If
     End Sub
 
     Private Sub btnGuardarMecanico_Click(sender As Object, e As EventArgs) Handles btnGuardarMecanico.Click
