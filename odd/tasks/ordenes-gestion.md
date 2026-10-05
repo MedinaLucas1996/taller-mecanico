@@ -157,6 +157,13 @@ Known gaps, accepted for now:
 
 Review of T2 and T3 (range `92d5ae8..cdc1267`): assessed medium, declined by the user on 2026-10-05 for this candidate; no review ran. Verification of record is the writer's build plus the parent's rebuild and read-back above.
 
+Review of the whole branch (`f90c074..5053a48`, asked by the stop hook): medium, granted by the user, approved and acknowledged (`review-f3bbb9471fcb9be3`). Four non-blocking findings, left as later work:
+
+- Approval can save something different from what was confirmed: the only guard is the line count, and the per-line `UPDATE` ignores its affected rows, so a line swapped by another desk goes unnoticed.
+- `SELECT ... FOR UPDATE` over the join of `orden_trabajo` and `estado_ot` also locks the shared state row, so two desks on different orders in the same state wait for each other (inferred from InnoDB rules, not run).
+- `Commit` sits inside the `Try` whose `Catch` calls `Rollback`; a failed commit is reported as "nothing saved" although the outcome is unknown. Same shape in all twelve handlers.
+- None of the transitions was executed; a scripted pass against a database with the test data is the cheapest proof.
+
 ## Next step
 
 The user opens `FrmOrdenGestion` in the Visual Studio designer and tests the acceptance criteria as `operador` and `admin` (script 07 must be applied first); then decides push / PR for `feature/TM-0006`. Next feature in the roadmap: "Mis órdenes asignadas" (mechanic screen).
