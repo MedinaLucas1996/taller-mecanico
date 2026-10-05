@@ -151,6 +151,10 @@ Al agregar cada línea, el sistema **copia** la descripción y el precio desde e
 
 Se calcula el subtotal de cada línea y el total presupuestado en la cabecera.
 
+El precio copiado no se edita en la línea. Cada servicio figura una sola vez por orden: para presupuestar más unidades se cambia la cantidad de su línea.
+
+El paso a `PRESUPUESTADA` es explícito (botón "Presupuestar") y exige al menos una línea cargada.
+
 **Estado resultante:** `PRESUPUESTADA` · **Salida:** presupuesto impreso
 
 ### 5.3 Aprobación del cliente
@@ -165,6 +169,8 @@ La aprobación parcial es el escenario más frecuente en la operación real —"
 
 Se recalcula el total aprobado sumando únicamente las líneas marcadas.
 
+Registrar la aprobación exige al menos una línea aprobada. Si el cliente no aprueba ninguna, la orden se rechaza.
+
 **Estado resultante:** `APROBADA`
 
 ### 5.4 Ejecución del trabajo
@@ -176,11 +182,15 @@ El mecánico realiza las tareas aprobadas. Sobre cada línea aprobada se registr
 
 Ese contraste entre estimado y real alimenta el reporte de productividad.
 
+Para iniciar el trabajo la orden debe tener un mecánico asignado.
+
 **Estado resultante:** `EN_PROCESO`
 
 ### 5.5 Cierre técnico
 
 Se completan las observaciones del mecánico —lo que se hizo y las recomendaciones para el cliente— y se registra la fecha de finalización.
+
+Para finalizar, todas las líneas aprobadas deben tener cargadas la cantidad real y las horas reales, y las observaciones del mecánico son obligatorias.
 
 **Estado resultante:** `FINALIZADA`
 
@@ -286,6 +296,8 @@ Un usuario tiene mecánico asociado si y solo si su rol es `MECANICO`.
 ### 8.7 Anulación
 
 Las órdenes anuladas conservan su registro y su historial. No se eliminan físicamente.
+
+La anulación exige un motivo, que queda registrado en el historial de estados, y se permite en cualquier estado no final, es decir, hasta `FINALIZADA` inclusive.
 
 ### 8.8 Fotos de recepción
 
