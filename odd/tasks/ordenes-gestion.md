@@ -84,13 +84,13 @@ Mode: disabled. Source: no test project or runner exists in the solution. Checks
 
 ## Tasks
 
-- [ ] **T1 — `FrmOrdenGestion`: header, mechanic, budget lines, "Presupuestar", history; opened from the board** (route: delegated writer; trigger: 2+ non-trivial files)
+- [x] **T1 — `FrmOrdenGestion`: header, mechanic, budget lines, "Presupuestar", history; opened from the board** (route: delegated writer; trigger: 2+ non-trivial files)
   - `WinFormsApp1/FrmOrdenGestion.vb`, `.Designer.vb`, `.resx` (new), `WinFormsApp1/FrmOrdenes.vb`, `WinFormsApp1/FrmOrdenes.Designer.vb`.
   - Checks: `dotnet build WinFormsApp1.slnx --no-incremental` with 0 errors; detail and totals transaction read back by the parent.
-- [ ] **T2 — Approval, rejection, execution, close, delivery and annulment** (route: delegated writer, after T1)
+- [x] **T2 — Approval, rejection, execution, close, delivery and annulment** (route: delegated writer, after T1)
   - `WinFormsApp1/FrmOrdenGestion.vb`, `.Designer.vb`, `.resx`.
   - Checks: build as above; every transition read back by the parent (state re-read, update, history row, commit / rollback).
-- [ ] **T3 — Docs** (route: delegated writer, with T2 or after)
+- [x] **T3 — Docs** (route: delegated writer, with T2 or after)
   - `README.md`, `doc/Docu.md`, `taller-mecanico-especificacion.md` (only where the decisions above settle something the specification left open).
   - Checks: structural read-back; `@tsg-docs:auto` markers kept.
 
@@ -116,12 +116,47 @@ Strategy: `single-pr` (stated to the user before starting, precedent in `odd/tas
 
 | Task | Status | Commit | Review | Evidence |
 |---|---|---|---|---|
-| T1 | pending | | | |
-| T2 | pending | | | |
-| T3 | pending | | | |
+| T1 | done | `fd877b5` | medium, granted, approved (`review-7ac60e6209dc6c7d`, acknowledged) | `dotnet build WinFormsApp1.slnx --no-incremental`: 0 warnings, 0 errors, re-run by the parent. No `AddHandler` or code-built control in `FrmOrdenGestion.vb`. Read back: both totals in one `UPDATE`; every detail change and "Presupuestar" re-read the state with `FOR UPDATE` inside the transaction and roll back on error. Not run against a database nor opened in the designer. |
+| T2 | done | `e609525` | see "Review of T2 and T3" below | `dotnet build WinFormsApp1.slnx --no-incremental`: 0 warnings, 0 errors, re-run by the parent. Read back: `CambiarEstado` looks the state up by `codigo`, updates the OT and inserts the history row inside the caller's transaction; 12 `BeginTransaction` and 12 `Commit`; the delivery raises `km_actual` only when lower. Not run against a database nor opened in the designer. |
+| T3 | done | `5d8a36d` | same range as T2 | `@tsg-docs:auto` markers: 5 in `README.md` and 5 in `doc/Docu.md`, before and after. |
 
-Reviewed boundary: `f90c074` (branch point).
+Reviewed boundary: `92d5ae8` (T1 and this document).
+
+Decided after T1 (agent decisions, the user can revert them):
+
+- An empty budget is allowed in `PRESUPUESTADA`; approval refuses with no approved line.
+- The mechanic can be changed in any non-final state, but cannot be left unassigned from `EN_PROCESO` on.
+- The approved flag is an editable check box column of the budget grid, only in `PRESUPUESTADA`.
+
+Review of T1, non-blocking findings folded into T2: the selected line followed only mouse clicks; "Guardar mecánico" could clear the mechanic when the combo failed to load; the quantity update and the line removal ignored the affected-row count. One finding stays open: no automated test covers the transactions (there is no test project).
+
+Size: `FrmOrdenGestion.vb` 1470 lines, far over the forecast, because each of the twelve handlers writes its transaction out in full in the professor's style; `FrmOrdenGestion.Designer.vb` 872 lines (generated shape).
+
+Decided by the writer beyond the plan:
+
+- Four form routines that take `(cn, transaccion)` and are shared by the handlers: `PermiteEditarDetalle`, `LeerCodigoEstado`, `RecalcularTotales`, `CambiarEstado`. They are Subs of the form, not classes; inline them if the professor wants every statement in the handler.
+- No "Aprobar todo" button (no room). "Guardar ejecución" sits in the budget card next to the real quantity / hours inputs.
+- Every transition button is white and flat, "Presupuestar" included.
+- Approval is refused when the number of lines in the database differs from the grid (another desk changed the budget).
+- Technical notes are not reloaded while the state is `EN_PROCESO`, so saving the execution does not wipe what is being typed.
+- "Finalizar" has no confirmation dialog.
+- The "Estado" list of `README.md` was edited inside an `@tsg-docs:auto` block; regenerating the docs can overwrite it, and the generated Mermaid diagrams do not show `FrmOrdenGestion`.
+
+Not verified (no app run, no Visual Studio designer, no SQL executed):
+
+- Every transition, the row locks, the dates written with `NOW()`, the km update and the totals `CHECK` against MariaDB.
+- The form in the Visual Studio designer and at runtime: layout, the editable check box column (depends on the connector mapping `BOOLEAN` to Boolean), `Me.Close()` inside `Load`.
+- The affected-row checks assume the connector returns matched rows (its default); with `UseAffectedRows=True`, saving an unchanged quantity would say the line no longer exists.
+- Every acceptance criterion.
+
+Known gaps, accepted for now:
+
+- Approval ticks are lost if the operator edits the budget or saves the mechanic before "Registrar aprobación"; technical notes are lost if the dialog closes before "Finalizar".
+- Specification section 9 still lists the transition buttons without "Rechazar", "Guardar ejecución" and "Anular".
+- No automated test covers the transactions.
+
+Review of T2 and T3: pending the user's consent for the range `92d5ae8..` (see the conversation of 2026-10-05).
 
 ## Next step
 
-Delegate T1.
+The user opens `FrmOrdenGestion` in the Visual Studio designer and tests the acceptance criteria as `operador` and `admin` (script 07 must be applied first); then decides push / PR for `feature/TM-0006`. Next feature in the roadmap: "Mis órdenes asignadas" (mechanic screen).
