@@ -20,6 +20,10 @@ El código sigue de forma deliberada el estilo de la cátedra de programación o
 
 El menú principal muestra a cada usuario solo las opciones de su rol. Los botones están ocultos por defecto en el diseñador y `FrmPrincipal_Load` muestra los que corresponden según `Sesion.Rol`; un rol desconocido no ve ninguna opción.
 
+El menú lateral se lee de arriba hacia abajo: primero **Operaciones** (Recepción, Órdenes de trabajo, Historial), después **Reportes** y, al pie del menú, **Datos maestros** (Clientes, Vehículos, Marcas y modelos, Servicios, Categorías, Mecánicos, Usuarios). Cada opción lleva un icono. El botón que está junto al nombre del sistema contrae el menú a una columna de iconos y lo vuelve a expandir; contraído, el nombre de cada opción aparece al pasar el mouse y el panel de contenido ocupa el ancho liberado. El menú siempre arranca expandido.
+
+Los iconos son archivos PNG de [Lucide](https://lucide.dev) (licencia ISC, en `WinFormsApp1/Recursos/iconos/LICENCIA-lucide.txt`). Se copian a la carpeta de salida y se leen al abrir el menú; si falta alguno, esa opción queda sin icono y la aplicación sigue funcionando.
+
 | Opción del menú | ADMINISTRADOR | OPERADOR | MECANICO |
 |---|---|---|---|
 | Recepción | Sí | Sí | No |
