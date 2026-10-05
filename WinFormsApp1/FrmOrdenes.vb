@@ -192,6 +192,8 @@ Public Class FrmOrdenes
         'olvido la orden seleccionada y dejo los cinco cuadros vacios
         idOrdenSeleccionada = 0
         lblFotos.Text = "Seleccione una orden de la grilla para ver sus fotos de recepción."
+        'sin una orden seleccionada no hay nada para gestionar
+        btnGestionar.Enabled = False
 
         VaciarCuadro(picFrente, lblSinFrente, False)
         VaciarCuadro(picTrasera, lblSinTrasera, False)
@@ -299,6 +301,8 @@ Public Class FrmOrdenes
 
         idOrdenSeleccionada = idOrden
         lblFotos.Text = "Fotos de recepción de la orden N.º " & fila.Cells("nro_orden").Value.ToString()
+        'con una orden seleccionada ya se puede gestionar
+        btnGestionar.Enabled = True
 
         Try
             Using cn As New MySqlConnection(CADENA)
@@ -329,6 +333,24 @@ Public Class FrmOrdenes
             dgvOrdenes.ClearSelection()
             MessageBox.Show("Error al cargar las fotos de la orden: " & ex.Message)
         End Try
+    End Sub
+
+    Private Sub btnGestionar_Click(sender As Object, e As EventArgs) Handles btnGestionar.Click
+        'abro la gestion de la orden seleccionada en una ventana aparte
+        If idOrdenSeleccionada = 0 Then
+            MessageBox.Show("Debe seleccionar una orden de la grilla para gestionarla")
+            Exit Sub
+        End If
+
+        Using formulario As New FrmOrdenGestion
+            'le indico al formulario que orden tiene que cargar
+            formulario.IdOrdenTrabajo = idOrdenSeleccionada
+            formulario.ShowDialog()
+        End Using
+
+        'al cerrar la gestion la orden pudo cambiar de estado: recargo el resumen y la grilla
+        CargarResumen()
+        CargarOrdenes()
     End Sub
 
 End Class

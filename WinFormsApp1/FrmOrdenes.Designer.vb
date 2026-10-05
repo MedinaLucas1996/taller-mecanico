@@ -35,6 +35,7 @@ Partial Class FrmOrdenes
         btnBuscar = New Button()
         btnLimpiar = New Button()
         dgvOrdenes = New DataGridView()
+        btnGestionar = New Button()
         lblFotos = New Label()
         lblCantidad = New Label()
         pnlFotos = New Panel()
@@ -226,8 +227,25 @@ Partial Class FrmOrdenes
         dgvOrdenes.RowHeadersWidth = 51
         dgvOrdenes.RowTemplate.Height = 22
         dgvOrdenes.SelectionMode = DataGridViewSelectionMode.FullRowSelect
-        dgvOrdenes.Size = New Size(810, 186)
+        dgvOrdenes.Size = New Size(810, 150)
         dgvOrdenes.TabIndex = 5
+        '
+        ' btnGestionar
+        '
+        btnGestionar.BackColor = Color.FromArgb(CByte(30), CByte(39), CByte(46))
+        btnGestionar.Cursor = Cursors.Hand
+        btnGestionar.Enabled = False
+        btnGestionar.FlatAppearance.BorderSize = 0
+        btnGestionar.FlatAppearance.MouseOverBackColor = Color.FromArgb(CByte(52), CByte(73), CByte(94))
+        btnGestionar.FlatStyle = FlatStyle.Flat
+        btnGestionar.Font = New Font("Segoe UI", 10F, FontStyle.Bold)
+        btnGestionar.ForeColor = Color.White
+        btnGestionar.Location = New Point(30, 393)
+        btnGestionar.Name = "btnGestionar"
+        btnGestionar.Size = New Size(170, 32)
+        btnGestionar.TabIndex = 9
+        btnGestionar.Text = "Gestionar orden"
+        btnGestionar.UseVisualStyleBackColor = False
         '
         ' lblFotos
         '
@@ -441,6 +459,7 @@ Partial Class FrmOrdenes
         Controls.Add(pnlFotos)
         Controls.Add(lblCantidad)
         Controls.Add(lblFotos)
+        Controls.Add(btnGestionar)
         Controls.Add(dgvOrdenes)
         Controls.Add(pnlFiltros)
         Controls.Add(dgvResumen)
@@ -477,6 +496,7 @@ Partial Class FrmOrdenes
     Friend WithEvents btnBuscar As Button
     Friend WithEvents btnLimpiar As Button
     Friend WithEvents dgvOrdenes As DataGridView
+    Friend WithEvents btnGestionar As Button
     Friend WithEvents lblFotos As Label
     Friend WithEvents lblCantidad As Label
     Friend WithEvents pnlFotos As Panel
