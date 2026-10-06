@@ -87,6 +87,8 @@ Review of `a249e48`: the native review could not run (bound STATUS timed out twi
 
 Review of the six screens (`cc38db0`, `c5934ef`, `ba114ad`): the native review refused the range at start with `lens_context_budget_exceeded` (7424 lines). Two independent read-only reviewers read the six `.vb` files in full against their previous versions and the Clientes model: no confirmed defect, no rule lost, no wrong-target write, no accidental divergence from the model. To settle at runtime: opening the first record in Vehículos or Servicios may flag it as edited by itself (a combo created after the loading guard is released); in Marcas y modelos a typed new brand name is dropped if the list takes keyboard focus (Shift+Tab). Minor, inherited: a vehicle with no year shows and saves the current year; a whitespace-only password is accepted; two administrators demoting each other from two stations can leave no administrator.
 
+Verified by the user at runtime on 2026-10-06 ("funciona todo") for the six screens; the agent did not observe it.
+
 ## Next step
 
-The user tests the six screens at runtime (saves, bajas, reactivations and deletes were never exercised by the agent), then decides push / PR for `feature/TM-0010`.
+Nothing pending for this feature. Open follow-ups, not requested: a whitespace-only password is accepted; a vehicle with no year shows and saves the current year.
