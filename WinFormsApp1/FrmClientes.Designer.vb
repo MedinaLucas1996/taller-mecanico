@@ -96,7 +96,7 @@ Partial Class FrmClientes
         btnNuevo.Location = New Point(640, 34)
         btnNuevo.Name = "btnNuevo"
         btnNuevo.Size = New Size(200, 40)
-        btnNuevo.TabIndex = 2
+        btnNuevo.TabIndex = 0
         btnNuevo.Text = " Nuevo cliente"
         btnNuevo.TextImageRelation = TextImageRelation.ImageBeforeText
         btnNuevo.UseVisualStyleBackColor = False
@@ -112,7 +112,7 @@ Partial Class FrmClientes
         pnlLista.Location = New Point(30, 110)
         pnlLista.Name = "pnlLista"
         pnlLista.Size = New Size(420, 510)
-        pnlLista.TabIndex = 0
+        pnlLista.TabIndex = 1
         '
         ' picBuscar
         '
@@ -175,6 +175,7 @@ Partial Class FrmClientes
         dgvClientes.RowTemplate.Height = 26
         dgvClientes.SelectionMode = DataGridViewSelectionMode.FullRowSelect
         dgvClientes.Size = New Size(388, 408)
+        dgvClientes.StandardTab = True
         dgvClientes.TabIndex = 2
         '
         ' pnlFicha
@@ -186,7 +187,7 @@ Partial Class FrmClientes
         pnlFicha.Location = New Point(460, 110)
         pnlFicha.Name = "pnlFicha"
         pnlFicha.Size = New Size(380, 510)
-        pnlFicha.TabIndex = 1
+        pnlFicha.TabIndex = 2
         '
         ' lblAyuda
         '

@@ -84,6 +84,12 @@ Public Class FrmClientes
                     dgvClientes.Columns("localidad").FillWeight = 20
                     dgvClientes.Columns("localidad").MinimumWidth = 95
 
+                    'el orden por columna lo hace el formulario al hacer click en el titulo (ver ColumnHeaderMouseClick)
+                    dgvClientes.Columns("razon_social").SortMode = DataGridViewColumnSortMode.Programmatic
+                    dgvClientes.Columns("documento").SortMode = DataGridViewColumnSortMode.Programmatic
+                    dgvClientes.Columns("telefono").SortMode = DataGridViewColumnSortMode.Programmatic
+                    dgvClientes.Columns("localidad").SortMode = DataGridViewColumnSortMode.Programmatic
+
                     'en el subtitulo cuento lo que quedo listado
                     Dim activos As Integer = 0
                     Dim bajas As Integer = 0
@@ -104,31 +110,54 @@ Public Class FrmClientes
                     End If
                 End Using
             End Using
+
+            'en la lista nueva dejo marcado al cliente que se estaba viendo
+            Dim filaActual As DataGridViewRow = MarcarFila(idCliente)
+            If filaActual Is Nothing AndAlso idCliente <> 0 AndAlso Not hayCambios Then
+                'el cliente ya no esta en la lista (por el filtro o por una baja): la tarjeta vuelve a la ayuda
+                MostrarAyuda()
+            End If
         Catch ex As Exception
             'muestro mensaje de error
             MessageBox.Show("Error al cargar los clientes: " & ex.Message)
+        Finally
+            'pase lo que pase, la grilla vuelve a atender al usuario
+            cargando = False
+        End Try
+    End Sub
+
+    Function MarcarFila(id As Integer) As DataGridViewRow
+        'dejo marcada en la lista la fila del cliente con esa clave: celda actual y seleccion juntas
+        'con clave 0, o si el cliente no esta listado, no queda nada marcado; devuelve la fila o Nothing
+        Dim encontrada As DataGridViewRow = Nothing
+        Dim estabaCargando As Boolean = cargando
+        cargando = True
+
+        Try
+            If id <> 0 AndAlso dgvClientes.Columns.Contains("id_cliente") Then
+                For Each fila As DataGridViewRow In dgvClientes.Rows
+                    If CInt(fila.Cells("id_cliente").Value) = id Then encontrada = fila
+                Next
+            End If
+
+            dgvClientes.ClearSelection()
+            If encontrada Is Nothing Then
+                dgvClientes.CurrentCell = Nothing
+            Else
+                dgvClientes.CurrentCell = encontrada.Cells("razon_social")
+                encontrada.Selected = True
+            End If
+        Finally
+            cargando = estabaCargando
         End Try
 
-        'busco en la lista nueva al cliente que se estaba viendo y lo dejo marcado
-        Dim filaActual As DataGridViewRow = Nothing
-        dgvClientes.ClearSelection()
-        If idCliente <> 0 AndAlso dgvClientes.Columns.Contains("id_cliente") Then
-            For Each fila As DataGridViewRow In dgvClientes.Rows
-                If CInt(fila.Cells("id_cliente").Value) = idCliente Then filaActual = fila
-            Next
-        End If
+        Return encontrada
+    End Function
 
-        If filaActual IsNot Nothing Then
-            dgvClientes.CurrentCell = filaActual.Cells("razon_social")
-            filaActual.Selected = True
-            'refresco la tarjeta con los datos guardados, salvo que el usuario este a mitad de un cambio
-            If Not hayCambios Then MostrarRegistro(filaActual)
-        ElseIf idCliente <> 0 AndAlso Not hayCambios Then
-            'el cliente ya no esta en la lista (por el filtro o por una baja): la tarjeta vuelve a la ayuda
-            MostrarAyuda()
-        End If
-
-        cargando = False
+    Sub RefrescarRegistro()
+        'vuelvo a mostrar en la tarjeta los datos guardados del cliente que se esta viendo
+        Dim fila As DataGridViewRow = MarcarFila(idCliente)
+        If fila IsNot Nothing Then MostrarRegistro(fila)
     End Sub
 
     Sub MostrarAyuda()
@@ -145,27 +174,30 @@ Public Class FrmClientes
         Dim estabaCargando As Boolean = cargando
         cargando = True
 
-        If fila Is Nothing Then
-            txtRazonSocial.Clear()
-            txtDocumento.Clear()
-            txtTelefono.Clear()
-            txtDomicilio.Clear()
-            txtLocalidad.Clear()
-            txtEmail.Clear()
-            txtObservaciones.Clear()
-        Else
-            txtRazonSocial.Text = fila.Cells("razon_social").Value.ToString()
-            txtDocumento.Text = fila.Cells("documento").Value.ToString()
-            txtTelefono.Text = fila.Cells("telefono").Value.ToString()
-            txtDomicilio.Text = fila.Cells("domicilio").Value.ToString()
-            txtLocalidad.Text = fila.Cells("localidad").Value.ToString()
-            txtEmail.Text = fila.Cells("email").Value.ToString()
-            txtObservaciones.Text = fila.Cells("observaciones").Value.ToString()
-        End If
+        Try
+            If fila Is Nothing Then
+                txtRazonSocial.Clear()
+                txtDocumento.Clear()
+                txtTelefono.Clear()
+                txtDomicilio.Clear()
+                txtLocalidad.Clear()
+                txtEmail.Clear()
+                txtObservaciones.Clear()
+            Else
+                txtRazonSocial.Text = fila.Cells("razon_social").Value.ToString()
+                txtDocumento.Text = fila.Cells("documento").Value.ToString()
+                txtTelefono.Text = fila.Cells("telefono").Value.ToString()
+                txtDomicilio.Text = fila.Cells("domicilio").Value.ToString()
+                txtLocalidad.Text = fila.Cells("localidad").Value.ToString()
+                txtEmail.Text = fila.Cells("email").Value.ToString()
+                txtObservaciones.Text = fila.Cells("observaciones").Value.ToString()
+            End If
 
-        'lo que se ve es lo que esta guardado
-        hayCambios = False
-        cargando = estabaCargando
+            'lo que se ve es lo que esta guardado
+            hayCambios = False
+        Finally
+            cargando = estabaCargando
+        End Try
     End Sub
 
     Sub MostrarRegistro(fila As DataGridViewRow)
@@ -201,6 +233,7 @@ Public Class FrmClientes
 
         'linea de contexto: cuantos vehiculos activos tiene y desde cuando es cliente
         Dim vehiculos As Integer = 0
+        Dim desde As String = CDate(fila.Cells("fecha_alta").Value).ToString("dd/MM/yyyy")
         Try
             Using cn As New MySqlConnection(CADENA)
                 cn.Open()
@@ -213,10 +246,10 @@ Public Class FrmClientes
 
             Dim textoVehiculos As String = vehiculos & " vehículos"
             If vehiculos = 1 Then textoVehiculos = "1 vehículo"
-            lblContexto.Text = textoVehiculos & " · cliente desde " & CDate(fila.Cells("fecha_alta").Value).ToString("dd/MM/yyyy")
+            lblContexto.Text = textoVehiculos & " · cliente desde " & desde
         Catch ex As Exception
             'si no se pudo contar, muestro solo la fecha: el resto de la tarjeta sirve igual
-            lblContexto.Text = "Cliente desde " & CDate(fila.Cells("fecha_alta").Value).ToString("dd/MM/yyyy")
+            lblContexto.Text = "Cliente desde " & desde
         End Try
         lblContexto.Visible = True
 
@@ -243,9 +276,8 @@ Public Class FrmClientes
         lblAyuda.Visible = False
         pnlRegistro.Visible = True
 
-        cargando = True
-        dgvClientes.ClearSelection()
-        cargando = False
+        'durante un alta no queda ninguna fila marcada en la lista
+        MarcarFila(0)
 
         txtRazonSocial.Focus()
     End Sub
@@ -272,12 +304,8 @@ Public Class FrmClientes
 
         If Not DescartarCambios() Then
             'el usuario prefirio seguir con lo que estaba cargando: la lista vuelve a marcar ese registro
-            cargando = True
-            dgvClientes.ClearSelection()
-            For Each otra As DataGridViewRow In dgvClientes.Rows
-                If idCliente <> 0 AndAlso CInt(otra.Cells("id_cliente").Value) = idCliente Then otra.Selected = True
-            Next
-            cargando = False
+            '(en un alta no hay registro, y no queda nada marcado)
+            MarcarFila(idCliente)
             Exit Sub
         End If
 
@@ -319,8 +347,20 @@ Public Class FrmClientes
     End Sub
 
     Private Sub txtFiltro_TextChanged(sender As Object, e As EventArgs) Handles txtFiltro.TextChanged
-        'vuelvo a cargar la grilla con el filtro escrito
+        'vuelvo a cargar la grilla con el filtro escrito; la tarjeta no se toca, solo se vuelve a marcar su fila
+        If cargando Then Exit Sub
         CargarClientes()
+    End Sub
+
+    Private Sub FrmClientes_FormClosing(sender As Object, e As FormClosingEventArgs) Handles MyBase.FormClosing
+        'al salir de la pantalla pregunto antes de perder cambios sin guardar
+        If Not DescartarCambios() Then
+            e.Cancel = True
+            Exit Sub
+        End If
+
+        'ya se acepto perderlos: si el cierre sigue, no se vuelve a preguntar
+        hayCambios = False
     End Sub
 
     Private Sub chkBajas_CheckedChanged(sender As Object, e As EventArgs) Handles chkBajas.CheckedChanged
@@ -332,26 +372,54 @@ Public Class FrmClientes
         'la grilla termino de cargar o de reordenar sus filas
         If Not dgvClientes.Columns.Contains("activo") Then Exit Sub
 
-        Dim estabaCargando As Boolean = cargando
-        cargando = True
-
-        'la grilla selecciona sola la primera fila, la desmarco
-        dgvClientes.ClearSelection()
-
         For Each fila As DataGridViewRow In dgvClientes.Rows
             'los clientes dados de baja van en gris, tambien cuando la fila esta seleccionada
             If Not Convert.ToBoolean(fila.Cells("activo").Value) Then
                 fila.DefaultCellStyle.ForeColor = Color.Gray
                 fila.DefaultCellStyle.SelectionForeColor = Color.Gainsboro
             End If
-
-            'si se reordeno la grilla, vuelvo a marcar al cliente que se esta viendo
-            If idCliente <> 0 AndAlso CInt(fila.Cells("id_cliente").Value) = idCliente Then
-                fila.Selected = True
-            End If
         Next
 
-        cargando = estabaCargando
+        'al terminar de enlazar la grilla marca sola la primera fila: dejo marcado solo al cliente que se esta viendo
+        MarcarFila(idCliente)
+    End Sub
+
+    Private Sub dgvClientes_ColumnHeaderMouseClick(sender As Object, e As DataGridViewCellMouseEventArgs) Handles dgvClientes.ColumnHeaderMouseClick
+        'ordeno la lista por la columna del titulo que se toco; otro click en la misma columna invierte el orden
+        'ordenar nunca cambia el registro abierto ni pregunta nada
+        If e.Button <> MouseButtons.Left Then Exit Sub
+        If cargando Then Exit Sub
+
+        Dim columna As DataGridViewColumn = dgvClientes.Columns(e.ColumnIndex)
+        Dim sentido As System.ComponentModel.ListSortDirection = System.ComponentModel.ListSortDirection.Ascending
+        If dgvClientes.SortedColumn Is columna AndAlso dgvClientes.SortOrder = SortOrder.Ascending Then
+            sentido = System.ComponentModel.ListSortDirection.Descending
+        End If
+
+        'mientras se ordena la grilla mueve sola su seleccion: eso no es una eleccion del usuario
+        cargando = True
+        Try
+            dgvClientes.Sort(columna, sentido)
+
+            'flecha del titulo, para que se vea por que columna quedo ordenada
+            If sentido = System.ComponentModel.ListSortDirection.Ascending Then
+                columna.HeaderCell.SortGlyphDirection = SortOrder.Ascending
+            Else
+                columna.HeaderCell.SortGlyphDirection = SortOrder.Descending
+            End If
+        Finally
+            cargando = False
+        End Try
+    End Sub
+
+    Private Sub dgvClientes_Sorted(sender As Object, e As EventArgs) Handles dgvClientes.Sorted
+        'las filas cambiaron de lugar: vuelvo a marcar al cliente que se esta viendo
+        MarcarFila(idCliente)
+    End Sub
+
+    Private Sub FrmClientes_Shown(sender As Object, e As EventArgs) Handles MyBase.Shown
+        'al mostrarse por primera vez la grilla toma sola la primera fila como celda actual: la suelto
+        MarcarFila(idCliente)
     End Sub
 
     Private Sub dgvClientes_SelectionChanged(sender As Object, e As EventArgs) Handles dgvClientes.SelectionChanged
@@ -398,6 +466,9 @@ Public Class FrmClientes
     Private Sub btnGuardar_Click(sender As Object, e As EventArgs) Handles btnGuardar.Click
         'guardo un cliente nuevo, o los cambios del cliente que se esta viendo
         If Not ValidarCampos() Then Exit Sub
+
+        'recuerdo si era un alta, porque al guardar deja de serlo
+        Dim eraAlta As Boolean = creando
 
         If creando Then
             Try
@@ -477,42 +548,54 @@ Public Class FrmClientes
             End Try
         End If
 
+        'si se creo un cliente, limpio la busqueda para que quede listado aunque no coincida con lo escrito
+        If eraAlta AndAlso txtFiltro.Text <> "" Then
+            cargando = True
+            Try
+                txtFiltro.Clear()
+            Finally
+                cargando = False
+            End Try
+        End If
+
         'recargo la lista: el cliente guardado queda marcado y la tarjeta muestra lo que quedo en la base
         CargarClientes()
+        RefrescarRegistro()
     End Sub
 
     Private Sub btnBaja_Click(sender As Object, e As EventArgs) Handles btnBaja.Click
         'doy de baja al cliente que se esta viendo, o lo reactivo si ya estaba dado de baja
 
-        'la baja y la reactivacion no guardan los campos: si hay cambios pregunto antes de perderlos
-        If Not DescartarCambios() Then Exit Sub
-        hayCambios = False
-
         Dim idRegistro As Integer = idCliente
+
+        'la baja y la reactivacion no guardan los campos: si hay cambios lo aviso en la misma pregunta
+        Dim avisoCambios As String = ""
+        If hayCambios Then
+            avisoCambios = vbCrLf & vbCrLf & "Los cambios sin guardar de la tarjeta se van a perder."
+        End If
 
         'pido confirmacion antes de cambiar el estado
         Dim respuesta As DialogResult
         If registroActivo Then
             respuesta = MessageBox.Show(
-                "¿Dar de baja al cliente " & lblRegistroTitulo.Text & "?",
+                "¿Dar de baja al cliente " & lblRegistroTitulo.Text & "?" & avisoCambios,
                 "Dar de baja",
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Warning)
         Else
             respuesta = MessageBox.Show(
-                "¿Reactivar al cliente " & lblRegistroTitulo.Text & "?",
+                "¿Reactivar al cliente " & lblRegistroTitulo.Text & "?" & avisoCambios,
                 "Reactivar",
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Question)
         End If
 
-        If respuesta = DialogResult.No Then
-            'no se hizo nada: vuelvo a mostrar los datos guardados del cliente
-            CargarClientes()
-            Exit Sub
-        End If
+        'si no confirma no se hace nada, y lo que estaba escribiendo queda como estaba
+        If respuesta = DialogResult.No Then Exit Sub
 
         Dim aviso As String = ""
+        'queda en True cuando el estado que se ve en la tarjeta ya no es el de la base
+        Dim estadoViejo As Boolean = False
         'estado del cliente leido en la base dentro de la transaccion
         Dim activoEnBase As Boolean = False
 
@@ -539,11 +622,13 @@ Public Class FrmClientes
 
                     If Not existe Then
                         aviso = "El cliente seleccionado ya no existe."
+                        estadoViejo = True
                     End If
 
                     'si otro puesto ya le cambio el estado, lo que se confirmo en pantalla no vale
                     If aviso = "" AndAlso activoEnBase <> registroActivo Then
                         aviso = "El estado del cliente fue cambiado desde otro puesto. Se actualizó la lista: revíselo y vuelva a intentar."
+                        estadoViejo = True
                     End If
 
                     'de aca en mas decido con el estado leido en la base, no con el de la pantalla
@@ -595,8 +680,14 @@ Public Class FrmClientes
             MessageBox.Show("Clientes reactivados: 1")
         End If
 
+        'los cambios sin guardar se pierden recien ahora: cuando el estado cambio, o cuando la tarjeta
+        'mostraba un estado que ya no es el de la base y hay que volver a leerla
+        If aviso = "" OrElse estadoViejo Then hayCambios = False
+
         'recargo la lista: muestra el estado real, y el cliente sigue marcado si todavia esta listado
         CargarClientes()
+        'si la baja se rechazo y habia cambios sin guardar, la tarjeta queda como estaba
+        If Not hayCambios Then RefrescarRegistro()
     End Sub
 
 End Class

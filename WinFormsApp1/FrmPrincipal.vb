@@ -165,9 +165,30 @@ Public Class FrmPrincipal
         AplicarMenu()
     End Sub
 
+    Function CerrarPantallaActual() As Boolean
+        'cierro la pantalla que esta abierta en el panel de contenido
+        'devuelve False cuando esa pantalla no se dejo cerrar (por ejemplo, tiene cambios sin guardar)
+        If panelContenido.Controls.Count = 0 Then Return True
+
+        Dim actual As Form = TryCast(panelContenido.Controls(0), Form)
+        If actual Is Nothing Then Return True
+
+        'Close dispara el FormClosing de la pantalla; si nadie lo cancela, la pantalla se libera y sale del panel
+        actual.Close()
+
+        'si sigue en el panel es porque cancelo el cierre
+        If panelContenido.Controls.Contains(actual) Then Return False
+
+        Return True
+    End Function
+
     Private Sub AbrirFormulario(formulario As Form)
-        'abro el formulario dentro del panel de contenido
-        panelContenido.Controls.Clear()
+        'abro el formulario dentro del panel de contenido, despues de cerrar la pantalla que estaba abierta
+        If Not CerrarPantallaActual() Then
+            'la pantalla actual se queda: descarto la que se iba a abrir
+            formulario.Dispose()
+            Exit Sub
+        End If
 
         formulario.TopLevel = False
         formulario.FormBorderStyle = FormBorderStyle.None
@@ -224,6 +245,9 @@ Public Class FrmPrincipal
 
         If respuesta = DialogResult.No Then Exit Sub
 
+        'cierro la pantalla abierta; si tiene cambios sin guardar y el usuario no los descarta, la sesion sigue
+        If Not CerrarPantallaActual() Then Exit Sub
+
         'limpio los datos del usuario que estaba logueado
         Sesion.CerrarSesion()
 
@@ -232,6 +256,12 @@ Public Class FrmPrincipal
         FrmLogin.PrepararNuevoIngreso()
 
         Me.Close()
+    End Sub
+
+    Private Sub FrmPrincipal_FormClosing(sender As Object, e As FormClosingEventArgs) Handles MyBase.FormClosing
+        'antes de cerrar la ventana principal cierro la pantalla abierta, que puede pedir que no se cierre
+        'al cerrar sesion la pantalla ya se cerro, asi que aca no se vuelve a preguntar
+        If Not CerrarPantallaActual() Then e.Cancel = True
     End Sub
 
     Private Sub FrmPrincipal_FormClosed(sender As Object, e As FormClosedEventArgs) Handles MyBase.FormClosed
