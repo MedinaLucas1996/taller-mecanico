@@ -98,10 +98,11 @@ Public Class FrmPrincipal
         lblUsuario.Text = "Usuario: " & Sesion.NombreCompleto & " (" & Sesion.Rol & ")"
 
         'junto los botones del menu en el orden en que se ven
-        botonesMenu = {btnRecepcion, btnOrdenes, btnHistorial, btnReportes, btnClientes, btnVehiculos,
+        botonesMenu = {btnMisOrdenes, btnRecepcion, btnOrdenes, btnHistorial, btnReportes, btnClientes, btnVehiculos,
                        btnMarcasModelos, btnServicios, btnCategorias, btnMecanicos, btnUsuarios}
 
         'cargo el icono de cada opcion, si alguno falta ese boton queda sin icono
+        btnMisOrdenes.Image = LeerIcono("mis-ordenes.png")
         btnRecepcion.Image = LeerIcono("recepcion.png")
         btnOrdenes.Image = LeerIcono("ordenes.png")
         btnHistorial.Image = LeerIcono("historial.png")
@@ -149,9 +150,10 @@ Public Class FrmPrincipal
             btnMarcasModelos.Visible = True
         End If
 
-        'el mecanico solo ve el historial
+        'el mecanico ve sus ordenes asignadas y el historial
         If Sesion.Rol = "MECANICO" Then
             verOperaciones = True
+            btnMisOrdenes.Visible = True
             btnHistorial.Visible = True
         End If
 
@@ -207,6 +209,10 @@ Public Class FrmPrincipal
         panelContenido.Controls.Add(formulario)
 
         formulario.Show()
+    End Sub
+
+    Private Sub btnMisOrdenes_Click(sender As Object, e As EventArgs) Handles btnMisOrdenes.Click
+        AbrirFormulario(New FrmMisOrdenes())
     End Sub
 
     Private Sub btnRecepcion_Click(sender As Object, e As EventArgs) Handles btnRecepcion.Click
