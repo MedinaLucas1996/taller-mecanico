@@ -170,14 +170,24 @@ Public Class FrmPrincipal
         'devuelve False cuando esa pantalla no se dejo cerrar (por ejemplo, tiene cambios sin guardar)
         If panelContenido.Controls.Count = 0 Then Return True
 
-        Dim actual As Form = TryCast(panelContenido.Controls(0), Form)
-        If actual Is Nothing Then Return True
+        'recorro una copia porque al cerrar o quitar un control la coleccion del panel cambia
+        Dim controles(panelContenido.Controls.Count - 1) As Control
+        panelContenido.Controls.CopyTo(controles, 0)
 
-        'Close dispara el FormClosing de la pantalla; si nadie lo cancela, la pantalla se libera y sale del panel
-        actual.Close()
+        For Each control As Control In controles
+            Dim pantalla As Form = TryCast(control, Form)
 
-        'si sigue en el panel es porque cancelo el cierre
-        If panelContenido.Controls.Contains(actual) Then Return False
+            If pantalla Is Nothing Then
+                'no es una pantalla: es el texto de bienvenida, que se quita al abrir la primera
+                panelContenido.Controls.Remove(control)
+            Else
+                'Close dispara el FormClosing de la pantalla; si nadie lo cancela, la pantalla se libera y sale del panel
+                pantalla.Close()
+
+                'si sigue en el panel es porque cancelo el cierre
+                If panelContenido.Controls.Contains(pantalla) Then Return False
+            End If
+        Next
 
         Return True
     End Function
