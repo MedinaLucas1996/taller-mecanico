@@ -88,8 +88,11 @@ El sistema define tres roles.
 | Recepcionar vehículo (abrir OT) | ✅ | ✅ | ❌ |
 | Cargar el detalle del presupuesto | ✅ | ✅ | ❌ |
 | Registrar la aprobación del cliente | ✅ | ✅ | ❌ |
-| Ver las órdenes propias asignadas | ✅ | ✅ | ✅ |
-| Registrar ejecución real y cierre técnico | ✅ | ✅ | ✅ |
+| Ver todas las órdenes (tablero) | ✅ | ✅ | ❌ |
+| Ver las órdenes propias asignadas ("Mis órdenes") | — | — | ✅ |
+| Ver precios, subtotales y totales de una orden | ✅ | ✅ | ❌ |
+| Iniciar el trabajo, registrar horas trabajadas y cierre técnico | ✅ | ✅ | ✅ (solo en sus órdenes) |
+| Cambiar el mecánico asignado | ✅ | ✅ | ❌ |
 | Entregar el vehículo | ✅ | ✅ | ❌ |
 | Reportes de gestión | ✅ | ❌ | ❌ |
 | Anular órdenes | ✅ | ❌ | ❌ |
@@ -334,7 +337,8 @@ Una orden está demorada cuando su fecha prometida de entrega es anterior a la f
 | | ABM de mecánicos | Admin |
 | | ABM de usuarios | Admin |
 | **Operación** | Recepción de vehículo | Admin, Operador |
-| | Gestión de orden de trabajo | Admin, Operador |
+| | Tablero de órdenes de trabajo | Admin, Operador |
+| | Gestión de orden de trabajo | Admin, Operador; Mecánico solo en sus órdenes, sin importes, para iniciar, cargar horas y finalizar |
 | | Mis órdenes asignadas | Mecánico |
 | | Consulta de historial por patente | Todos |
 | **Salidas** | Menú de reportes | Admin |

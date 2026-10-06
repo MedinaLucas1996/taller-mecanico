@@ -20,12 +20,13 @@ El código sigue de forma deliberada el estilo de la cátedra de programación o
 
 El menú principal muestra a cada usuario solo las opciones de su rol. Los botones están ocultos por defecto en el diseñador y `FrmPrincipal_Load` muestra los que corresponden según `Sesion.Rol`; un rol desconocido no ve ninguna opción.
 
-El menú lateral se lee de arriba hacia abajo: primero **Operaciones** (Recepción, Órdenes de trabajo, Historial), después **Reportes** y, al pie del menú, **Datos maestros** (Clientes, Vehículos, Marcas y modelos, Servicios, Categorías, Mecánicos, Usuarios). Cada opción lleva un icono. El botón que está junto al nombre del sistema contrae el menú a una columna de iconos y lo vuelve a expandir; contraído, el nombre de cada opción aparece al pasar el mouse y el panel de contenido ocupa el ancho liberado. El menú siempre arranca expandido.
+El menú lateral se lee de arriba hacia abajo: primero **Operaciones** (Mis órdenes, Recepción, Órdenes de trabajo, Historial), después **Reportes** y, al pie del menú, **Datos maestros** (Clientes, Vehículos, Marcas y modelos, Servicios, Categorías, Mecánicos, Usuarios). Cada opción lleva un icono. El botón que está junto al nombre del sistema contrae el menú a una columna de iconos y lo vuelve a expandir; contraído, el nombre de cada opción aparece al pasar el mouse y el panel de contenido ocupa el ancho liberado. El menú siempre arranca expandido.
 
 Los iconos son archivos PNG de [Lucide](https://lucide.dev) (licencia ISC, en `WinFormsApp1/Recursos/iconos/LICENCIA-lucide.txt`). Se copian a la carpeta de salida y se leen al abrir el menú; si falta alguno, esa opción queda sin icono y la aplicación sigue funcionando.
 
 | Opción del menú | ADMINISTRADOR | OPERADOR | MECANICO |
 |---|---|---|---|
+| Mis órdenes | No | No | Sí |
 | Recepción | Sí | Sí | No |
 | Órdenes de trabajo | Sí | Sí | No |
 | Historial | Sí | Sí | Sí |
@@ -120,6 +121,17 @@ Las fotos se guardan en la base de datos, en la tabla `ot_foto`.
 "Guardar avance" guarda lo cargado del trabajo sin cambiar el estado, para seguir después. "Anular orden" abre una ventana que pide el motivo (`FrmAnularOrden`). El precio y la descripción se copian del servicio y no se modifican en la línea; cada servicio va una sola vez por orden. La entrega sube el kilometraje del vehículo al de la orden.
 
 Cada cambio de estado se guarda en una transacción junto con su fila en el historial de estados: si algo falla, no se guarda nada.
+
+### Mis órdenes (pantalla del mecánico)
+
+Un usuario con rol `MECANICO` ve en el menú **Mis órdenes** (`FrmMisOrdenes`), con las órdenes de trabajo que tiene asignadas y nada más.
+
+- **Tres grupos** arriba, cada uno con su cantidad, que también filtran la lista: "En curso" (en proceso), "Para empezar" (aprobadas) y "Terminadas" (finalizadas y entregadas). Siempre hay uno elegido; al entrar es el primero que tenga órdenes.
+- **Lista**: número, vehículo, fecha prometida y horas cargadas ("2 de 3" servicios). Las órdenes demoradas van resaltadas, como en el tablero.
+- **Resumen** de la orden elegida: vehículo y kilometraje de ingreso, lo que dijo el cliente, las observaciones de recepción, los servicios a realizar con sus horas y las cinco fotos de recepción, que se pueden ampliar pero no cambiar.
+- **Un botón** según el caso: "Iniciar trabajo", "Cargar horas y finalizar" o "Ver orden". Abre la misma ventana de gestión de la orden, en modo mecánico.
+
+En modo mecánico la gestión de la orden no muestra ningún importe (ni precios, ni subtotales, ni totales) y solo deja iniciar el trabajo, cargar las horas y las observaciones, guardar el avance y finalizar. El presupuesto, la aprobación del cliente, la entrega, la anulación y el cambio de mecánico siguen siendo de la recepción y del administrador. Un mecánico no puede abrir ni modificar una orden asignada a otro: se comprueba en la base al abrirla y otra vez al guardar.
 
 ---
 
@@ -293,7 +305,8 @@ No aplica: aplicación de escritorio WinForms. No expone endpoints.
   - Terminado: Menú por rol (`FrmPrincipal` está armado en el diseñador y muestra en `FrmPrincipal_Load` solo las opciones del rol que ingresó; ver [Menú por rol](#menú-por-rol)). Aún no se aplican permisos por rol dentro de cada pantalla, salvo en Usuarios, Mecánicos, Servicios, Categorías, Recepción, Órdenes de trabajo y Gestión de la orden, que comprueban el rol al abrirse; en Gestión de la orden, además, solo el administrador ve el botón "Anular".
   - Terminado: Recepción (asistente de cuatro pasos: vehículo por patente, datos de ingreso, fotos por ángulo y confirmación; guarda en una transacción la orden en estado `RECEPCIONADA`, su primera fila de historial y sus fotos) y Órdenes de trabajo (tablero a todo el ancho: tarjetas con la cantidad de órdenes por estado, que también filtran la lista; filtros por texto y demoradas; grilla con el estado en color; y tarjeta de detalle de la orden seleccionada con sus fotos en miniatura, ampliables, y el botón "Gestionar orden"). Ver [Recepción y órdenes de trabajo](#recepción-y-órdenes-de-trabajo).
   - Terminado: Gestión de la orden (líneas de presupuesto con sus totales, mecánico, aprobación del cliente por línea o rechazo, inicio del trabajo, horas trabajadas por línea, cierre técnico, entrega con actualización del kilometraje y anulación con motivo, solo para el administrador; cada cambio de estado se guarda en una transacción con su fila de historial). Ver [Recepción y órdenes de trabajo](#recepción-y-órdenes-de-trabajo).
-  - Pendiente en el flujo de la orden de trabajo: vista del mecánico e impresión del presupuesto.
+  - Terminado: Mis órdenes (pantalla del mecánico: sus órdenes en tres grupos, resumen de trabajo con fotos y un botón que abre la gestión de la orden en modo mecánico, sin importes; ver [Mis órdenes](#mis-órdenes-pantalla-del-mecánico)).
+  - Pendiente en el flujo de la orden de trabajo: impresión del presupuesto, diagnóstico escrito por el mecánico antes del presupuesto y fotos cargadas por el mecánico.
   - Terminado: Mecánicos (ABM solo para el administrador: nombre completo obligatorio, especialidad y teléfono; búsqueda por nombre o especialidad; baja lógica, rechazada si el mecánico tiene órdenes de trabajo sin cerrar; un mecánico dado de baja se reactiva con el mismo botón; no admite dos mecánicos activos con el mismo nombre).
   - Terminado: Servicios (ABM solo para el administrador: código único, descripción, categoría y precio obligatorios, tiempo estimado en horas opcional; búsqueda por código, descripción o categoría; baja lógica y reactivación con el mismo botón, rechazada si la categoría del servicio está dada de baja; cambiar el precio no altera los presupuestos ya cargados).
   - Terminado: Categorías (ABM solo para el administrador: descripción única y obligatoria; la grilla muestra la cantidad de servicios activos de cada una, con búsqueda por descripción; baja lógica, rechazada si la categoría tiene servicios activos; una categoría dada de baja se reactiva con el mismo botón).
