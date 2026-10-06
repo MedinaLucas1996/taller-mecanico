@@ -13,6 +13,10 @@ Public Class FrmOrdenGestion
     'mecanico que la orden tiene guardado, 0 si no tiene
     Private idMecanicoOrden As Integer = 0
 
+    'queda en True cuando quien abre la orden es un mecanico: ve solo el trabajo, sin importes,
+    'y puede iniciar, cargar horas y finalizar unicamente sus ordenes; se decide una vez, en Load
+    Private modoMecanico As Boolean = False
+
     'etapa mas avanzada del flujo a la que llego la orden (1 a 6), sale del historial
     Private etapaAlcanzada As Integer = 0
     'motivo con el que se rechazo o anulo la orden, sale del historial
@@ -206,8 +210,9 @@ Public Class FrmOrdenGestion
         colMarca.Visible = (codigoEstado = "EN_PROCESO")
 
         'con el trabajo en proceso los importes no hacen falta, se cargan las horas
-        colPrecio.Visible = (codigoEstado <> "EN_PROCESO")
-        colSubtotal.Visible = (codigoEstado <> "EN_PROCESO")
+        'el mecanico no ve importes en ninguna etapa
+        colPrecio.Visible = (codigoEstado <> "EN_PROCESO" AndAlso Not modoMecanico)
+        colSubtotal.Visible = (codigoEstado <> "EN_PROCESO" AndAlso Not modoMecanico)
 
         'la aprobacion por linea se ve mientras se decide y en las ordenes que no siguieron
         colAprobado.Visible = (codigoEstado = "PRESUPUESTADA" OrElse codigoEstado = "APROBADA" OrElse
@@ -217,13 +222,14 @@ Public Class FrmOrdenGestion
         colHoras.Visible = (conEjecucion OrElse codigoEstado = "ANULADA")
 
         'en la grilla se edita solo la aprobacion (presupuestada) o las horas (en proceso)
-        dgvDetalle.ReadOnly = Not (codigoEstado = "PRESUPUESTADA" OrElse codigoEstado = "EN_PROCESO")
+        'el mecanico no registra la aprobacion: para el la grilla solo se edita en proceso
+        dgvDetalle.ReadOnly = Not ((codigoEstado = "PRESUPUESTADA" AndAlso Not modoMecanico) OrElse codigoEstado = "EN_PROCESO")
         colMarca.ReadOnly = True
         colDescripcion.ReadOnly = True
         colCantidad.ReadOnly = True
         colPrecio.ReadOnly = True
         colSubtotal.ReadOnly = True
-        colAprobado.ReadOnly = (codigoEstado <> "PRESUPUESTADA")
+        colAprobado.ReadOnly = (codigoEstado <> "PRESUPUESTADA" OrElse modoMecanico)
         colHoras.ReadOnly = (codigoEstado <> "EN_PROCESO")
     End Sub
 
@@ -410,14 +416,65 @@ Public Class FrmOrdenGestion
         'la anulacion es solo del administrador y vale en cualquier estado que no sea final
         btnAnular.Visible = (Sesion.Rol = "ADMINISTRADOR" AndAlso Not esEstadoFinal)
 
+        'el mecanico ve la misma pantalla con menos cosas: lo ajusto al final, sobre lo ya armado
+        If modoMecanico Then MostrarEtapaMecanico()
+
         ActualizarConteo()
+    End Sub
+
+    Sub MostrarEtapaMecanico()
+        'ajusto la etapa para el mecanico: sin importes, sin presupuesto, sin cambio de mecanico y sin anulacion
+        'solo puede iniciar el trabajo (aprobada) y cargar horas, guardar y finalizar (en proceso)
+
+        'nada de importes
+        lblTotalPresupuestado.Visible = False
+        lblTotalAprobado.Visible = False
+
+        'el presupuesto no se toca
+        pnlEditor.Visible = False
+        btnActualizar.Visible = False
+        btnQuitar.Visible = False
+
+        'el mecanico asignado se lee, no se cambia
+        cboMecanico.Visible = False
+        btnGuardarMecanico.Visible = False
+        lblMecanico.Visible = True
+        btnAnular.Visible = False
+
+        If codigoEstado = "RECEPCIONADA" Then
+            lblEtapaTitulo.Text = "Esperando el presupuesto"
+            lblEtapaAyuda.Text = "La orden todavía no tiene el presupuesto armado. Vas a poder iniciar el trabajo cuando el cliente lo apruebe."
+        End If
+
+        If codigoEstado = "PRESUPUESTADA" Then
+            lblEtapaTitulo.Text = "Esperando la aprobación del cliente"
+            lblEtapaAyuda.Text = "El presupuesto está armado y falta que el cliente lo apruebe. Vas a poder iniciar el trabajo cuando lo haga."
+        End If
+
+        If codigoEstado = "APROBADA" Then
+            lblEtapaAyuda.Text = "El cliente aprobó el presupuesto. Cuando empieces con el vehículo, iniciá el trabajo."
+            'el combo de mecanicos no se carga en este modo: el nombre sale de los datos de la orden
+            lblAvisoMecanico.Text = "Mecánico asignado: " & lblMecanico.Text
+        End If
+
+        If codigoEstado = "FINALIZADA" Then
+            lblEtapaAyuda.Text = "El trabajo está terminado. La entrega del vehículo al cliente la registra la recepción."
+        End If
+
+        'fuera de aprobada y en proceso no hay ningun paso para el mecanico: el boton principal solo cierra
+        If codigoEstado <> "APROBADA" AndAlso codigoEstado <> "EN_PROCESO" Then
+            lblProximo.Visible = False
+            btnSecundario.Visible = False
+            btnPrimario.Image = Nothing
+            btnPrimario.Text = "Cerrar"
+        End If
     End Sub
 
     Sub ActualizarConteo()
         'actualizo el contador de la etapa: aprobadas (presupuestada) o sin horas cargadas (en proceso)
         lblConteo.Text = ""
 
-        If codigoEstado = "PRESUPUESTADA" Then
+        If codigoEstado = "PRESUPUESTADA" AndAlso Not modoMecanico Then
             'cuento las lineas tildadas y sumo su importe, todavia sin guardar
             Dim aprobadas As Integer = 0
             Dim total As Decimal = 0D
@@ -584,6 +641,40 @@ Public Class FrmOrdenGestion
         cargando = False
     End Sub
 
+    Function OrdenEsDelMecanico(cn As MySqlConnection, transaccion As MySqlTransaction) As Boolean
+        'indica si la orden esta asignada al mecanico que inicio la sesion
+        'se lee de la base, nunca de lo que hay en pantalla: la orden pudo reasignarse desde otro puesto
+        'dentro de una transaccion se llama despues de LeerCodigoEstado, que ya dejo bloqueada la fila
+        If Sesion.IdMecanico = 0 Then Return False
+
+        Dim consulta As String =
+            "SELECT id_mecanico FROM orden_trabajo WHERE id_orden_trabajo = @id_orden_trabajo;"
+        Using cmd As New MySqlCommand(consulta, cn, transaccion)
+            cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
+            Dim resultado As Object = cmd.ExecuteScalar()
+            If resultado Is Nothing OrElse IsDBNull(resultado) Then Return False
+            Return Convert.ToInt32(resultado) = Sesion.IdMecanico
+        End Using
+    End Function
+
+    Function RechazaMecanico() As Boolean
+        'las acciones de la recepcion (presupuesto, aprobacion, entrega, mecanico asignado) no son del mecanico
+        'sus botones estan ocultos en ese modo, pero cada accion lo vuelve a comprobar al empezar
+        If Not modoMecanico Then Return False
+
+        MessageBox.Show("Esta acción no está disponible para el mecánico.")
+        Return True
+    End Function
+
+    Sub CerrarPorOrdenAjena()
+        'la orden dejo de ser del mecanico mientras la tenia abierta: aviso y cierro, sin guardar nada
+        MessageBox.Show("La orden ya no está asignada a usted: fue reasignada desde otro puesto." & vbCrLf &
+                        "No se guardó ningún dato.")
+        'lo escrito no se puede guardar, no tiene sentido preguntar por el al cerrar
+        avanceSinGuardar = False
+        Me.Close()
+    End Sub
+
     Function LeerCodigoEstado(cn As MySqlConnection, transaccion As MySqlTransaction) As String
         'vuelvo a leer el estado de la orden dentro de la transaccion: otro puesto pudo cambiarlo
         'FOR UPDATE bloquea solo la fila de la orden hasta terminar, asi nadie le cambia el estado en el medio
@@ -722,8 +813,11 @@ Public Class FrmOrdenGestion
     End Sub
 
     Private Sub FrmOrdenGestion_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-        'solo el administrador y el operador gestionan las ordenes
-        If Sesion.Rol <> "ADMINISTRADOR" AndAlso Sesion.Rol <> "OPERADOR" Then
+        'el administrador y el operador gestionan las ordenes; el mecanico entra en un modo propio,
+        'solo para sus ordenes; el modo se decide aca, una sola vez
+        If Sesion.Rol = "MECANICO" Then
+            modoMecanico = True
+        ElseIf Sesion.Rol <> "ADMINISTRADOR" AndAlso Sesion.Rol <> "OPERADOR" Then
             MessageBox.Show("Solo el administrador y el operador pueden gestionar las órdenes de trabajo.")
             Me.Close()
             Exit Sub
@@ -734,6 +828,34 @@ Public Class FrmOrdenGestion
             MessageBox.Show("No se indicó la orden de trabajo a gestionar.")
             Me.Close()
             Exit Sub
+        End If
+
+        If modoMecanico Then
+            'el mecanico abre solo las ordenes que tiene asignadas: lo compruebo en la base,
+            'no con lo que diga la pantalla que abrio este formulario
+            If Sesion.IdMecanico = 0 Then
+                MessageBox.Show("Su usuario no tiene un mecánico asociado.")
+                Me.Close()
+                Exit Sub
+            End If
+
+            Dim esSuya As Boolean = False
+            Try
+                Using cn As New MySqlConnection(CADENA)
+                    cn.Open()
+                    esSuya = OrdenEsDelMecanico(cn, Nothing)
+                End Using
+            Catch ex As Exception
+                MessageBox.Show("No se pudo comprobar la orden de trabajo: " & ex.Message)
+                Me.Close()
+                Exit Sub
+            End Try
+
+            If Not esSuya Then
+                MessageBox.Show("Esta orden de trabajo no está asignada a usted.")
+                Me.Close()
+                Exit Sub
+            End If
         End If
 
         CargarIconos()
@@ -760,8 +882,11 @@ Public Class FrmOrdenGestion
         dgvHistorial.DefaultCellStyle.SelectionForeColor = Color.Black
 
         'cargo los combos y despues la orden, que marca su mecanico en el combo
-        CargarComboMecanicos()
-        CargarComboServicios()
+        'el mecanico no usa ninguno de los dos, y el de servicios muestra precios: en su modo no se cargan
+        If Not modoMecanico Then
+            CargarComboMecanicos()
+            CargarComboServicios()
+        End If
         CargarOrden()
 
         'sin estado leido la orden no existe o no se pudo cargar
@@ -940,6 +1065,12 @@ Public Class FrmOrdenGestion
             Exit Sub
         End If
 
+        'para el mecanico el boton solo hace un paso en aprobada y en proceso; en el resto dice "Cerrar"
+        If modoMecanico AndAlso codigoEstado <> "APROBADA" AndAlso codigoEstado <> "EN_PROCESO" Then
+            Me.Close()
+            Exit Sub
+        End If
+
         'tomo el estado que se ve en pantalla al hacer clic: cada paso recarga la orden y cambia
         'codigoEstado, y un clic tiene que hacer un solo paso, nunca encadenar el siguiente
         Dim estadoAlClic As String = codigoEstado
@@ -971,6 +1102,9 @@ Public Class FrmOrdenGestion
 
     Private Sub btnGuardarMecanico_Click(sender As Object, e As EventArgs) Handles btnGuardarMecanico.Click
         'guardo el mecanico elegido en la orden
+
+        'accion de la recepcion: un mecanico no la hace aunque llegue hasta aca
+        If RechazaMecanico() Then Exit Sub
 
         'si el combo no se pudo cargar no hay nada confiable para guardar
         If cboMecanico.DataSource Is Nothing OrElse cboMecanico.SelectedValue Is Nothing Then
@@ -1051,6 +1185,9 @@ Public Class FrmOrdenGestion
 
     Private Sub btnAgregar_Click(sender As Object, e As EventArgs) Handles btnAgregar.Click
         'agrego un servicio al presupuesto de la orden
+
+        'accion de la recepcion: un mecanico no la hace aunque llegue hasta aca
+        If RechazaMecanico() Then Exit Sub
 
         'la clave 0 es "(seleccione un servicio)"
         If cboServicio.SelectedValue Is Nothing OrElse Convert.ToInt32(cboServicio.SelectedValue) = 0 Then
@@ -1170,6 +1307,9 @@ Public Class FrmOrdenGestion
     Private Sub btnActualizar_Click(sender As Object, e As EventArgs) Handles btnActualizar.Click
         'cambio la cantidad de la linea seleccionada
 
+        'accion de la recepcion: un mecanico no la hace aunque llegue hasta aca
+        If RechazaMecanico() Then Exit Sub
+
         'tomo la linea marcada en la grilla en este momento
         If dgvDetalle.SelectedRows.Count = 0 Then
             MessageBox.Show("Debe seleccionar una línea del presupuesto para cambiar su cantidad")
@@ -1244,6 +1384,9 @@ Public Class FrmOrdenGestion
     Private Sub btnQuitar_Click(sender As Object, e As EventArgs) Handles btnQuitar.Click
         'quito del presupuesto la linea seleccionada
 
+        'accion de la recepcion: un mecanico no la hace aunque llegue hasta aca
+        If RechazaMecanico() Then Exit Sub
+
         'tomo la linea marcada en la grilla en este momento
         If dgvDetalle.SelectedRows.Count = 0 Then
             MessageBox.Show("Debe seleccionar una línea del presupuesto para quitarla")
@@ -1317,6 +1460,9 @@ Public Class FrmOrdenGestion
     Sub Presupuestar()
         'paso la orden de RECEPCIONADA a PRESUPUESTADA
 
+        'accion de la recepcion: un mecanico no la hace aunque llegue hasta aca
+        If RechazaMecanico() Then Exit Sub
+
         Dim aviso As String = ""
 
         Try
@@ -1375,6 +1521,9 @@ Public Class FrmOrdenGestion
     Sub RegistrarAprobacion()
         'registro la aprobacion del cliente: paso la orden de PRESUPUESTADA a APROBADA
         'con las lineas que quedaron tildadas en la grilla
+
+        'accion de la recepcion: un mecanico no la hace aunque llegue hasta aca
+        If RechazaMecanico() Then Exit Sub
 
         'cierro la edicion de la celda para que la ultima tilde quede en la grilla
         dgvDetalle.EndEdit()
@@ -1493,6 +1642,9 @@ Public Class FrmOrdenGestion
     Sub RechazarPresupuesto()
         'el cliente no aprueba el presupuesto: paso la orden de PRESUPUESTADA a RECHAZADA
 
+        'accion de la recepcion: un mecanico no la hace aunque llegue hasta aca
+        If RechazaMecanico() Then Exit Sub
+
         'pido confirmacion, la orden queda cerrada
         Dim respuesta As DialogResult = MessageBox.Show(
             "¿Registrar que el cliente rechazó el presupuesto? La orden queda cerrada.",
@@ -1560,6 +1712,8 @@ Public Class FrmOrdenGestion
         'paso la orden de APROBADA a EN_PROCESO
 
         Dim aviso As String = ""
+        'queda en True cuando la orden dejo de ser del mecanico que la tiene abierta
+        Dim ordenAjena As Boolean = False
 
         Try
             Using cn As New MySqlConnection(CADENA)
@@ -1568,7 +1722,14 @@ Public Class FrmOrdenGestion
                 'el cambio de estado y su fila de historial se guardan juntos o ninguno
                 Dim transaccion As MySqlTransaction = cn.BeginTransaction()
                 Try
-                    If LeerCodigoEstado(cn, transaccion) <> "APROBADA" Then
+                    'leo el estado, lo que deja bloqueada la fila de la orden
+                    Dim codigoActual As String = LeerCodigoEstado(cn, transaccion)
+
+                    'un mecanico solo inicia sus ordenes: lo compruebo con la fila ya bloqueada
+                    If modoMecanico AndAlso Not OrdenEsDelMecanico(cn, transaccion) Then
+                        ordenAjena = True
+                        aviso = "ajena"
+                    ElseIf codigoActual <> "APROBADA" Then
                         aviso = "La orden ya no está aprobada, no se puede iniciar el trabajo."
                     End If
 
@@ -1605,6 +1766,11 @@ Public Class FrmOrdenGestion
             Exit Sub
         End Try
 
+        If ordenAjena Then
+            CerrarPorOrdenAjena()
+            Exit Sub
+        End If
+
         If aviso <> "" Then
             MessageBox.Show(aviso)
         Else
@@ -1624,6 +1790,8 @@ Public Class FrmOrdenGestion
 
         Dim notas As String = txtNotasTecnicas.Text.Trim
         Dim aviso As String = ""
+        'queda en True cuando la orden dejo de ser del mecanico que la tiene abierta
+        Dim ordenAjena As Boolean = False
 
         Try
             Using cn As New MySqlConnection(CADENA)
@@ -1632,7 +1800,14 @@ Public Class FrmOrdenGestion
                 'las lineas y las observaciones se guardan juntas o ninguna
                 Dim transaccion As MySqlTransaction = cn.BeginTransaction()
                 Try
-                    If LeerCodigoEstado(cn, transaccion) <> "EN_PROCESO" Then
+                    'leo el estado, lo que deja bloqueada la fila de la orden
+                    Dim codigoActual As String = LeerCodigoEstado(cn, transaccion)
+
+                    'un mecanico solo guarda avance en sus ordenes: lo compruebo con la fila ya bloqueada
+                    If modoMecanico AndAlso Not OrdenEsDelMecanico(cn, transaccion) Then
+                        ordenAjena = True
+                        aviso = "ajena"
+                    ElseIf codigoActual <> "EN_PROCESO" Then
                         aviso = "La orden ya no está en proceso, no se puede guardar el avance."
                     End If
 
@@ -1655,6 +1830,11 @@ Public Class FrmOrdenGestion
                             "Detalle: " & ex.Message)
             Exit Sub
         End Try
+
+        If ordenAjena Then
+            CerrarPorOrdenAjena()
+            Exit Sub
+        End If
 
         If aviso <> "" Then
             MessageBox.Show(aviso)
@@ -1696,6 +1876,8 @@ Public Class FrmOrdenGestion
         End If
 
         Dim aviso As String = ""
+        'queda en True cuando la orden dejo de ser del mecanico que la tiene abierta
+        Dim ordenAjena As Boolean = False
 
         Try
             Using cn As New MySqlConnection(CADENA)
@@ -1704,7 +1886,14 @@ Public Class FrmOrdenGestion
                 'las horas de cada linea, las observaciones, la fecha, el estado y el historial se guardan juntos o ninguno
                 Dim transaccion As MySqlTransaction = cn.BeginTransaction()
                 Try
-                    If LeerCodigoEstado(cn, transaccion) <> "EN_PROCESO" Then
+                    'leo el estado, lo que deja bloqueada la fila de la orden
+                    Dim codigoActual As String = LeerCodigoEstado(cn, transaccion)
+
+                    'un mecanico solo finaliza sus ordenes: lo compruebo con la fila ya bloqueada
+                    If modoMecanico AndAlso Not OrdenEsDelMecanico(cn, transaccion) Then
+                        ordenAjena = True
+                        aviso = "ajena"
+                    ElseIf codigoActual <> "EN_PROCESO" Then
                         aviso = "La orden ya no está en proceso, no se puede finalizar."
                     End If
 
@@ -1758,6 +1947,11 @@ Public Class FrmOrdenGestion
             Exit Sub
         End Try
 
+        If ordenAjena Then
+            CerrarPorOrdenAjena()
+            Exit Sub
+        End If
+
         If aviso <> "" Then
             MessageBox.Show(aviso)
         Else
@@ -1770,6 +1964,9 @@ Public Class FrmOrdenGestion
 
     Sub EntregarVehiculo()
         'entrego el vehiculo: paso la orden de FINALIZADA a ENTREGADA
+
+        'accion de la recepcion: un mecanico no la hace aunque llegue hasta aca
+        If RechazaMecanico() Then Exit Sub
 
         'pido confirmacion, la orden queda cerrada
         Dim respuesta As DialogResult = MessageBox.Show(

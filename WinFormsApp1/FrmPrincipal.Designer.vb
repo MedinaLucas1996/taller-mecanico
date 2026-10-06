@@ -35,6 +35,7 @@ Partial Class FrmPrincipal
         btnUsuarios = New Button()
         panelMenuArriba = New TableLayoutPanel()
         lblTituloOperaciones = New Label()
+        btnMisOrdenes = New Button()
         btnRecepcion = New Button()
         btnOrdenes = New Button()
         btnHistorial = New Button()
@@ -287,15 +288,17 @@ Partial Class FrmPrincipal
         panelMenuArriba.ColumnCount = 1
         panelMenuArriba.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 100F))
         panelMenuArriba.Controls.Add(lblTituloOperaciones, 0, 0)
-        panelMenuArriba.Controls.Add(btnRecepcion, 0, 1)
-        panelMenuArriba.Controls.Add(btnOrdenes, 0, 2)
-        panelMenuArriba.Controls.Add(btnHistorial, 0, 3)
-        panelMenuArriba.Controls.Add(lblTituloReportes, 0, 4)
-        panelMenuArriba.Controls.Add(btnReportes, 0, 5)
+        panelMenuArriba.Controls.Add(btnMisOrdenes, 0, 1)
+        panelMenuArriba.Controls.Add(btnRecepcion, 0, 2)
+        panelMenuArriba.Controls.Add(btnOrdenes, 0, 3)
+        panelMenuArriba.Controls.Add(btnHistorial, 0, 4)
+        panelMenuArriba.Controls.Add(lblTituloReportes, 0, 5)
+        panelMenuArriba.Controls.Add(btnReportes, 0, 6)
         panelMenuArriba.Dock = DockStyle.Top
         panelMenuArriba.Location = New Point(0, 76)
         panelMenuArriba.Name = "panelMenuArriba"
-        panelMenuArriba.RowCount = 6
+        panelMenuArriba.RowCount = 7
+        panelMenuArriba.RowStyles.Add(New RowStyle())
         panelMenuArriba.RowStyles.Add(New RowStyle())
         panelMenuArriba.RowStyles.Add(New RowStyle())
         panelMenuArriba.RowStyles.Add(New RowStyle())
@@ -318,6 +321,30 @@ Partial Class FrmPrincipal
         lblTituloOperaciones.TabIndex = 0
         lblTituloOperaciones.Text = "OPERACIONES"
         lblTituloOperaciones.Visible = False
+        '
+        ' btnMisOrdenes
+        '
+        btnMisOrdenes.Anchor = AnchorStyles.Left Or AnchorStyles.Right
+        btnMisOrdenes.BackColor = Color.FromArgb(CByte(30), CByte(39), CByte(46))
+        btnMisOrdenes.Cursor = Cursors.Hand
+        btnMisOrdenes.FlatAppearance.BorderSize = 0
+        btnMisOrdenes.FlatAppearance.MouseOverBackColor = Color.FromArgb(CByte(52), CByte(73), CByte(94))
+        btnMisOrdenes.FlatStyle = FlatStyle.Flat
+        btnMisOrdenes.Font = New Font("Segoe UI", 10F)
+        btnMisOrdenes.ForeColor = Color.White
+        btnMisOrdenes.ImageAlign = ContentAlignment.MiddleLeft
+        btnMisOrdenes.Location = New Point(0, 36)
+        btnMisOrdenes.Margin = New Padding(0)
+        btnMisOrdenes.Name = "btnMisOrdenes"
+        btnMisOrdenes.Padding = New Padding(16, 0, 0, 0)
+        btnMisOrdenes.Size = New Size(230, 40)
+        btnMisOrdenes.TabIndex = 6
+        btnMisOrdenes.Tag = "Mis órdenes"
+        btnMisOrdenes.Text = "  Mis órdenes"
+        btnMisOrdenes.TextAlign = ContentAlignment.MiddleLeft
+        btnMisOrdenes.TextImageRelation = TextImageRelation.ImageBeforeText
+        btnMisOrdenes.UseVisualStyleBackColor = False
+        btnMisOrdenes.Visible = False
         '
         ' btnRecepcion
         '
@@ -588,6 +615,7 @@ Partial Class FrmPrincipal
     Friend WithEvents btnUsuarios As Button
     Friend WithEvents panelMenuArriba As TableLayoutPanel
     Friend WithEvents lblTituloOperaciones As Label
+    Friend WithEvents btnMisOrdenes As Button
     Friend WithEvents btnRecepcion As Button
     Friend WithEvents btnOrdenes As Button
     Friend WithEvents btnHistorial As Button
