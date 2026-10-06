@@ -52,10 +52,10 @@ Mode: disabled (no test project). Checks: `dotnet build WinFormsApp1.slnx --no-i
 ## Tasks
 
 - [x] **T1 — Clientes as the model screen** (route: delegated writer; trigger: 2+ non-trivial files)
-- [ ] **T2 — User validation of the model** (the user tests and sends a screenshot; adjustments until approved)
-- [ ] **T3 — Vehículos and Usuarios** (route: delegated writer, after T2)
-- [ ] **T4 — Mecánicos, Servicios and Categorías** (route: delegated writer, after T2)
-- [ ] **T5 — Marcas y modelos** (route: delegated writer, after T2; two related lists, needs its own arrangement of the same model)
+- [x] **T2 — User validation of the model** (the user tests and sends a screenshot; adjustments until approved)
+- [x] **T3 — Vehículos and Usuarios** (route: delegated writer, after T2)
+- [x] **T4 — Mecánicos, Servicios and Categorías** (route: delegated writer, after T2)
+- [x] **T5 — Marcas y modelos** (route: delegated writer, after T2; two related lists, needs its own arrangement of the same model)
 
 ## Acceptance criteria
 
@@ -76,10 +76,10 @@ Strategy: `single-pr`, opened only when the user asks, with one work-unit commit
 | Task | Status | Commit | Evidence |
 |---|---|---|---|
 | T1 | done | same commit as this document | Build 0 warnings, 0 errors, re-run by the parent. Rendered off-screen from the real form at 870 x 630, 954 x 696 and 1690 x 940 in edit, deactivated and new modes; the parent viewed the images. Fields, buttons and card edges coincide at the three sizes. Saves, bajas and dialogs were not exercised. |
-| T2 | pending | | |
-| T3 | pending | | |
-| T4 | pending | | |
-| T5 | pending | | |
+| T2 | done | `08bfb3e`, `91dc157` | The user tested Clientes at runtime on 2026-10-06 and approved it ("funciona todo"), after the review fixes and after the parent fixed `FrmPrincipal.CerrarPantallaActual`, which only looked at the welcome label and never closed the open screen. Native review of `a249e48..08bfb3e`: medium, granted, approved and acknowledged (`review-319e7873d5538127`). |
+| T3 | done | see git log | Build 0 warnings, 0 errors, re-run by the parent. Rendered off-screen at 870 x 630 and 1690 x 940; the parent viewed Vehículos. Tab order and guarded sort observed in the harness. |
+| T4 | done | see git log | As T3; the parent viewed Servicios. No deactivated mechanic, service or category exists locally, so the gray rows and "Reactivar" were not rendered for these screens. |
+| T5 | done | see git log | Two cards, Marcas and "Modelos de …", each with its list and one edit box; capabilities unchanged (physical delete, no search, no logical delete). The parent viewed the render. |
 
 Spacing system fixed by T1 (designer units; this machine renders x 7/8, y 3/4): outer margin 30; cards start at y 110; gap between cards 10; card padding 16; record card width 380; header button 200 x 40; grid header 40 high, white, DimGray bold 8.25, one bottom line; grid rows 26, light horizontal lines only; record title 12 pt bold on its own line, status label under it; field table from y 78 with columns 40 % / 60 %; field label 8.25 pt DimGray above its input; the multi-line field takes the remaining height (minimum 64); action buttons 40 high, anchored 16 from the bottom.
 
@@ -87,4 +87,4 @@ Review of `a249e48`: the native review could not run (bound STATUS timed out twi
 
 ## Next step
 
-T2: the user tests Clientes at runtime and sends a screenshot; the other six screens wait for that approval.
+The user tests the six screens at runtime (saves, bajas, reactivations and deletes were never exercised by the agent), then decides push / PR for `feature/TM-0010`.
