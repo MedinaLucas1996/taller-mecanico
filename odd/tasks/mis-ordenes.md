@@ -84,6 +84,10 @@ Strategy: `single-pr`, opened only when the user asks, one work-unit commit per 
 
 Not verified: every write (start, save progress, finish) and its refusals; the group switch after returning from the dialog; "Para empezar" with data and the `APROBADA` view (the local database has no approved order); thumbnails with real photos; another mechanic's order being refused (read in code only).
 
+Native review of `0ac446b..f00cf7f`: medium, granted, approved and acknowledged (`review-e8ca8f307d56eda5`). Non-blocking notes left open: a failed load is shown as an empty state (no services, counts at 0, "Sin foto"); a failed reload after a group change leaves the previous rows under the newly highlighted card; the "Horas" column sorts as text.
+
+Verified by the user at runtime on 2026-10-06 ("funciona todo"); the agent did not observe it.
+
 ## Next step
 
-The user tests as a mechanic user with at least one `APROBADA` order assigned, then decides push / PR for `feature/TM-0011`.
+Nothing pending for this feature. Not built, by the user's decision: a diagnosis written by the mechanic before the budget, and photos uploaded by the mechanic (both need database changes).
