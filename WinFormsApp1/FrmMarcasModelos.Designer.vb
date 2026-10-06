@@ -22,45 +22,42 @@ Partial Class FrmMarcasModelos
     'No lo modifique con el editor de código.
     <System.Diagnostics.DebuggerStepThrough()> _
     Private Sub InitializeComponent()
+        Dim DataGridViewCellStyle1 As DataGridViewCellStyle = New DataGridViewCellStyle()
+        Dim DataGridViewCellStyle2 As DataGridViewCellStyle = New DataGridViewCellStyle()
         lblTitulo = New Label()
         lblSubtitulo = New Label()
+        tlpTarjetas = New TableLayoutPanel()
         pnlMarcas = New Panel()
-        lblSeccionMarcas = New Label()
-        lblIdMarca = New Label()
-        txtIdMarca = New TextBox()
+        lblTituloMarcas = New Label()
+        btnNuevaMarca = New Button()
+        dgvMarcas = New DataGridView()
         lblMarca = New Label()
         txtMarca = New TextBox()
         btnGuardarMarca = New Button()
-        btnModificarMarca = New Button()
         btnEliminarMarca = New Button()
-        btnLimpiarMarca = New Button()
-        dgvMarcas = New DataGridView()
         pnlModelos = New Panel()
-        lblSeccionModelos = New Label()
-        lblMarcaSeleccionada = New Label()
-        lblIdModelo = New Label()
-        txtIdModelo = New TextBox()
+        lblTituloModelos = New Label()
+        btnNuevoModelo = New Button()
+        dgvModelos = New DataGridView()
         lblModelo = New Label()
         txtModelo = New TextBox()
         btnGuardarModelo = New Button()
-        btnModificarModelo = New Button()
         btnEliminarModelo = New Button()
-        btnLimpiarModelo = New Button()
-        dgvModelos = New DataGridView()
+        lblAyudaModelos = New Label()
+        tlpTarjetas.SuspendLayout()
         pnlMarcas.SuspendLayout()
-        CType(dgvMarcas, ComponentModel.ISupportInitialize).BeginInit()
         pnlModelos.SuspendLayout()
+        CType(dgvMarcas, ComponentModel.ISupportInitialize).BeginInit()
         CType(dgvModelos, ComponentModel.ISupportInitialize).BeginInit()
         SuspendLayout()
         '
         ' lblTitulo
         '
-        lblTitulo.AutoSize = True
         lblTitulo.Font = New Font("Segoe UI", 24F, FontStyle.Bold)
-        lblTitulo.Location = New Point(40, 25)
+        lblTitulo.Location = New Point(30, 10)
         lblTitulo.Name = "lblTitulo"
-        lblTitulo.Size = New Size(338, 54)
-        lblTitulo.TabIndex = 0
+        lblTitulo.Size = New Size(520, 60)
+        lblTitulo.TabIndex = 1
         lblTitulo.Text = "Marcas y modelos"
         '
         ' lblSubtitulo
@@ -68,80 +65,133 @@ Partial Class FrmMarcasModelos
         lblSubtitulo.AutoSize = True
         lblSubtitulo.Font = New Font("Segoe UI", 11F)
         lblSubtitulo.ForeColor = Color.DimGray
-        lblSubtitulo.Location = New Point(43, 78)
+        lblSubtitulo.Location = New Point(33, 72)
         lblSubtitulo.Name = "lblSubtitulo"
-        lblSubtitulo.Size = New Size(329, 25)
-        lblSubtitulo.TabIndex = 1
-        lblSubtitulo.Text = "Catálogo de marcas y modelos de vehículos"
+        lblSubtitulo.Size = New Size(160, 25)
+        lblSubtitulo.TabIndex = 2
+        lblSubtitulo.Text = "-"
+        '
+        ' tlpTarjetas
+        '
+        tlpTarjetas.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
+        tlpTarjetas.ColumnCount = 2
+        tlpTarjetas.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 50F))
+        tlpTarjetas.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 50F))
+        tlpTarjetas.Controls.Add(pnlMarcas, 0, 0)
+        tlpTarjetas.Controls.Add(pnlModelos, 1, 0)
+        tlpTarjetas.Location = New Point(30, 110)
+        tlpTarjetas.Name = "tlpTarjetas"
+        tlpTarjetas.RowCount = 1
+        tlpTarjetas.RowStyles.Add(New RowStyle(SizeType.Percent, 100F))
+        tlpTarjetas.Size = New Size(810, 510)
+        tlpTarjetas.TabIndex = 0
         '
         ' pnlMarcas
         '
-        pnlMarcas.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left
         pnlMarcas.BackColor = Color.White
-        pnlMarcas.Controls.Add(lblSeccionMarcas)
-        pnlMarcas.Controls.Add(lblIdMarca)
-        pnlMarcas.Controls.Add(txtIdMarca)
+        pnlMarcas.Controls.Add(lblTituloMarcas)
+        pnlMarcas.Controls.Add(btnNuevaMarca)
+        pnlMarcas.Controls.Add(dgvMarcas)
         pnlMarcas.Controls.Add(lblMarca)
         pnlMarcas.Controls.Add(txtMarca)
-        pnlMarcas.Controls.Add(btnGuardarMarca)
-        pnlMarcas.Controls.Add(btnModificarMarca)
         pnlMarcas.Controls.Add(btnEliminarMarca)
-        pnlMarcas.Controls.Add(btnLimpiarMarca)
-        pnlMarcas.Controls.Add(dgvMarcas)
-        pnlMarcas.Location = New Point(40, 120)
+        pnlMarcas.Controls.Add(btnGuardarMarca)
+        pnlMarcas.Dock = DockStyle.Fill
+        pnlMarcas.Location = New Point(0, 0)
+        pnlMarcas.Margin = New Padding(0, 0, 5, 0)
         pnlMarcas.Name = "pnlMarcas"
-        pnlMarcas.Size = New Size(450, 570)
-        pnlMarcas.TabIndex = 2
+        pnlMarcas.Size = New Size(400, 510)
+        pnlMarcas.TabIndex = 0
         '
-        ' lblSeccionMarcas
+        ' lblTituloMarcas
         '
-        lblSeccionMarcas.AutoSize = True
-        lblSeccionMarcas.Font = New Font("Segoe UI", 13F, FontStyle.Bold)
-        lblSeccionMarcas.Location = New Point(20, 15)
-        lblSeccionMarcas.Name = "lblSeccionMarcas"
-        lblSeccionMarcas.Size = New Size(79, 30)
-        lblSeccionMarcas.TabIndex = 0
-        lblSeccionMarcas.Text = "Marcas"
+        lblTituloMarcas.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
+        lblTituloMarcas.AutoEllipsis = True
+        lblTituloMarcas.Font = New Font("Segoe UI", 12F, FontStyle.Bold)
+        lblTituloMarcas.Location = New Point(16, 12)
+        lblTituloMarcas.Name = "lblTituloMarcas"
+        lblTituloMarcas.Size = New Size(198, 30)
+        lblTituloMarcas.TabIndex = 6
+        lblTituloMarcas.Text = "Marcas"
+        lblTituloMarcas.TextAlign = ContentAlignment.MiddleLeft
         '
-        ' lblIdMarca
+        ' btnNuevaMarca
         '
-        lblIdMarca.AutoSize = True
-        lblIdMarca.ForeColor = Color.DimGray
-        lblIdMarca.Location = New Point(20, 63)
-        lblIdMarca.Name = "lblIdMarca"
-        lblIdMarca.Size = New Size(24, 20)
-        lblIdMarca.TabIndex = 1
-        lblIdMarca.Text = "ID"
+        btnNuevaMarca.Anchor = AnchorStyles.Top Or AnchorStyles.Right
+        btnNuevaMarca.BackColor = Color.FromArgb(CByte(30), CByte(39), CByte(46))
+        btnNuevaMarca.Cursor = Cursors.Hand
+        btnNuevaMarca.FlatAppearance.BorderSize = 0
+        btnNuevaMarca.FlatAppearance.MouseOverBackColor = Color.FromArgb(CByte(52), CByte(73), CByte(94))
+        btnNuevaMarca.FlatStyle = FlatStyle.Flat
+        btnNuevaMarca.Font = New Font("Segoe UI", 9F, FontStyle.Bold)
+        btnNuevaMarca.ForeColor = Color.White
+        btnNuevaMarca.Location = New Point(224, 10)
+        btnNuevaMarca.Name = "btnNuevaMarca"
+        btnNuevaMarca.Size = New Size(160, 34)
+        btnNuevaMarca.TabIndex = 0
+        btnNuevaMarca.Text = " Nueva marca"
+        btnNuevaMarca.TextImageRelation = TextImageRelation.ImageBeforeText
+        btnNuevaMarca.UseVisualStyleBackColor = False
         '
-        ' txtIdMarca
+        ' dgvMarcas
         '
-        txtIdMarca.BackColor = Color.FromArgb(CByte(245), CByte(246), CByte(250))
-        txtIdMarca.Location = New Point(120, 60)
-        txtIdMarca.Name = "txtIdMarca"
-        txtIdMarca.ReadOnly = True
-        txtIdMarca.Size = New Size(80, 27)
-        txtIdMarca.TabIndex = 2
-        txtIdMarca.TabStop = False
+        DataGridViewCellStyle1.Alignment = DataGridViewContentAlignment.MiddleLeft
+        DataGridViewCellStyle1.BackColor = Color.White
+        DataGridViewCellStyle1.Font = New Font("Segoe UI", 8.25F, FontStyle.Bold)
+        DataGridViewCellStyle1.ForeColor = Color.DimGray
+        DataGridViewCellStyle1.SelectionBackColor = Color.White
+        DataGridViewCellStyle1.SelectionForeColor = Color.DimGray
+        DataGridViewCellStyle1.WrapMode = DataGridViewTriState.False
+        dgvMarcas.AllowUserToAddRows = False
+        dgvMarcas.AllowUserToDeleteRows = False
+        dgvMarcas.AllowUserToResizeRows = False
+        dgvMarcas.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
+        dgvMarcas.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill
+        dgvMarcas.BackgroundColor = Color.White
+        dgvMarcas.BorderStyle = BorderStyle.None
+        dgvMarcas.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal
+        dgvMarcas.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.None
+        dgvMarcas.ColumnHeadersDefaultCellStyle = DataGridViewCellStyle1
+        dgvMarcas.ColumnHeadersHeight = 40
+        dgvMarcas.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing
+        dgvMarcas.EnableHeadersVisualStyles = False
+        dgvMarcas.GridColor = Color.Gainsboro
+        dgvMarcas.Location = New Point(16, 54)
+        dgvMarcas.MultiSelect = False
+        dgvMarcas.Name = "dgvMarcas"
+        dgvMarcas.ReadOnly = True
+        dgvMarcas.RowHeadersVisible = False
+        dgvMarcas.RowHeadersWidth = 51
+        dgvMarcas.RowTemplate.Height = 26
+        dgvMarcas.SelectionMode = DataGridViewSelectionMode.FullRowSelect
+        dgvMarcas.Size = New Size(368, 328)
+        dgvMarcas.StandardTab = True
+        dgvMarcas.TabIndex = 1
         '
         ' lblMarca
         '
-        lblMarca.AutoSize = True
-        lblMarca.Location = New Point(20, 103)
+        lblMarca.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
+        lblMarca.AutoEllipsis = True
+        lblMarca.Font = New Font("Segoe UI", 8.25F)
+        lblMarca.ForeColor = Color.DimGray
+        lblMarca.Location = New Point(16, 394)
         lblMarca.Name = "lblMarca"
-        lblMarca.Size = New Size(72, 20)
-        lblMarca.TabIndex = 3
-        lblMarca.Text = "Marca (*)"
+        lblMarca.Size = New Size(368, 19)
+        lblMarca.TabIndex = 7
+        lblMarca.Text = "Nombre de la marca nueva (*)"
         '
         ' txtMarca
         '
-        txtMarca.Location = New Point(120, 100)
+        txtMarca.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
+        txtMarca.Location = New Point(16, 415)
         txtMarca.MaxLength = 50
         txtMarca.Name = "txtMarca"
-        txtMarca.Size = New Size(310, 27)
-        txtMarca.TabIndex = 4
+        txtMarca.Size = New Size(368, 27)
+        txtMarca.TabIndex = 2
         '
         ' btnGuardarMarca
         '
+        btnGuardarMarca.Anchor = AnchorStyles.Bottom Or AnchorStyles.Right
         btnGuardarMarca.BackColor = Color.FromArgb(CByte(30), CByte(39), CByte(46))
         btnGuardarMarca.Cursor = Cursors.Hand
         btnGuardarMarca.FlatAppearance.BorderSize = 0
@@ -149,155 +199,139 @@ Partial Class FrmMarcasModelos
         btnGuardarMarca.FlatStyle = FlatStyle.Flat
         btnGuardarMarca.Font = New Font("Segoe UI", 10F, FontStyle.Bold)
         btnGuardarMarca.ForeColor = Color.White
-        btnGuardarMarca.Location = New Point(20, 145)
+        btnGuardarMarca.Location = New Point(194, 454)
         btnGuardarMarca.Name = "btnGuardarMarca"
-        btnGuardarMarca.Size = New Size(95, 38)
-        btnGuardarMarca.TabIndex = 5
-        btnGuardarMarca.Text = "Guardar"
+        btnGuardarMarca.Size = New Size(190, 40)
+        btnGuardarMarca.TabIndex = 3
+        btnGuardarMarca.Text = " Guardar"
+        btnGuardarMarca.TextImageRelation = TextImageRelation.ImageBeforeText
         btnGuardarMarca.UseVisualStyleBackColor = False
-        '
-        ' btnModificarMarca
-        '
-        btnModificarMarca.BackColor = Color.White
-        btnModificarMarca.Cursor = Cursors.Hand
-        btnModificarMarca.FlatAppearance.BorderColor = Color.Silver
-        btnModificarMarca.FlatStyle = FlatStyle.Flat
-        btnModificarMarca.Font = New Font("Segoe UI", 10F)
-        btnModificarMarca.Location = New Point(122, 145)
-        btnModificarMarca.Name = "btnModificarMarca"
-        btnModificarMarca.Size = New Size(95, 38)
-        btnModificarMarca.TabIndex = 6
-        btnModificarMarca.Text = "Modificar"
-        btnModificarMarca.UseVisualStyleBackColor = False
         '
         ' btnEliminarMarca
         '
+        btnEliminarMarca.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left
         btnEliminarMarca.BackColor = Color.White
         btnEliminarMarca.Cursor = Cursors.Hand
         btnEliminarMarca.FlatAppearance.BorderColor = Color.Silver
         btnEliminarMarca.FlatStyle = FlatStyle.Flat
         btnEliminarMarca.Font = New Font("Segoe UI", 10F)
         btnEliminarMarca.ForeColor = Color.Firebrick
-        btnEliminarMarca.Location = New Point(224, 145)
+        btnEliminarMarca.Location = New Point(16, 454)
         btnEliminarMarca.Name = "btnEliminarMarca"
-        btnEliminarMarca.Size = New Size(95, 38)
-        btnEliminarMarca.TabIndex = 7
-        btnEliminarMarca.Text = "Eliminar"
+        btnEliminarMarca.Size = New Size(146, 40)
+        btnEliminarMarca.TabIndex = 4
+        btnEliminarMarca.Text = " Eliminar"
+        btnEliminarMarca.TextImageRelation = TextImageRelation.ImageBeforeText
         btnEliminarMarca.UseVisualStyleBackColor = False
-        '
-        ' btnLimpiarMarca
-        '
-        btnLimpiarMarca.BackColor = Color.White
-        btnLimpiarMarca.Cursor = Cursors.Hand
-        btnLimpiarMarca.FlatAppearance.BorderColor = Color.Silver
-        btnLimpiarMarca.FlatStyle = FlatStyle.Flat
-        btnLimpiarMarca.Font = New Font("Segoe UI", 10F)
-        btnLimpiarMarca.Location = New Point(326, 145)
-        btnLimpiarMarca.Name = "btnLimpiarMarca"
-        btnLimpiarMarca.Size = New Size(95, 38)
-        btnLimpiarMarca.TabIndex = 8
-        btnLimpiarMarca.Text = "Limpiar"
-        btnLimpiarMarca.UseVisualStyleBackColor = False
-        '
-        ' dgvMarcas
-        '
-        dgvMarcas.AllowUserToAddRows = False
-        dgvMarcas.AllowUserToDeleteRows = False
-        dgvMarcas.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
-        dgvMarcas.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill
-        dgvMarcas.BackgroundColor = Color.White
-        dgvMarcas.BorderStyle = BorderStyle.FixedSingle
-        dgvMarcas.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize
-        dgvMarcas.Location = New Point(20, 200)
-        dgvMarcas.MultiSelect = False
-        dgvMarcas.Name = "dgvMarcas"
-        dgvMarcas.ReadOnly = True
-        dgvMarcas.RowHeadersVisible = False
-        dgvMarcas.RowHeadersWidth = 51
-        dgvMarcas.SelectionMode = DataGridViewSelectionMode.FullRowSelect
-        dgvMarcas.Size = New Size(410, 350)
-        dgvMarcas.TabIndex = 9
+        btnEliminarMarca.Visible = False
         '
         ' pnlModelos
         '
-        pnlModelos.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
         pnlModelos.BackColor = Color.White
-        pnlModelos.Controls.Add(lblSeccionModelos)
-        pnlModelos.Controls.Add(lblMarcaSeleccionada)
-        pnlModelos.Controls.Add(lblIdModelo)
-        pnlModelos.Controls.Add(txtIdModelo)
+        pnlModelos.Controls.Add(lblTituloModelos)
+        pnlModelos.Controls.Add(btnNuevoModelo)
+        pnlModelos.Controls.Add(lblAyudaModelos)
+        pnlModelos.Controls.Add(dgvModelos)
         pnlModelos.Controls.Add(lblModelo)
         pnlModelos.Controls.Add(txtModelo)
-        pnlModelos.Controls.Add(btnGuardarModelo)
-        pnlModelos.Controls.Add(btnModificarModelo)
         pnlModelos.Controls.Add(btnEliminarModelo)
-        pnlModelos.Controls.Add(btnLimpiarModelo)
-        pnlModelos.Controls.Add(dgvModelos)
-        pnlModelos.Location = New Point(510, 120)
+        pnlModelos.Controls.Add(btnGuardarModelo)
+        pnlModelos.Dock = DockStyle.Fill
+        pnlModelos.Location = New Point(0, 0)
+        pnlModelos.Margin = New Padding(5, 0, 0, 0)
         pnlModelos.Name = "pnlModelos"
-        pnlModelos.Size = New Size(460, 570)
-        pnlModelos.TabIndex = 3
+        pnlModelos.Size = New Size(400, 510)
+        pnlModelos.TabIndex = 1
         '
-        ' lblSeccionModelos
+        ' lblTituloModelos
         '
-        lblSeccionModelos.AutoSize = True
-        lblSeccionModelos.Font = New Font("Segoe UI", 13F, FontStyle.Bold)
-        lblSeccionModelos.Location = New Point(20, 15)
-        lblSeccionModelos.Name = "lblSeccionModelos"
-        lblSeccionModelos.Size = New Size(91, 30)
-        lblSeccionModelos.TabIndex = 0
-        lblSeccionModelos.Text = "Modelos"
+        lblTituloModelos.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
+        lblTituloModelos.AutoEllipsis = True
+        lblTituloModelos.Font = New Font("Segoe UI", 12F, FontStyle.Bold)
+        lblTituloModelos.Location = New Point(16, 12)
+        lblTituloModelos.Name = "lblTituloModelos"
+        lblTituloModelos.Size = New Size(198, 30)
+        lblTituloModelos.TabIndex = 6
+        lblTituloModelos.Text = "Modelos"
+        lblTituloModelos.TextAlign = ContentAlignment.MiddleLeft
         '
-        ' lblMarcaSeleccionada
+        ' btnNuevoModelo
         '
-        lblMarcaSeleccionada.AutoSize = True
-        lblMarcaSeleccionada.Font = New Font("Segoe UI", 10F)
-        lblMarcaSeleccionada.ForeColor = Color.DimGray
-        lblMarcaSeleccionada.Location = New Point(120, 21)
-        lblMarcaSeleccionada.Name = "lblMarcaSeleccionada"
-        lblMarcaSeleccionada.Size = New Size(236, 23)
-        lblMarcaSeleccionada.TabIndex = 1
-        lblMarcaSeleccionada.Text = "Seleccione una marca de la lista"
+        btnNuevoModelo.Anchor = AnchorStyles.Top Or AnchorStyles.Right
+        btnNuevoModelo.BackColor = Color.FromArgb(CByte(30), CByte(39), CByte(46))
+        btnNuevoModelo.Cursor = Cursors.Hand
+        btnNuevoModelo.FlatAppearance.BorderSize = 0
+        btnNuevoModelo.FlatAppearance.MouseOverBackColor = Color.FromArgb(CByte(52), CByte(73), CByte(94))
+        btnNuevoModelo.FlatStyle = FlatStyle.Flat
+        btnNuevoModelo.Font = New Font("Segoe UI", 9F, FontStyle.Bold)
+        btnNuevoModelo.ForeColor = Color.White
+        btnNuevoModelo.Location = New Point(224, 10)
+        btnNuevoModelo.Name = "btnNuevoModelo"
+        btnNuevoModelo.Size = New Size(160, 34)
+        btnNuevoModelo.TabIndex = 0
+        btnNuevoModelo.Text = " Nuevo modelo"
+        btnNuevoModelo.TextImageRelation = TextImageRelation.ImageBeforeText
+        btnNuevoModelo.UseVisualStyleBackColor = False
         '
-        ' lblIdModelo
+        ' dgvModelos
         '
-        lblIdModelo.AutoSize = True
-        lblIdModelo.ForeColor = Color.DimGray
-        lblIdModelo.Location = New Point(20, 63)
-        lblIdModelo.Name = "lblIdModelo"
-        lblIdModelo.Size = New Size(24, 20)
-        lblIdModelo.TabIndex = 2
-        lblIdModelo.Text = "ID"
-        '
-        ' txtIdModelo
-        '
-        txtIdModelo.BackColor = Color.FromArgb(CByte(245), CByte(246), CByte(250))
-        txtIdModelo.Location = New Point(120, 60)
-        txtIdModelo.Name = "txtIdModelo"
-        txtIdModelo.ReadOnly = True
-        txtIdModelo.Size = New Size(80, 27)
-        txtIdModelo.TabIndex = 3
-        txtIdModelo.TabStop = False
+        DataGridViewCellStyle2.Alignment = DataGridViewContentAlignment.MiddleLeft
+        DataGridViewCellStyle2.BackColor = Color.White
+        DataGridViewCellStyle2.Font = New Font("Segoe UI", 8.25F, FontStyle.Bold)
+        DataGridViewCellStyle2.ForeColor = Color.DimGray
+        DataGridViewCellStyle2.SelectionBackColor = Color.White
+        DataGridViewCellStyle2.SelectionForeColor = Color.DimGray
+        DataGridViewCellStyle2.WrapMode = DataGridViewTriState.False
+        dgvModelos.AllowUserToAddRows = False
+        dgvModelos.AllowUserToDeleteRows = False
+        dgvModelos.AllowUserToResizeRows = False
+        dgvModelos.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
+        dgvModelos.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill
+        dgvModelos.BackgroundColor = Color.White
+        dgvModelos.BorderStyle = BorderStyle.None
+        dgvModelos.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal
+        dgvModelos.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.None
+        dgvModelos.ColumnHeadersDefaultCellStyle = DataGridViewCellStyle2
+        dgvModelos.ColumnHeadersHeight = 40
+        dgvModelos.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing
+        dgvModelos.EnableHeadersVisualStyles = False
+        dgvModelos.GridColor = Color.Gainsboro
+        dgvModelos.Location = New Point(16, 54)
+        dgvModelos.MultiSelect = False
+        dgvModelos.Name = "dgvModelos"
+        dgvModelos.ReadOnly = True
+        dgvModelos.RowHeadersVisible = False
+        dgvModelos.RowHeadersWidth = 51
+        dgvModelos.RowTemplate.Height = 26
+        dgvModelos.SelectionMode = DataGridViewSelectionMode.FullRowSelect
+        dgvModelos.Size = New Size(368, 328)
+        dgvModelos.StandardTab = True
+        dgvModelos.TabIndex = 1
         '
         ' lblModelo
         '
-        lblModelo.AutoSize = True
-        lblModelo.Location = New Point(20, 103)
+        lblModelo.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
+        lblModelo.AutoEllipsis = True
+        lblModelo.Font = New Font("Segoe UI", 8.25F)
+        lblModelo.ForeColor = Color.DimGray
+        lblModelo.Location = New Point(16, 394)
         lblModelo.Name = "lblModelo"
-        lblModelo.Size = New Size(80, 20)
-        lblModelo.TabIndex = 4
-        lblModelo.Text = "Modelo (*)"
+        lblModelo.Size = New Size(368, 19)
+        lblModelo.TabIndex = 7
+        lblModelo.Text = "Nombre del modelo nuevo (*)"
         '
         ' txtModelo
         '
-        txtModelo.Location = New Point(120, 100)
+        txtModelo.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
+        txtModelo.Location = New Point(16, 415)
         txtModelo.MaxLength = 80
         txtModelo.Name = "txtModelo"
-        txtModelo.Size = New Size(320, 27)
-        txtModelo.TabIndex = 5
+        txtModelo.Size = New Size(368, 27)
+        txtModelo.TabIndex = 2
         '
         ' btnGuardarModelo
         '
+        btnGuardarModelo.Anchor = AnchorStyles.Bottom Or AnchorStyles.Right
         btnGuardarModelo.BackColor = Color.FromArgb(CByte(30), CByte(39), CByte(46))
         btnGuardarModelo.Cursor = Cursors.Hand
         btnGuardarModelo.FlatAppearance.BorderSize = 0
@@ -305,92 +339,59 @@ Partial Class FrmMarcasModelos
         btnGuardarModelo.FlatStyle = FlatStyle.Flat
         btnGuardarModelo.Font = New Font("Segoe UI", 10F, FontStyle.Bold)
         btnGuardarModelo.ForeColor = Color.White
-        btnGuardarModelo.Location = New Point(20, 145)
+        btnGuardarModelo.Location = New Point(194, 454)
         btnGuardarModelo.Name = "btnGuardarModelo"
-        btnGuardarModelo.Size = New Size(95, 38)
-        btnGuardarModelo.TabIndex = 6
-        btnGuardarModelo.Text = "Guardar"
+        btnGuardarModelo.Size = New Size(190, 40)
+        btnGuardarModelo.TabIndex = 3
+        btnGuardarModelo.Text = " Guardar"
+        btnGuardarModelo.TextImageRelation = TextImageRelation.ImageBeforeText
         btnGuardarModelo.UseVisualStyleBackColor = False
-        '
-        ' btnModificarModelo
-        '
-        btnModificarModelo.BackColor = Color.White
-        btnModificarModelo.Cursor = Cursors.Hand
-        btnModificarModelo.FlatAppearance.BorderColor = Color.Silver
-        btnModificarModelo.FlatStyle = FlatStyle.Flat
-        btnModificarModelo.Font = New Font("Segoe UI", 10F)
-        btnModificarModelo.Location = New Point(122, 145)
-        btnModificarModelo.Name = "btnModificarModelo"
-        btnModificarModelo.Size = New Size(95, 38)
-        btnModificarModelo.TabIndex = 7
-        btnModificarModelo.Text = "Modificar"
-        btnModificarModelo.UseVisualStyleBackColor = False
         '
         ' btnEliminarModelo
         '
+        btnEliminarModelo.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left
         btnEliminarModelo.BackColor = Color.White
         btnEliminarModelo.Cursor = Cursors.Hand
         btnEliminarModelo.FlatAppearance.BorderColor = Color.Silver
         btnEliminarModelo.FlatStyle = FlatStyle.Flat
         btnEliminarModelo.Font = New Font("Segoe UI", 10F)
         btnEliminarModelo.ForeColor = Color.Firebrick
-        btnEliminarModelo.Location = New Point(224, 145)
+        btnEliminarModelo.Location = New Point(16, 454)
         btnEliminarModelo.Name = "btnEliminarModelo"
-        btnEliminarModelo.Size = New Size(95, 38)
-        btnEliminarModelo.TabIndex = 8
-        btnEliminarModelo.Text = "Eliminar"
+        btnEliminarModelo.Size = New Size(146, 40)
+        btnEliminarModelo.TabIndex = 4
+        btnEliminarModelo.Text = " Eliminar"
+        btnEliminarModelo.TextImageRelation = TextImageRelation.ImageBeforeText
         btnEliminarModelo.UseVisualStyleBackColor = False
+        btnEliminarModelo.Visible = False
         '
-        ' btnLimpiarModelo
+        ' lblAyudaModelos
         '
-        btnLimpiarModelo.BackColor = Color.White
-        btnLimpiarModelo.Cursor = Cursors.Hand
-        btnLimpiarModelo.FlatAppearance.BorderColor = Color.Silver
-        btnLimpiarModelo.FlatStyle = FlatStyle.Flat
-        btnLimpiarModelo.Font = New Font("Segoe UI", 10F)
-        btnLimpiarModelo.Location = New Point(326, 145)
-        btnLimpiarModelo.Name = "btnLimpiarModelo"
-        btnLimpiarModelo.Size = New Size(95, 38)
-        btnLimpiarModelo.TabIndex = 9
-        btnLimpiarModelo.Text = "Limpiar"
-        btnLimpiarModelo.UseVisualStyleBackColor = False
-        '
-        ' dgvModelos
-        '
-        dgvModelos.AllowUserToAddRows = False
-        dgvModelos.AllowUserToDeleteRows = False
-        dgvModelos.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
-        dgvModelos.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill
-        dgvModelos.BackgroundColor = Color.White
-        dgvModelos.BorderStyle = BorderStyle.FixedSingle
-        dgvModelos.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize
-        dgvModelos.Location = New Point(20, 200)
-        dgvModelos.MultiSelect = False
-        dgvModelos.Name = "dgvModelos"
-        dgvModelos.ReadOnly = True
-        dgvModelos.RowHeadersVisible = False
-        dgvModelos.RowHeadersWidth = 51
-        dgvModelos.SelectionMode = DataGridViewSelectionMode.FullRowSelect
-        dgvModelos.Size = New Size(420, 350)
-        dgvModelos.TabIndex = 10
+        lblAyudaModelos.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
+        lblAyudaModelos.ForeColor = Color.DimGray
+        lblAyudaModelos.Location = New Point(16, 54)
+        lblAyudaModelos.Name = "lblAyudaModelos"
+        lblAyudaModelos.Size = New Size(368, 48)
+        lblAyudaModelos.TabIndex = 8
+        lblAyudaModelos.Text = "Seleccione una marca de la lista para ver y cargar sus modelos."
         '
         ' FrmMarcasModelos
         '
         AutoScaleDimensions = New SizeF(8F, 20F)
         AutoScaleMode = AutoScaleMode.Font
         BackColor = Color.FromArgb(CByte(245), CByte(246), CByte(250))
-        ClientSize = New Size(1010, 720)
-        Controls.Add(pnlModelos)
-        Controls.Add(pnlMarcas)
+        ClientSize = New Size(870, 630)
+        Controls.Add(tlpTarjetas)
         Controls.Add(lblSubtitulo)
         Controls.Add(lblTitulo)
         Name = "FrmMarcasModelos"
         Text = "Marcas y modelos"
+        tlpTarjetas.ResumeLayout(False)
         pnlMarcas.ResumeLayout(False)
         pnlMarcas.PerformLayout()
-        CType(dgvMarcas, ComponentModel.ISupportInitialize).EndInit()
         pnlModelos.ResumeLayout(False)
         pnlModelos.PerformLayout()
+        CType(dgvMarcas, ComponentModel.ISupportInitialize).EndInit()
         CType(dgvModelos, ComponentModel.ISupportInitialize).EndInit()
         ResumeLayout(False)
         PerformLayout()
@@ -398,27 +399,22 @@ Partial Class FrmMarcasModelos
 
     Friend WithEvents lblTitulo As Label
     Friend WithEvents lblSubtitulo As Label
+    Friend WithEvents tlpTarjetas As TableLayoutPanel
     Friend WithEvents pnlMarcas As Panel
-    Friend WithEvents lblSeccionMarcas As Label
-    Friend WithEvents lblIdMarca As Label
-    Friend WithEvents txtIdMarca As TextBox
+    Friend WithEvents lblTituloMarcas As Label
+    Friend WithEvents btnNuevaMarca As Button
+    Friend WithEvents dgvMarcas As DataGridView
     Friend WithEvents lblMarca As Label
     Friend WithEvents txtMarca As TextBox
     Friend WithEvents btnGuardarMarca As Button
-    Friend WithEvents btnModificarMarca As Button
     Friend WithEvents btnEliminarMarca As Button
-    Friend WithEvents btnLimpiarMarca As Button
-    Friend WithEvents dgvMarcas As DataGridView
     Friend WithEvents pnlModelos As Panel
-    Friend WithEvents lblSeccionModelos As Label
-    Friend WithEvents lblMarcaSeleccionada As Label
-    Friend WithEvents lblIdModelo As Label
-    Friend WithEvents txtIdModelo As TextBox
+    Friend WithEvents lblTituloModelos As Label
+    Friend WithEvents btnNuevoModelo As Button
+    Friend WithEvents dgvModelos As DataGridView
     Friend WithEvents lblModelo As Label
     Friend WithEvents txtModelo As TextBox
     Friend WithEvents btnGuardarModelo As Button
-    Friend WithEvents btnModificarModelo As Button
     Friend WithEvents btnEliminarModelo As Button
-    Friend WithEvents btnLimpiarModelo As Button
-    Friend WithEvents dgvModelos As DataGridView
+    Friend WithEvents lblAyudaModelos As Label
 End Class

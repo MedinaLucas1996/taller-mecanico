@@ -2,21 +2,37 @@ Imports MySqlConnector
 
 Public Class FrmVehiculos
 
-    'indica si el registro seleccionado esta activo, decide si el boton da de baja o reactiva
+    'vehiculo cargado en la tarjeta del registro, queda en 0 mientras no haya uno (el ID no se muestra)
+    Private idVehiculo As Integer = 0
+    'indica que la tarjeta esta cargando un vehiculo nuevo
+    Private creando As Boolean = False
+    'indica si el vehiculo cargado esta activo, decide si el boton da de baja o reactiva
     Private registroActivo As Boolean = True
 
-    Sub CargarVehiculos(Optional filtro As String = "")
-        'creo subrutina para cargar grilla
+    'queda en True cuando el usuario cambio algun campo y todavia no guardo
+    Private hayCambios As Boolean = False
+    'queda en True mientras el programa carga la grilla o los campos, para no tomarlo como un cambio del usuario
+    Private cargando As Boolean = False
+
+    'iconos de los botones que cambian segun el registro
+    Private iconoBaja As Image
+    Private iconoReactivar As Image
+
+    Sub CargarVehiculos()
+        'cargo la grilla con el filtro escrito y dejo marcado al vehiculo que se estaba viendo
+        Dim filtro As String = txtFiltro.Text.Trim
+
+        cargando = True
+
         Try
             Using cn As New MySqlConnection(CADENA)
                 cn.Open()
                 'armo mi consulta sql uniendo vehiculo con cliente, modelo y marca
                 Dim consulta As String =
-                    "SELECT v.id_vehiculo, v.patente, c.razon_social AS titular, " &
-                    "ma.descripcion AS marca, mo.descripcion AS modelo, v.anio, v.color, " &
+                    "SELECT v.id_vehiculo, v.patente, CONCAT(ma.descripcion, ' ', mo.descripcion) AS marca_modelo, " &
+                    "c.razon_social AS titular, v.anio, v.color, " &
                     "v.nro_motor, v.nro_chasis, v.km_actual, v.observaciones, " &
-                    "v.id_cliente, mo.id_marca, v.id_modelo, " &
-                    "CASE WHEN v.activo = 1 THEN 'Sí' ELSE 'No' END AS esta_activo " &
+                    "v.id_cliente, mo.id_marca, v.id_modelo, v.activo " &
                     "FROM vehiculo AS v " &
                     "JOIN cliente AS c ON c.id_cliente = v.id_cliente " &
                     "JOIN modelo AS mo ON mo.id_modelo = v.id_modelo " &
@@ -51,50 +67,93 @@ Public Class FrmVehiculos
                     'cargo la tabla en la grilla
                     dgvVehiculos.DataSource = tabla
 
-                    'pongo titulos legibles en las columnas
-                    dgvVehiculos.Columns("id_vehiculo").HeaderText = "ID"
-                    dgvVehiculos.Columns("id_vehiculo").AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells
-                    dgvVehiculos.Columns("patente").HeaderText = "Patente"
-                    dgvVehiculos.Columns("titular").HeaderText = "Titular"
-                    dgvVehiculos.Columns("marca").HeaderText = "Marca"
-                    dgvVehiculos.Columns("modelo").HeaderText = "Modelo"
-                    dgvVehiculos.Columns("anio").HeaderText = "Año"
-                    dgvVehiculos.Columns("color").HeaderText = "Color"
-                    dgvVehiculos.Columns("nro_motor").HeaderText = "N.º motor"
-                    dgvVehiculos.Columns("nro_chasis").HeaderText = "N.º chasis"
-                    dgvVehiculos.Columns("km_actual").HeaderText = "Kilometraje"
-                    dgvVehiculos.Columns("km_actual").DefaultCellStyle.Format = "N0"
-
-                    'oculto las claves y las observaciones, se usan al seleccionar la fila
+                    'en la lista se ven cuatro columnas, el resto de los datos se ve en la tarjeta del registro
+                    dgvVehiculos.Columns("id_vehiculo").Visible = False
+                    dgvVehiculos.Columns("color").Visible = False
+                    dgvVehiculos.Columns("nro_motor").Visible = False
+                    dgvVehiculos.Columns("nro_chasis").Visible = False
+                    dgvVehiculos.Columns("km_actual").Visible = False
                     dgvVehiculos.Columns("observaciones").Visible = False
                     dgvVehiculos.Columns("id_cliente").Visible = False
                     dgvVehiculos.Columns("id_marca").Visible = False
                     dgvVehiculos.Columns("id_modelo").Visible = False
-                    'la columna Activo solo se ve cuando tambien se listan los dados de baja
-                    dgvVehiculos.Columns("esta_activo").HeaderText = "Activo"
-                    dgvVehiculos.Columns("esta_activo").AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells
-                    dgvVehiculos.Columns("esta_activo").Visible = chkBajas.Checked
+                    dgvVehiculos.Columns("activo").Visible = False
+
+                    'pongo titulos legibles en las columnas y reparto el ancho, con un minimo para cada una
+                    dgvVehiculos.Columns("patente").HeaderText = "Patente"
+                    dgvVehiculos.Columns("patente").FillWeight = 18
+                    dgvVehiculos.Columns("patente").MinimumWidth = 85
+                    dgvVehiculos.Columns("marca_modelo").HeaderText = "Marca y modelo"
+                    dgvVehiculos.Columns("marca_modelo").FillWeight = 34
+                    dgvVehiculos.Columns("marca_modelo").MinimumWidth = 130
+                    dgvVehiculos.Columns("titular").HeaderText = "Titular"
+                    dgvVehiculos.Columns("titular").FillWeight = 36
+                    dgvVehiculos.Columns("titular").MinimumWidth = 130
+                    dgvVehiculos.Columns("anio").HeaderText = "Año"
+                    dgvVehiculos.Columns("anio").FillWeight = 12
+                    dgvVehiculos.Columns("anio").MinimumWidth = 55
+
+                    'el orden por columna lo hace el formulario al hacer click en el titulo (ver ColumnHeaderMouseClick)
+                    dgvVehiculos.Columns("patente").SortMode = DataGridViewColumnSortMode.Programmatic
+                    dgvVehiculos.Columns("marca_modelo").SortMode = DataGridViewColumnSortMode.Programmatic
+                    dgvVehiculos.Columns("titular").SortMode = DataGridViewColumnSortMode.Programmatic
+                    dgvVehiculos.Columns("anio").SortMode = DataGridViewColumnSortMode.Programmatic
+
+                    'en el subtitulo cuento lo que quedo listado
+                    Dim activos As Integer = 0
+                    Dim bajas As Integer = 0
+                    For Each registro As DataRow In tabla.Rows
+                        If Convert.ToBoolean(registro("activo")) Then
+                            activos = activos + 1
+                        Else
+                            bajas = bajas + 1
+                        End If
+                    Next
+
+                    If chkBajas.Checked Then
+                        lblSubtitulo.Text = activos & " activos · " & bajas & " dados de baja"
+                    ElseIf activos = 1 Then
+                        lblSubtitulo.Text = "1 vehículo activo"
+                    Else
+                        lblSubtitulo.Text = activos & " vehículos activos"
+                    End If
                 End Using
             End Using
+
+            'en la lista nueva dejo marcado al vehiculo que se estaba viendo
+            Dim filaActual As DataGridViewRow = MarcarFila(idVehiculo)
+            If filaActual Is Nothing AndAlso idVehiculo <> 0 AndAlso Not hayCambios Then
+                'el vehiculo ya no esta en la lista (por el filtro o por una baja): la tarjeta vuelve a la ayuda
+                MostrarAyuda()
+            End If
         Catch ex As Exception
             MessageBox.Show("Error al cargar los vehículos: " & ex.Message)
+        Finally
+            'pase lo que pase, la grilla vuelve a atender al usuario
+            cargando = False
         End Try
     End Sub
 
-    Sub CargarComboTitulares()
+    Sub CargarComboTitulares(idPropio As Integer)
         'cargo los clientes activos en el combo de titular
+        'idPropio es el titular del vehiculo que se esta viendo: si esta dado de baja se lista igual,
+        'marcado como tal, para que el combo no quede vacio; con 0 solo se listan los activos
         Try
             Using cn As New MySqlConnection(CADENA)
                 cn.Open()
                 Dim consulta As String =
-                    "SELECT id_cliente, razon_social FROM cliente WHERE activo = 1 ORDER BY razon_social;"
+                    "SELECT id_cliente, " &
+                    "CASE WHEN activo = 1 THEN razon_social ELSE CONCAT(razon_social, ' (dado de baja)') END AS nombre " &
+                    "FROM cliente WHERE activo = 1 OR id_cliente = @propio " &
+                    "ORDER BY activo DESC, razon_social;"
                 Using cmd As New MySqlCommand(consulta, cn)
+                    cmd.Parameters.AddWithValue("@propio", idPropio)
                     Dim tabla As New DataTable
                     Using lector As MySqlDataReader = cmd.ExecuteReader
                         tabla.Load(lector)
                     End Using
                     'el usuario ve el nombre...
-                    cboTitular.DisplayMember = "razon_social"
+                    cboTitular.DisplayMember = "nombre"
                     '...pero el programa guarda la clave numerica
                     cboTitular.ValueMember = "id_cliente"
                     cboTitular.DataSource = tabla
@@ -161,39 +220,231 @@ Public Class FrmVehiculos
         End Try
     End Sub
 
-    Sub LimpiarFormu()
-        'limpio los campos del formulario
-        txtID.Clear()
-        cboTitular.SelectedIndex = -1
-        cboTitular.Text = ""
-        txtPatente.Clear()
-        'vuelvo a la opcion "Seleccione una marca", eso tambien vacia los modelos
-        If cboMarca.Items.Count > 0 Then cboMarca.SelectedIndex = 0
-        cboModelo.DataSource = Nothing
-        nudAnio.Value = Date.Now.Year
-        txtColor.Clear()
-        txtMotor.Clear()
-        txtChasis.Clear()
-        nudKilometraje.Value = 0
-        txtObservaciones.Clear()
-        'sin registro seleccionado el boton vuelve a ser el de la baja
+    Function MarcarFila(id As Integer) As DataGridViewRow
+        'dejo marcada en la lista la fila del vehiculo con esa clave: celda actual y seleccion juntas
+        'con clave 0, o si el vehiculo no esta listado, no queda nada marcado; devuelve la fila o Nothing
+        Dim encontrada As DataGridViewRow = Nothing
+        Dim estabaCargando As Boolean = cargando
+        cargando = True
+
+        Try
+            If id <> 0 AndAlso dgvVehiculos.Columns.Contains("id_vehiculo") Then
+                For Each fila As DataGridViewRow In dgvVehiculos.Rows
+                    If CInt(fila.Cells("id_vehiculo").Value) = id Then encontrada = fila
+                Next
+            End If
+
+            dgvVehiculos.ClearSelection()
+            If encontrada Is Nothing Then
+                dgvVehiculos.CurrentCell = Nothing
+            Else
+                dgvVehiculos.CurrentCell = encontrada.Cells("patente")
+                encontrada.Selected = True
+            End If
+        Finally
+            cargando = estabaCargando
+        End Try
+
+        Return encontrada
+    End Function
+
+    Sub RefrescarRegistro()
+        'vuelvo a mostrar en la tarjeta los datos guardados del vehiculo que se esta viendo
+        Dim fila As DataGridViewRow = MarcarFila(idVehiculo)
+        If fila IsNot Nothing Then MostrarRegistro(fila)
+    End Sub
+
+    Sub MostrarAyuda()
+        'sin vehiculo elegido ni alta en curso, la tarjeta muestra solo la ayuda
+        idVehiculo = 0
+        creando = False
+        hayCambios = False
+        pnlRegistro.Visible = False
+        lblAyuda.Visible = True
+    End Sub
+
+    Sub CargarCampos(fila As DataGridViewRow)
+        'paso a los campos los datos de la fila; con fila en Nothing quedan vacios para un alta
+        Dim estabaCargando As Boolean = cargando
+        cargando = True
+
+        Try
+            If fila Is Nothing Then
+                'para un vehiculo nuevo solo se puede elegir un cliente activo
+                CargarComboTitulares(0)
+                cboTitular.SelectedIndex = -1
+                cboTitular.Text = ""
+                txtPatente.Clear()
+                'vuelvo a la opcion "Seleccione una marca", eso tambien vacia los modelos
+                If cboMarca.Items.Count > 0 Then cboMarca.SelectedIndex = 0
+                cboModelo.DataSource = Nothing
+                nudAnio.Value = Date.Now.Year
+                txtColor.Clear()
+                txtMotor.Clear()
+                txtChasis.Clear()
+                nudKilometraje.Value = 0
+                txtObservaciones.Clear()
+            Else
+                txtPatente.Text = fila.Cells("patente").Value.ToString()
+
+                'el combo lista los clientes activos y tambien al titular de este vehiculo, aunque este dado de baja
+                CargarComboTitulares(CInt(fila.Cells("id_cliente").Value))
+                cboTitular.SelectedValue = CInt(fila.Cells("id_cliente").Value)
+
+                'primero elijo la marca: eso recarga los modelos de esa marca
+                cboMarca.SelectedValue = CInt(fila.Cells("id_marca").Value)
+                'despues elijo el modelo dentro de la lista ya cargada
+                cboModelo.SelectedValue = CInt(fila.Cells("id_modelo").Value)
+
+                'el año puede estar vacio en la base
+                If IsDBNull(fila.Cells("anio").Value) Then
+                    nudAnio.Value = Date.Now.Year
+                Else
+                    nudAnio.Value = CInt(fila.Cells("anio").Value)
+                End If
+
+                txtColor.Text = fila.Cells("color").Value.ToString()
+                txtMotor.Text = fila.Cells("nro_motor").Value.ToString()
+                txtChasis.Text = fila.Cells("nro_chasis").Value.ToString()
+                nudKilometraje.Value = CInt(fila.Cells("km_actual").Value)
+                txtObservaciones.Text = fila.Cells("observaciones").Value.ToString()
+            End If
+
+            'lo que se ve es lo que esta guardado
+            hayCambios = False
+        Finally
+            cargando = estabaCargando
+        End Try
+    End Sub
+
+    Sub MostrarRegistro(fila As DataGridViewRow)
+        'cargo en la tarjeta al vehiculo de la fila, para verlo y modificarlo
+        idVehiculo = CInt(fila.Cells("id_vehiculo").Value)
+        creando = False
+        registroActivo = Convert.ToBoolean(fila.Cells("activo").Value)
+
+        CargarCampos(fila)
+        lblRegistroTitulo.Text = fila.Cells("patente").Value.ToString()
+
+        'etiqueta de estado y boton de la izquierda segun el vehiculo este activo o dado de baja
+        lblEstadoRegistro.Visible = True
+        If registroActivo Then
+            lblEstadoRegistro.Text = "Activo"
+            lblEstadoRegistro.BackColor = Color.FromArgb(223, 240, 216)
+            lblEstadoRegistro.ForeColor = Color.DarkGreen
+            btnBaja.Text = " Dar de baja"
+            btnBaja.ForeColor = Color.Firebrick
+            btnBaja.Image = iconoBaja
+        Else
+            lblEstadoRegistro.Text = "Dado de baja"
+            lblEstadoRegistro.BackColor = Color.Gainsboro
+            lblEstadoRegistro.ForeColor = Color.DimGray
+            btnBaja.Text = " Reactivar"
+            btnBaja.ForeColor = Color.Black
+            btnBaja.Image = iconoReactivar
+        End If
+
+        btnBaja.Visible = True
+        btnCancelar.Visible = False
+        btnGuardar.Text = " Guardar cambios"
+
+        'linea de contexto: cuantas ordenes de trabajo tiene el vehiculo y cuando fue la ultima
+        Try
+            Using cn As New MySqlConnection(CADENA)
+                cn.Open()
+                Dim consulta As String =
+                    "SELECT COUNT(*) AS cantidad, MAX(fecha_recepcion) AS ultima " &
+                    "FROM orden_trabajo WHERE id_vehiculo = @id;"
+                Using cmd As New MySqlCommand(consulta, cn)
+                    cmd.Parameters.AddWithValue("@id", idVehiculo)
+                    Using lector As MySqlDataReader = cmd.ExecuteReader
+                        lblContexto.Text = "Sin órdenes de trabajo"
+                        'sin ordenes la fecha viene vacia, por eso la miro antes de usarla
+                        If lector.Read() AndAlso CInt(lector("cantidad")) > 0 AndAlso Not IsDBNull(lector("ultima")) Then
+                            Dim cantidad As Integer = CInt(lector("cantidad"))
+                            Dim textoOrdenes As String = cantidad & " órdenes de trabajo"
+                            If cantidad = 1 Then textoOrdenes = "1 orden de trabajo"
+                            lblContexto.Text = textoOrdenes & " · última el " & CDate(lector("ultima")).ToString("dd/MM/yyyy")
+                        End If
+                    End Using
+                End Using
+            End Using
+            lblContexto.Visible = True
+        Catch ex As Exception
+            'si no se pudo contar, la tarjeta sirve igual sin esa linea
+            lblContexto.Visible = False
+        End Try
+
+        lblAyuda.Visible = False
+        pnlRegistro.Visible = True
+    End Sub
+
+    Sub NuevoRegistro()
+        'dejo la tarjeta lista para cargar un vehiculo nuevo
+        idVehiculo = 0
+        creando = True
         registroActivo = True
-        btnEliminar.Text = "Dar de baja"
-        dgvVehiculos.ClearSelection()
-        cboTitular.Focus()
+
+        CargarCampos(Nothing)
+        lblRegistroTitulo.Text = "Nuevo vehículo"
+
+        'un vehiculo nuevo no tiene estado ni contexto, y sus botones son Cancelar y Guardar
+        lblEstadoRegistro.Visible = False
+        lblContexto.Visible = False
+        btnBaja.Visible = False
+        btnCancelar.Visible = True
+        btnGuardar.Text = " Guardar"
+
+        lblAyuda.Visible = False
+        pnlRegistro.Visible = True
+
+        'durante un alta no queda ninguna fila marcada en la lista
+        MarcarFila(0)
+
+        txtPatente.Focus()
+    End Sub
+
+    Function DescartarCambios() As Boolean
+        'si hay cambios sin guardar pregunto antes de perderlos; devuelve True cuando se puede seguir
+        If Not hayCambios Then Return True
+
+        Dim respuesta As DialogResult = MessageBox.Show(
+            "Hay cambios sin guardar. ¿Descartarlos?",
+            "Cambios sin guardar",
+            MessageBoxButtons.YesNo,
+            MessageBoxIcon.Warning)
+
+        Return respuesta = DialogResult.Yes
+    End Function
+
+    Sub ElegirFila(fila As DataGridViewRow)
+        'el usuario eligio una fila de la lista: la cargo en la tarjeta del registro
+        Dim idElegido As Integer = CInt(fila.Cells("id_vehiculo").Value)
+
+        'si ya se esta viendo ese vehiculo no hay nada que hacer
+        If idElegido = idVehiculo AndAlso Not creando Then Exit Sub
+
+        If Not DescartarCambios() Then
+            'el usuario prefirio seguir con lo que estaba cargando: la lista vuelve a marcar ese registro
+            '(en un alta no hay registro, y no queda nada marcado)
+            MarcarFila(idVehiculo)
+            Exit Sub
+        End If
+
+        MostrarRegistro(fila)
     End Sub
 
     Function ValidarCampos() As Boolean
         'valido los campos obligatorios
-        If cboTitular.SelectedValue Is Nothing Then
-            MessageBox.Show("Seleccione un titular de la lista")
-            cboTitular.Focus()
-            Return False
-        End If
-
         If txtPatente.Text.Trim = "" Then
             MessageBox.Show("Falta la patente")
             txtPatente.Focus()
+            Return False
+        End If
+
+        If cboTitular.SelectedValue Is Nothing Then
+            MessageBox.Show("Seleccione un titular de la lista")
+            cboTitular.Focus()
             Return False
         End If
 
@@ -214,11 +465,124 @@ Public Class FrmVehiculos
     End Function
 
     Private Sub FrmVehiculos_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-        'cargo combos y grilla al abrir el formulario
-        CargarComboTitulares()
-        CargarComboMarcas()
+        'iconos de los botones, si alguno falta ese boton queda solo con el texto
+        btnNuevo.Image = LeerIcono("agregar.png")
+        btnGuardar.Image = LeerIcono("guardar.png")
+        btnCancelar.Image = LeerIcono("cancelar-oscuro.png")
+        picBuscar.Image = LeerIcono("buscar-oscuro.png")
+        iconoBaja = LeerIcono("baja-rojo.png")
+        iconoReactivar = LeerIcono("reactivar-oscuro.png")
+
+        'el encabezado de la lista lleva solo una linea clara debajo, como las filas
+        dgvVehiculos.AdvancedColumnHeadersBorderStyle.Bottom = DataGridViewAdvancedCellBorderStyle.Single
+
+        'cargo combos y grilla al abrir el formulario, la tarjeta arranca con la ayuda
+        cargando = True
+        Try
+            CargarComboTitulares(0)
+            CargarComboMarcas()
+        Finally
+            cargando = False
+        End Try
+
+        MostrarAyuda()
         CargarVehiculos()
-        LimpiarFormu()
+    End Sub
+
+    Private Sub FrmVehiculos_Shown(sender As Object, e As EventArgs) Handles MyBase.Shown
+        'al mostrarse por primera vez la grilla toma sola la primera fila como celda actual: la suelto
+        MarcarFila(idVehiculo)
+    End Sub
+
+    Private Sub FrmVehiculos_FormClosing(sender As Object, e As FormClosingEventArgs) Handles MyBase.FormClosing
+        'al salir de la pantalla pregunto antes de perder cambios sin guardar
+        If Not DescartarCambios() Then
+            e.Cancel = True
+            Exit Sub
+        End If
+
+        'ya se acepto perderlos: si el cierre sigue, no se vuelve a preguntar
+        hayCambios = False
+    End Sub
+
+    Private Sub txtFiltro_TextChanged(sender As Object, e As EventArgs) Handles txtFiltro.TextChanged
+        'vuelvo a cargar la grilla con el filtro escrito; la tarjeta no se toca, solo se vuelve a marcar su fila
+        If cargando Then Exit Sub
+        CargarVehiculos()
+    End Sub
+
+    Private Sub chkBajas_CheckedChanged(sender As Object, e As EventArgs) Handles chkBajas.CheckedChanged
+        'muestro o dejo de mostrar los vehiculos dados de baja
+        CargarVehiculos()
+    End Sub
+
+    Private Sub dgvVehiculos_DataBindingComplete(sender As Object, e As DataGridViewBindingCompleteEventArgs) Handles dgvVehiculos.DataBindingComplete
+        'la grilla termino de cargar o de reordenar sus filas
+        If Not dgvVehiculos.Columns.Contains("activo") Then Exit Sub
+
+        For Each fila As DataGridViewRow In dgvVehiculos.Rows
+            'los vehiculos dados de baja van en gris, tambien cuando la fila esta seleccionada
+            If Not Convert.ToBoolean(fila.Cells("activo").Value) Then
+                fila.DefaultCellStyle.ForeColor = Color.Gray
+                fila.DefaultCellStyle.SelectionForeColor = Color.Gainsboro
+            End If
+        Next
+
+        'al terminar de enlazar la grilla marca sola la primera fila: dejo marcado solo al vehiculo que se esta viendo
+        MarcarFila(idVehiculo)
+    End Sub
+
+    Private Sub dgvVehiculos_ColumnHeaderMouseClick(sender As Object, e As DataGridViewCellMouseEventArgs) Handles dgvVehiculos.ColumnHeaderMouseClick
+        'ordeno la lista por la columna del titulo que se toco; otro click en la misma columna invierte el orden
+        'ordenar nunca cambia el registro abierto ni pregunta nada
+        If e.Button <> MouseButtons.Left Then Exit Sub
+        If cargando Then Exit Sub
+
+        Dim columna As DataGridViewColumn = dgvVehiculos.Columns(e.ColumnIndex)
+        Dim sentido As System.ComponentModel.ListSortDirection = System.ComponentModel.ListSortDirection.Ascending
+        If dgvVehiculos.SortedColumn Is columna AndAlso dgvVehiculos.SortOrder = SortOrder.Ascending Then
+            sentido = System.ComponentModel.ListSortDirection.Descending
+        End If
+
+        'mientras se ordena la grilla mueve sola su seleccion: eso no es una eleccion del usuario
+        cargando = True
+        Try
+            dgvVehiculos.Sort(columna, sentido)
+
+            'flecha del titulo, para que se vea por que columna quedo ordenada
+            If sentido = System.ComponentModel.ListSortDirection.Ascending Then
+                columna.HeaderCell.SortGlyphDirection = SortOrder.Ascending
+            Else
+                columna.HeaderCell.SortGlyphDirection = SortOrder.Descending
+            End If
+        Finally
+            cargando = False
+        End Try
+    End Sub
+
+    Private Sub dgvVehiculos_Sorted(sender As Object, e As EventArgs) Handles dgvVehiculos.Sorted
+        'las filas cambiaron de lugar: vuelvo a marcar al vehiculo que se esta viendo
+        MarcarFila(idVehiculo)
+    End Sub
+
+    Private Sub dgvVehiculos_SelectionChanged(sender As Object, e As EventArgs) Handles dgvVehiculos.SelectionChanged
+        'cargo en la tarjeta al vehiculo que el usuario elige con el mouse o con el teclado
+
+        'al recargar la grilla la seleccion cambia sola, eso no es una eleccion del usuario
+        If cargando Then Exit Sub
+        If Not dgvVehiculos.Focused Then Exit Sub
+        If dgvVehiculos.SelectedRows.Count = 0 Then Exit Sub
+
+        ElegirFila(dgvVehiculos.SelectedRows(0))
+    End Sub
+
+    Private Sub dgvVehiculos_CellClick(sender As Object, e As DataGridViewCellEventArgs) Handles dgvVehiculos.CellClick
+        'un click sobre una fila siempre la carga, aunque la grilla ya la tuviera marcada
+        'si e.RowIndex es mayor o igual a 0, se hizo click en una fila valida
+        If e.RowIndex < 0 Then Exit Sub
+        If cargando Then Exit Sub
+
+        ElegirFila(dgvVehiculos.Rows(e.RowIndex))
     End Sub
 
     Private Sub cboMarca_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cboMarca.SelectedIndexChanged
@@ -229,178 +593,164 @@ Public Class FrmVehiculos
             'con "Seleccione una marca" no hay modelos para mostrar
             cboModelo.DataSource = Nothing
         End If
+
+        'si la cambio el usuario, hay cambios sin guardar
+        If cargando Then Exit Sub
+        hayCambios = True
     End Sub
 
-    Private Sub txtFiltro_TextChanged(sender As Object, e As EventArgs) Handles txtFiltro.TextChanged
-        'vuelvo a cargar la grilla con el filtro escrito
-        CargarVehiculos(txtFiltro.Text.Trim)
+    Private Sub Campo_Changed(sender As Object, e As EventArgs) Handles _
+        txtPatente.TextChanged, cboTitular.TextChanged, cboTitular.SelectedIndexChanged, cboModelo.SelectedIndexChanged,
+        nudAnio.ValueChanged, txtColor.TextChanged, txtMotor.TextChanged, txtChasis.TextChanged,
+        nudKilometraje.ValueChanged, txtObservaciones.TextChanged
+
+        'el usuario cambio un campo: hay cambios sin guardar
+        If cargando Then Exit Sub
+        hayCambios = True
     End Sub
 
-    Private Sub chkBajas_CheckedChanged(sender As Object, e As EventArgs) Handles chkBajas.CheckedChanged
-        'muestro o dejo de mostrar los vehiculos dados de baja, el formulario queda limpio
-        LimpiarFormu()
-        CargarVehiculos(txtFiltro.Text.Trim)
+    Private Sub btnNuevo_Click(sender As Object, e As EventArgs) Handles btnNuevo.Click
+        'empiezo la carga de un vehiculo nuevo
+        If Not DescartarCambios() Then Exit Sub
+        NuevoRegistro()
+    End Sub
+
+    Private Sub btnCancelar_Click(sender As Object, e As EventArgs) Handles btnCancelar.Click
+        'dejo de cargar el vehiculo nuevo, la tarjeta vuelve a la ayuda
+        If Not DescartarCambios() Then Exit Sub
+        MostrarAyuda()
     End Sub
 
     Private Sub btnGuardar_Click(sender As Object, e As EventArgs) Handles btnGuardar.Click
-        'guardo un vehiculo nuevo
-
-        'si hay un ID cargado, el usuario quiere modificar, no guardar
-        If txtID.Text.Trim <> "" Then
-            MessageBox.Show("Hay un vehículo seleccionado. Use MODIFICAR o presione LIMPIAR para cargar uno nuevo.")
-            Exit Sub
-        End If
-
+        'guardo un vehiculo nuevo, o los cambios del vehiculo que se esta viendo
         If Not ValidarCampos() Then Exit Sub
 
-        Try
-            Using cn As New MySqlConnection(CADENA)
-                cn.Open()
-                Dim consulta As String =
-                    "INSERT INTO vehiculo (patente, id_cliente, id_modelo, anio, color, nro_motor, nro_chasis, km_actual, observaciones) " &
-                    "VALUES (@patente, @id_cliente, @id_modelo, @anio, @color, @nro_motor, @nro_chasis, @km_actual, @observaciones);"
+        'recuerdo si era un alta, porque al guardar deja de serlo
+        Dim eraAlta As Boolean = creando
 
-                Using cmd As New MySqlCommand(consulta, cn)
-                    'cargo valores en los parametros
-                    cmd.Parameters.AddWithValue("@patente", txtPatente.Text.Trim)
-                    'SelectedValue contiene la clave del elemento elegido
-                    cmd.Parameters.AddWithValue("@id_cliente", CInt(cboTitular.SelectedValue))
-                    cmd.Parameters.AddWithValue("@id_modelo", CInt(cboModelo.SelectedValue))
-                    cmd.Parameters.AddWithValue("@anio", CInt(nudAnio.Value))
-                    cmd.Parameters.AddWithValue("@color", txtColor.Text.Trim)
-                    cmd.Parameters.AddWithValue("@nro_motor", txtMotor.Text.Trim)
-                    cmd.Parameters.AddWithValue("@nro_chasis", txtChasis.Text.Trim)
-                    cmd.Parameters.AddWithValue("@km_actual", CInt(nudKilometraje.Value))
-                    cmd.Parameters.AddWithValue("@observaciones", txtObservaciones.Text.Trim)
+        If creando Then
+            Try
+                Using cn As New MySqlConnection(CADENA)
+                    cn.Open()
+                    Dim consulta As String =
+                        "INSERT INTO vehiculo (patente, id_cliente, id_modelo, anio, color, nro_motor, nro_chasis, km_actual, observaciones) " &
+                        "VALUES (@patente, @id_cliente, @id_modelo, @anio, @color, @nro_motor, @nro_chasis, @km_actual, @observaciones);"
 
-                    Dim Resultado As Integer = cmd.ExecuteNonQuery()
-                    MessageBox.Show("Registros agregados: " & Resultado)
+                    Using cmd As New MySqlCommand(consulta, cn)
+                        'cargo valores en los parametros
+                        cmd.Parameters.AddWithValue("@patente", txtPatente.Text.Trim)
+                        'SelectedValue contiene la clave del elemento elegido
+                        cmd.Parameters.AddWithValue("@id_cliente", CInt(cboTitular.SelectedValue))
+                        cmd.Parameters.AddWithValue("@id_modelo", CInt(cboModelo.SelectedValue))
+                        cmd.Parameters.AddWithValue("@anio", CInt(nudAnio.Value))
+                        cmd.Parameters.AddWithValue("@color", txtColor.Text.Trim)
+                        cmd.Parameters.AddWithValue("@nro_motor", txtMotor.Text.Trim)
+                        cmd.Parameters.AddWithValue("@nro_chasis", txtChasis.Text.Trim)
+                        cmd.Parameters.AddWithValue("@km_actual", CInt(nudKilometraje.Value))
+                        cmd.Parameters.AddWithValue("@observaciones", txtObservaciones.Text.Trim)
+
+                        Dim Resultado As Integer = cmd.ExecuteNonQuery()
+
+                        'el vehiculo nuevo queda como el que se esta viendo, con la clave que le dio la base
+                        idVehiculo = CInt(cmd.LastInsertedId)
+                        creando = False
+                        hayCambios = False
+
+                        MessageBox.Show("Registros agregados: " & Resultado)
+                    End Using
                 End Using
-            End Using
 
-            LimpiarFormu()
-            CargarVehiculos()
-
-        Catch ex As MySqlException When ex.Number = 1062
-            'error 1062: la patente ya existe (restriccion unica)
-            MessageBox.Show("Ya existe un vehículo con esa patente.")
-            txtPatente.Focus()
-        Catch ex As Exception
-            MessageBox.Show("Error al guardar " & ex.Message)
-        End Try
-    End Sub
-
-    Private Sub dgvVehiculos_CellClick(sender As Object, e As DataGridViewCellEventArgs) Handles dgvVehiculos.CellClick
-        'traigo los datos de la fila seleccionada al formulario
-        If e.RowIndex < 0 Then Exit Sub
-
-        Dim fila = dgvVehiculos.Rows(e.RowIndex)
-        txtID.Text = fila.Cells("id_vehiculo").Value.ToString()
-        txtPatente.Text = fila.Cells("patente").Value.ToString()
-        cboTitular.SelectedValue = CInt(fila.Cells("id_cliente").Value)
-
-        'primero elijo la marca: eso recarga los modelos de esa marca
-        cboMarca.SelectedValue = CInt(fila.Cells("id_marca").Value)
-        'despues elijo el modelo dentro de la lista ya cargada
-        cboModelo.SelectedValue = CInt(fila.Cells("id_modelo").Value)
-
-        'el año puede estar vacio en la base
-        If IsDBNull(fila.Cells("anio").Value) Then
-            nudAnio.Value = Date.Now.Year
+            Catch ex As MySqlException When ex.Number = 1062
+                'error 1062: la patente ya existe (restriccion unica)
+                MessageBox.Show("Ya existe un vehículo con esa patente.")
+                txtPatente.Focus()
+                Exit Sub
+            Catch ex As Exception
+                MessageBox.Show("Error al guardar " & ex.Message)
+                Exit Sub
+            End Try
         Else
-            nudAnio.Value = CInt(fila.Cells("anio").Value)
-        End If
+            Try
+                Using cn As New MySqlConnection(CADENA)
+                    cn.Open()
+                    'cambiar el titular aca no pierde el historial:
+                    'cada orden de trabajo guarda su propio cliente (regla 8.4)
+                    Dim consulta As String =
+                        "UPDATE vehiculo SET patente=@patente, id_cliente=@id_cliente, id_modelo=@id_modelo, " &
+                        "anio=@anio, color=@color, nro_motor=@nro_motor, nro_chasis=@nro_chasis, " &
+                        "km_actual=@km_actual, observaciones=@observaciones " &
+                        "WHERE id_vehiculo=@id;"
 
-        txtColor.Text = fila.Cells("color").Value.ToString()
-        txtMotor.Text = fila.Cells("nro_motor").Value.ToString()
-        txtChasis.Text = fila.Cells("nro_chasis").Value.ToString()
-        nudKilometraje.Value = CInt(fila.Cells("km_actual").Value)
-        txtObservaciones.Text = fila.Cells("observaciones").Value.ToString()
+                    Using cmd As New MySqlCommand(consulta, cn)
+                        cmd.Parameters.AddWithValue("@patente", txtPatente.Text.Trim)
+                        cmd.Parameters.AddWithValue("@id_cliente", CInt(cboTitular.SelectedValue))
+                        cmd.Parameters.AddWithValue("@id_modelo", CInt(cboModelo.SelectedValue))
+                        cmd.Parameters.AddWithValue("@anio", CInt(nudAnio.Value))
+                        cmd.Parameters.AddWithValue("@color", txtColor.Text.Trim)
+                        cmd.Parameters.AddWithValue("@nro_motor", txtMotor.Text.Trim)
+                        cmd.Parameters.AddWithValue("@nro_chasis", txtChasis.Text.Trim)
+                        cmd.Parameters.AddWithValue("@km_actual", CInt(nudKilometraje.Value))
+                        cmd.Parameters.AddWithValue("@observaciones", txtObservaciones.Text.Trim)
+                        cmd.Parameters.AddWithValue("@id", idVehiculo)
 
-        'segun el estado del registro, el mismo boton da de baja o reactiva
-        registroActivo = (fila.Cells("esta_activo").Value.ToString() = "Sí")
-        If registroActivo Then
-            btnEliminar.Text = "Dar de baja"
-        Else
-            btnEliminar.Text = "Reactivar"
-        End If
-    End Sub
-
-    Private Sub btnModificar_Click(sender As Object, e As EventArgs) Handles btnModificar.Click
-        'valido que haya un vehiculo seleccionado
-        If txtID.Text.Trim = "" Then
-            MessageBox.Show("Debe seleccionar un vehículo para modificar")
-            Exit Sub
-        End If
-
-        If Not ValidarCampos() Then Exit Sub
-
-        Try
-            Using cn As New MySqlConnection(CADENA)
-                cn.Open()
-                'cambiar el titular aca no pierde el historial:
-                'cada orden de trabajo guarda su propio cliente (regla 8.4)
-                Dim consulta As String =
-                    "UPDATE vehiculo SET patente=@patente, id_cliente=@id_cliente, id_modelo=@id_modelo, " &
-                    "anio=@anio, color=@color, nro_motor=@nro_motor, nro_chasis=@nro_chasis, " &
-                    "km_actual=@km_actual, observaciones=@observaciones " &
-                    "WHERE id_vehiculo=@id;"
-
-                Using cmd As New MySqlCommand(consulta, cn)
-                    cmd.Parameters.AddWithValue("@patente", txtPatente.Text.Trim)
-                    cmd.Parameters.AddWithValue("@id_cliente", CInt(cboTitular.SelectedValue))
-                    cmd.Parameters.AddWithValue("@id_modelo", CInt(cboModelo.SelectedValue))
-                    cmd.Parameters.AddWithValue("@anio", CInt(nudAnio.Value))
-                    cmd.Parameters.AddWithValue("@color", txtColor.Text.Trim)
-                    cmd.Parameters.AddWithValue("@nro_motor", txtMotor.Text.Trim)
-                    cmd.Parameters.AddWithValue("@nro_chasis", txtChasis.Text.Trim)
-                    cmd.Parameters.AddWithValue("@km_actual", CInt(nudKilometraje.Value))
-                    cmd.Parameters.AddWithValue("@observaciones", txtObservaciones.Text.Trim)
-                    cmd.Parameters.AddWithValue("@id", CInt(txtID.Text))
-
-                    Dim Resultado As Integer = cmd.ExecuteNonQuery()
-                    MessageBox.Show("Registros actualizados: " & Resultado)
+                        Dim Resultado As Integer = cmd.ExecuteNonQuery()
+                        hayCambios = False
+                        MessageBox.Show("Registros actualizados: " & Resultado)
+                    End Using
                 End Using
-            End Using
 
-            LimpiarFormu()
-            CargarVehiculos(txtFiltro.Text.Trim)
-
-        Catch ex As MySqlException When ex.Number = 1062
-            MessageBox.Show("Ya existe otro vehículo con esa patente.")
-            txtPatente.Focus()
-        Catch ex As Exception
-            MessageBox.Show("Error al modificar " & ex.Message)
-        End Try
-    End Sub
-
-    Private Sub btnEliminar_Click(sender As Object, e As EventArgs) Handles btnEliminar.Click
-        'doy de baja el vehiculo seleccionado, o lo reactivo si ya estaba dado de baja
-
-        'valido que haya un vehiculo seleccionado
-        If txtID.Text.Trim = "" Then
-            MessageBox.Show("Debe seleccionar un vehículo para dar de baja")
-            Exit Sub
+            Catch ex As MySqlException When ex.Number = 1062
+                MessageBox.Show("Ya existe otro vehículo con esa patente.")
+                txtPatente.Focus()
+                Exit Sub
+            Catch ex As Exception
+                MessageBox.Show("Error al modificar " & ex.Message)
+                Exit Sub
+            End Try
         End If
 
-        Dim idRegistro As Integer = CInt(txtID.Text)
+        'si se creo un vehiculo, limpio la busqueda para que quede listado aunque no coincida con lo escrito
+        If eraAlta AndAlso txtFiltro.Text <> "" Then
+            cargando = True
+            Try
+                txtFiltro.Clear()
+            Finally
+                cargando = False
+            End Try
+        End If
+
+        'recargo la lista: el vehiculo guardado queda marcado y la tarjeta muestra lo que quedo en la base
+        CargarVehiculos()
+        RefrescarRegistro()
+    End Sub
+
+    Private Sub btnBaja_Click(sender As Object, e As EventArgs) Handles btnBaja.Click
+        'doy de baja el vehiculo que se esta viendo, o lo reactivo si ya estaba dado de baja
+        Dim idRegistro As Integer = idVehiculo
+
+        'la baja y la reactivacion no guardan los campos: si hay cambios lo aviso en la misma pregunta
+        Dim avisoCambios As String = ""
+        If hayCambios Then
+            avisoCambios = vbCrLf & vbCrLf & "Los cambios sin guardar de la tarjeta se van a perder."
+        End If
 
         'pido confirmacion antes de cambiar el estado
         Dim respuesta As DialogResult
         If registroActivo Then
             respuesta = MessageBox.Show(
-                "¿Dar de baja el vehículo " & txtPatente.Text & "?",
+                "¿Dar de baja el vehículo " & lblRegistroTitulo.Text & "?" & avisoCambios,
                 "Dar de baja",
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Warning)
         Else
             respuesta = MessageBox.Show(
-                "¿Reactivar el vehículo " & txtPatente.Text & "?",
+                "¿Reactivar el vehículo " & lblRegistroTitulo.Text & "?" & avisoCambios,
                 "Reactivar",
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Question)
         End If
 
+        'si no confirma no se hace nada, y lo que estaba escribiendo queda como estaba
         If respuesta = DialogResult.No Then Exit Sub
 
         Dim aviso As String = ""
@@ -507,27 +857,20 @@ Public Class FrmVehiculos
 
         If aviso <> "" Then
             MessageBox.Show(aviso)
-            'si el vehiculo cambio desde otro puesto, limpio el formulario y muestro el estado real
-            If desactualizado Then
-                LimpiarFormu()
-                CargarVehiculos(txtFiltro.Text.Trim)
-            End If
-            Exit Sub
-        End If
-
-        If activoEnBase Then
+        ElseIf activoEnBase Then
             MessageBox.Show("Vehículos dados de baja: 1")
         Else
             MessageBox.Show("Vehículos reactivados: 1")
         End If
 
-        LimpiarFormu()
-        CargarVehiculos(txtFiltro.Text.Trim)
-    End Sub
+        'los cambios sin guardar se pierden recien ahora: cuando el estado cambio, o cuando la tarjeta
+        'mostraba un estado que ya no es el de la base y hay que volver a leerla
+        If aviso = "" OrElse desactualizado Then hayCambios = False
 
-    Private Sub btnLimpiar_Click(sender As Object, e As EventArgs) Handles btnLimpiar.Click
-        'limpio el formulario para cargar un vehiculo nuevo
-        LimpiarFormu()
+        'recargo la lista: muestra el estado real, y el vehiculo sigue marcado si todavia esta listado
+        CargarVehiculos()
+        'si la baja se rechazo y habia cambios sin guardar, la tarjeta queda como estaba
+        If Not hayCambios Then RefrescarRegistro()
     End Sub
 
 End Class
