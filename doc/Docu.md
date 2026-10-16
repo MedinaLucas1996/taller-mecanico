@@ -107,9 +107,16 @@ Repositorio: https://github.com/MedinaLucas1996/taller-mecanico (público).
     - Lista: `CargarOrdenes` trae N.º, vehículo (patente · marca modelo), fecha prometida y "Horas" (`n de m`: líneas aprobadas con horas sobre líneas aprobadas; vacía en "Para empezar"). "En curso" y "Para empezar" se ordenan por fecha prometida, las que no tienen fecha al final; "Terminadas", por entrega o finalización, la más reciente primero. Las demoradas (fecha prometida anterior a hoy y estado no final) van con fondo `MistyRose`. La grilla usa `MarcarFila`, `StandardTab` y el orden programado con guarda, como los datos maestros.
     - Resumen: `MostrarOrden` toma de la fila el número, el estado, el vehículo con su kilometraje de ingreso, el síntoma y las observaciones de recepción (sus dos renglones se ocultan si están vacías; van en filas propias de `tlpResumen`, así no dejan hueco). `CargarTrabajo` lista los servicios aprobados con cantidad y horas o "sin horas". `CargarFotos` trae las fotos solo de la orden elegida; las miniaturas se amplían con `FrmFoto` (`PermiteCambios = False`) y una que falta dice "Sin foto", nunca ofrece cargarla.
     - Botón: "Iniciar trabajo", "Cargar horas y finalizar" o "Ver orden" según el estado; abre `FrmOrdenGestion` con `ShowDialog`. Al volver lee el estado actual de la orden, pasa al grupo donde quedó (si se inició o se finalizó), recarga cantidades y lista y vuelve a mostrar su resumen; si la orden ya no es del mecánico, deja de verse.
+  - **Historial por patente** (`FrmHistorial`, los tres roles): se abre en el panel de contenido como las demás (`btnHistorial_Click`). Es de solo consulta: no tiene ninguna sentencia de escritura. `Load` no restringe el rol; solo decide una vez el campo `esMecanico` (`Sesion.Rol = "MECANICO"`), que elige qué consultas se ejecutan.
+    - Disposición: tarjeta de lista (`pnlLista`) de ancho fijo a la izquierda, estirada a lo alto; tarjeta de detalle (`pnlDetalle`) que se estira en los dos sentidos. Dentro del detalle, `pnlVehiculo` (oculto hasta elegir un vehículo) lleva la patente en 12 pt, la etiqueta "Dado de baja" cuando corresponde y tres renglones con icono (marca y modelo · año · color; titular actual · documento · teléfono; kilometraje actual). Debajo, un `TableLayoutPanel` (`tlpHistorial`) reparte el alto en partes iguales entre la grilla de órdenes y la de servicios y deja al pie, en dos columnas, "El cliente dijo" y "Observaciones del mecánico".
+    - Lista: búsqueda en vivo por patente (`txtFiltro_TextChanged`, `LIKE @filtro` parametrizado, la caja escribe en mayúsculas). `CargarVehiculos` lista también los vehículos dados de baja, al final, en gris y con "Baja" en la columna Estado; trae en columnas ocultas los datos de la tarjeta, así elegir un vehículo no vuelve a consultar. Sin vehículos que coincidan, la ayuda lo dice.
+    - Órdenes: `CargarOrdenes` trae todas las órdenes del vehículo, en cualquier estado, la más reciente primero: N.º, ingreso, estado (con el color del tablero), km de ingreso, mecánico ("Sin asignar" si no tiene) y, salvo para el mecánico, "Total": el total aprobado o, si no hubo aprobación, el presupuestado. Al elegir un vehículo queda elegida su orden más reciente. Un vehículo sin órdenes muestra el aviso "Este vehículo todavía no tiene órdenes de trabajo." en lugar de las grillas.
+    - Servicios: `CargarServicios` lista las líneas de la orden elegida (aprobadas o no): servicio, cantidad, "Aprobado" (Sí/No), horas trabajadas y, salvo para el mecánico, subtotal. Una orden sin líneas lo dice en el título de la grilla.
+    - Importes: para el mecánico las consultas de órdenes y de servicios tienen su propia lista de columnas, sin `total_presupuestado`, `total_aprobado`, `precio_unitario` ni `subtotal`; no se trata de columnas ocultas.
+    - Las tres grillas no se ordenan por columna (`SortMode = NotSortable`), así la fila elegida nunca cambia sola; la selección usa `MarcarFila` con la guarda `cargando`, `SelectionChanged` y `CellClick`, como las demás pantallas. Las fotos de recepción quedan fuera de esta primera versión.
 
 - Pendiente en el flujo de la orden de trabajo: impresión del presupuesto o de la comanda de taller, diagnóstico escrito por el mecánico antes del presupuesto y fotos cargadas por el mecánico (los dos últimos necesitan cambios en la base).
-- Opciones de menú sin pantalla (el botón existe pero no tiene evento): Historial y Reportes.
+- Opción de menú sin pantalla (el botón existe pero no tiene evento): Reportes.
 
 ### Menú por rol
 
@@ -163,9 +170,10 @@ graph TD
                 Usuarios["FrmUsuarios<br/>(solo administrador)"]
                 Recepcion["FrmRecepcion<br/>(asistente de recepción)"]
                 Ordenes["FrmOrdenes<br/>(tablero de órdenes)"]
+                Historial["FrmHistorial<br/>(historial por patente)"]
             end
             subgraph Pendientes["Opciones de menú sin pantalla"]
-                Pend["Historial, Servicios, Categorías,<br/>Mecánicos, Reportes"]
+                Pend["Servicios, Categorías,<br/>Mecánicos, Reportes"]
             end
             Conexion["Module ConexionBD<br/>(Public Const CADENA)"]
             Recursos["Recursos/<br/>fondo-login-underground.png<br/>musica-login.mp3"]
@@ -195,6 +203,9 @@ graph TD
     Recepcion -.-> Sesion
     Ordenes --> Conexion
     Ordenes -.-> Sesion
+    Principal -->|"los tres roles"| Historial
+    Historial --> Conexion
+    Historial -.-> Sesion
     Clientes --> Conexion
     Vehiculos --> Conexion
     Marcas --> Conexion
@@ -459,7 +470,7 @@ Pendiente según el estado actual del código y `taller-mecanico-especificacion.
 
 1. **Permisos por rol**: el login ya valida usuario y contraseña y deja el rol en `Sesion.Rol`, y el menú principal ya se filtra por rol; falta aplicar permisos por rol (administrador, operador, mecánico) dentro de cada pantalla (hoy solo Usuarios, Mecánicos, Servicios, Categorías, Recepción, Órdenes de trabajo y Gestión de la orden comprueban el rol al abrirse).
 2. **ABM**: todos terminados (Clientes, Vehículos, Marcas y modelos, Servicios, Categorías, Mecánicos y Usuarios).
-3. **Flujo de orden de trabajo**: la recepción (asistente con fotos, que crea la orden y su primera fila de historial en una transacción), el tablero de estado de las órdenes y la gestión de la orden (líneas de presupuesto, aprobación del cliente total o parcial por línea, y cambios de estado con su fila de historial en una transacción) y la pantalla del mecánico (`FrmMisOrdenes`, con la gestión de la orden en modo mecánico) ya están terminados. Falta: impresión (presupuesto y comanda de taller) y consulta de historial por patente.
+3. **Flujo de orden de trabajo**: la recepción (asistente con fotos, que crea la orden y su primera fila de historial en una transacción), el tablero de estado de las órdenes y la gestión de la orden (líneas de presupuesto, aprobación del cliente total o parcial por línea, y cambios de estado con su fila de historial en una transacción) y la pantalla del mecánico (`FrmMisOrdenes`, con la gestión de la orden en modo mecánico) y la consulta de historial por patente (`FrmHistorial`) ya están terminados. Falta: impresión (presupuesto y comanda de taller).
 4. **Reportes**: elegir el motor compatible con .NET 10 y construir primero el presupuesto; después los reportes de gestión (servicios más solicitados, productividad por mecánico, órdenes abiertas, tiempos por etapa).
 5. **Credenciales fuera del repositorio**: cambiar la contraseña de la base de desarrollo y mover la cadena de conexión a configuración local no versionada.
 6. **Pruebas automatizadas**: no hay plan definido. _TODO: completar manualmente_
