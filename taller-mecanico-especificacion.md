@@ -379,6 +379,8 @@ Es la decisión técnica de mayor impacto, porque condiciona la versión de fram
 
 Si la cátedra espera el enfoque clásico con diseñador visual, la primera opción es la más segura.
 
+> **Nota (decisión tomada).** El proyecto no usa ninguno de estos motores. Los reportes impresos se hacen como se enseñó en clase: un `PrintDocument` y un `PrintPreviewDialog` declarados en el diseñador del formulario, con la hoja dibujada a mano en el evento `PrintPage` (`e.Graphics`). Funciona en .NET 10 sin dependencias adicionales.
+
 ### 11.2 Restricción de MariaDB sobre CHECK y claves foráneas
 
 Desde MariaDB 10.5, una columna que forma parte de una clave foránea con acción referencial `CASCADE` no puede referenciarse dentro de una cláusula `CHECK`; el intento produce el error 1901.
