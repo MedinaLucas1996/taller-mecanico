@@ -49,6 +49,8 @@ Los títulos de sección siguen la misma regla: "OPERACIONES" se muestra a todos
 - **Registro**: al elegir un cliente, con el mouse o con el teclado, se cargan sus datos, una etiqueta con su estado ("Activo" o "Dado de baja") y una línea con su cantidad de vehículos y la fecha desde la que es cliente. Sin nada elegido, la tarjeta solo muestra una ayuda.
 - **Acciones según el caso**: "Nuevo cliente" (arriba a la derecha) abre un registro en blanco con "Guardar" y "Cancelar"; un cliente existente muestra "Guardar cambios" y "Dar de baja", o "Reactivar" si está dado de baja. Si hay cambios sin guardar, se pregunta antes de descartarlos, también al pasar a otra pantalla, cerrar la sesión o cerrar el programa. Un clic en el título de una columna ordena la lista sin cambiar el cliente abierto.
 
+- **Imprimir ficha** (arriba, a la izquierda de "Nuevo cliente"): se habilita con un cliente guardado elegido y abre la vista previa de su ficha (ver [Reportes impresos](#reportes-impresos)). Si hay cambios sin guardar, avisa que la ficha muestra solo lo guardado.
+
 El número interno del cliente no se muestra. Las reglas no cambiaron: nombre y documento obligatorios, documento único, y un cliente con vehículos activos no se da de baja.
 
 **Vehículos**, **Usuarios**, **Mecánicos**, **Servicios** y **Categorías** usan la misma pantalla: lista con búsqueda y "Mostrar dados de baja" a la izquierda, registro a la derecha, botón "Nuevo …" arriba, y las mismas preguntas antes de perder cambios. Cada una conserva sus reglas. En Vehículos, el combo de titular lista los clientes activos y, si el titular del vehículo está dado de baja, también a ese cliente, marcado como tal.
@@ -107,7 +109,7 @@ Las fotos se guardan en la base de datos, en la tabla `ot_foto`.
 
 - Arriba, el número de orden, la patente y el vehículo, con el estado a la derecha, y una barra con las seis etapas: las cumplidas con una marca verde, la actual resaltada y las que faltan atenuadas. Una orden rechazada o anulada lo indica debajo de la barra, con su motivo.
 - A la derecha, los datos de la orden (mecánico, que se puede cambiar mientras el estado no sea final; kilometraje; síntoma; observaciones de recepción; fechas de finalización y entrega) y el historial de estados, el más reciente primero.
-- Al pie, "Anular orden" (solo el administrador, en un estado no final) y el botón del próximo paso.
+- Al pie, "Imprimir" (abre el menú de reportes de la orden, ver [Reportes impresos](#reportes-impresos)), "Anular orden" (solo el administrador, en un estado no final) y el botón del próximo paso.
 
 | Estado | Qué se hace en la ventana | Botón principal | Botón secundario |
 |---|---|---|---|
@@ -132,6 +134,19 @@ Un usuario con rol `MECANICO` ve en el menú **Mis órdenes** (`FrmMisOrdenes`),
 - **Un botón** según el caso: "Iniciar trabajo", "Cargar horas y finalizar" o "Ver orden". Abre la misma ventana de gestión de la orden, en modo mecánico.
 
 En modo mecánico la gestión de la orden no muestra ningún importe (ni precios, ni subtotales, ni totales) y solo deja iniciar el trabajo, cargar las horas y las observaciones, guardar el avance y finalizar. El presupuesto, la aprobación del cliente, la entrega, la anulación y el cambio de mecánico siguen siendo de la recepción y del administrador. Un mecánico no puede abrir ni modificar una orden asignada a otro: se comprueba en la base al abrirla y otra vez al guardar.
+
+### Reportes impresos
+
+Cuatro reportes con vista previa, hechos como en clase: cada uno es un `PrintDocument` del diseñador que se muestra en un `PrintPreviewDialog` maximizado; el botón de impresora de la vista previa imprime. Las hojas se dibujan a mano, se leen bien en blanco y negro y llevan al pie "Hoja N" y la fecha de impresión. Si el contenido no entra, sigue en otra hoja y las tablas repiten su encabezado con "(continuación)". Los reportes muestran lo guardado en la base.
+
+| Reporte | Dónde está el botón | Qué muestra | Quién lo ve |
+|---|---|---|---|
+| Orden de trabajo | Gestión de la orden: "Imprimir" → "Orden de trabajo" | La orden en cualquier estado, con lo que tiene hasta ese momento: cliente y vehículo, recepción, servicios, totales, trabajo realizado (mecánico, horas, observaciones, fechas), motivo del rechazo o de la anulación e historial de estados. Una orden anulada lleva la marca de agua "ANULADA". | Administrador, operador y mecánico (el mecánico, sin ningún importe) |
+| Presupuesto | Gestión de la orden: "Imprimir" → "Presupuesto" | Cliente y vehículo, síntoma, líneas con precio unitario y subtotal, total presupuestado (y, si el cliente ya decidió, qué líneas aprobó y el total aprobado), validez de 15 días y lugar para la firma del cliente. Los importes son precios finales. Solo se habilita si la orden tiene líneas y no está anulada. | Administrador y operador |
+| Acta de recepción | Gestión de la orden: "Imprimir" → "Acta de recepción" | Datos de ingreso del vehículo (kilometraje, combustible, fecha prometida, síntoma, observaciones), las cinco fotos de recepción sin deformar ("Sin foto" si falta alguna) y las firmas del cliente y de quien lo recibió. | Administrador y operador |
+| Ficha del cliente | Clientes: "Imprimir ficha" | Datos del cliente; cada vehículo a su nombre (también los dados de baja) con sus órdenes; las órdenes que trajo con vehículos que hoy son de otro titular; y un resumen con cantidad de vehículos, de órdenes y el total facturado de las órdenes entregadas. | Administrador y operador (la pantalla Clientes solo está en su menú) |
+
+Para el mecánico el menú "Imprimir" muestra solo "Orden de trabajo", y ese reporte sale sin precios, subtotales ni totales: sus consultas no traen esas columnas.
 
 ---
 
@@ -163,6 +178,7 @@ graph TD
         Conexion["Module ConexionBD<br/>(Const CADENA)"]
         Seguridad["Module Seguridad<br/>(hash PBKDF2)"]
         Sesion["Module Sesion<br/>(usuario logueado)"]
+        Impresion["Module Impresion<br/>(dibujo de reportes)"]
         Recursos["Recursos/<br/>(imagen y música del login)"]
     end
 
@@ -190,6 +206,7 @@ graph TD
     Historial -->|"usa CADENA"| Conexion
     Historial -.->|"lee rol"| Sesion
     Clientes -->|"usa CADENA"| Conexion
+    Clientes -->|"dibuja la ficha"| Impresion
     Vehiculos -->|"usa CADENA"| Conexion
     Marcas -->|"usa CADENA"| Conexion
     Usuarios -->|"usa CADENA"| Conexion
@@ -311,11 +328,12 @@ No aplica: aplicación de escritorio WinForms. No expone endpoints.
   - Terminado: Gestión de la orden (líneas de presupuesto con sus totales, mecánico, aprobación del cliente por línea o rechazo, inicio del trabajo, horas trabajadas por línea, cierre técnico, entrega con actualización del kilometraje y anulación con motivo, solo para el administrador; cada cambio de estado se guarda en una transacción con su fila de historial). Ver [Recepción y órdenes de trabajo](#recepción-y-órdenes-de-trabajo).
   - Terminado: Mis órdenes (pantalla del mecánico: sus órdenes en tres grupos, resumen de trabajo con fotos y un botón que abre la gestión de la orden en modo mecánico, sin importes; ver [Mis órdenes](#mis-órdenes-pantalla-del-mecánico)).
   - Terminado: Historial por patente (`FrmHistorial`, para los tres roles y de solo consulta: búsqueda por patente, también de vehículos dados de baja; datos del vehículo y de su titular actual; todas sus órdenes de trabajo, en cualquier estado y la más reciente primero; y los servicios, el síntoma y las observaciones del mecánico de la orden elegida. El mecánico ve el historial sin ningún importe: sus consultas no traen totales, precios ni subtotales).
-  - Pendiente en el flujo de la orden de trabajo: impresión del presupuesto, diagnóstico escrito por el mecánico antes del presupuesto y fotos cargadas por el mecánico.
+  - Terminado: Reportes impresos (`PrintDocument` + `PrintPreviewDialog`, como en clase; rutinas de dibujo compartidas en `Module Impresion`): orden de trabajo en cualquier estado, presupuesto y acta de recepción con sus cinco fotos desde la gestión de la orden, y ficha del cliente desde Clientes. El mecánico solo imprime la orden de trabajo, sin importes. Ver [Reportes impresos](#reportes-impresos).
+  - Pendiente en el flujo de la orden de trabajo: diagnóstico escrito por el mecánico antes del presupuesto y fotos cargadas por el mecánico.
   - Terminado: Mecánicos (ABM solo para el administrador: nombre completo obligatorio, especialidad y teléfono; búsqueda por nombre o especialidad; baja lógica, rechazada si el mecánico tiene órdenes de trabajo sin cerrar; un mecánico dado de baja se reactiva con el mismo botón; no admite dos mecánicos activos con el mismo nombre).
   - Terminado: Servicios (ABM solo para el administrador: código único, descripción, categoría y precio obligatorios, tiempo estimado en horas opcional; búsqueda por código, descripción o categoría; baja lógica y reactivación con el mismo botón, rechazada si la categoría del servicio está dada de baja; cambiar el precio no altera los presupuestos ya cargados).
   - Terminado: Categorías (ABM solo para el administrador: descripción única y obligatoria; la grilla muestra la cantidad de servicios activos de cada una, con búsqueda por descripción; baja lógica, rechazada si la categoría tiene servicios activos; una categoría dada de baja se reactiva con el mismo botón).
-  - Sin pantalla todavía (botón del menú sin evento): Reportes.
+  - Sin pantalla todavía (botón del menú sin evento): Reportes, pensado para los reportes de gestión; los reportes impresos se abren desde Gestión de la orden y Clientes.
   - Decisión cerrada: hash de contraseñas con PBKDF2 + SHA256, igual que la referencia de la cátedra (reemplaza la mención de BCrypt de la especificación). Las bases ya cargadas deben ejecutar `database/06_migracion_hash_pbkdf2.sql`.
   - Base de datos: 13 tablas. A las 12 del modelo original se suma `ot_foto` (fotos de recepción) y `orden_trabajo` tiene la columna `fecha_prometida`. Las bases ya creadas deben ejecutar `database/07_recepcion_fotos.sql`.
 

@@ -167,6 +167,9 @@ Public Class FrmClientes
         hayCambios = False
         pnlRegistro.Visible = False
         lblAyuda.Visible = True
+
+        'la ficha se imprime solo de un cliente guardado
+        btnImprimirFicha.Enabled = False
     End Sub
 
     Sub CargarCampos(fila As DataGridViewRow)
@@ -255,6 +258,9 @@ Public Class FrmClientes
 
         lblAyuda.Visible = False
         pnlRegistro.Visible = True
+
+        'un cliente guardado ya tiene su ficha para imprimir
+        btnImprimirFicha.Enabled = True
     End Sub
 
     Sub NuevoRegistro()
@@ -265,6 +271,9 @@ Public Class FrmClientes
 
         CargarCampos(Nothing)
         lblRegistroTitulo.Text = "Nuevo cliente"
+
+        'un cliente que todavia no se guardo no tiene ficha
+        btnImprimirFicha.Enabled = False
 
         'un cliente nuevo no tiene estado ni contexto, y sus botones son Cancelar y Guardar
         lblEstadoRegistro.Visible = False
@@ -688,6 +697,331 @@ Public Class FrmClientes
         CargarClientes()
         'si la baja se rechazo y habia cambios sin guardar, la tarjeta queda como estaba
         If Not hayCambios Then RefrescarRegistro()
+    End Sub
+
+    '----- ficha del cliente impresa -----
+
+    'datos de la ficha: se leen al pedir la impresion y el evento PrintPage solo dibuja
+    Private clienteFicha As DataRow
+    Private vehiculosFicha As DataTable
+    Private ordenesFicha As DataTable
+    Private fechaFicha As DateTime
+
+    'bloques de la ficha en el orden en que se imprimen: un numero >= 0 es la fila del vehiculo en vehiculosFicha
+    Const PASO_CLIENTE As Integer = -1
+    Const PASO_PROPIOS As Integer = -2
+    Const PASO_VENDIDOS As Integer = -3
+    Const PASO_RESUMEN As Integer = -4
+    Private pasosFicha As New List(Of Integer)
+
+    'por donde va la impresion: hoja, bloque y fila de la tabla; se reinician en BeginPrint
+    Private hojaFicha As Integer = 0
+    Private pasoFicha As Integer = 0
+    Private filaFicha As Integer = 0
+    Private errorFicha As Boolean = False
+
+    Private Sub btnImprimirFicha_Click(sender As Object, e As EventArgs) Handles btnImprimirFicha.Click
+        'imprimo la ficha del cliente guardado que se esta viendo
+        If idCliente = 0 OrElse creando Then Exit Sub
+
+        'la ficha sale de lo guardado en la base: aviso si hay cambios que no van a aparecer
+        If hayCambios Then
+            Dim respuesta As DialogResult = MessageBox.Show(
+                "Hay cambios sin guardar y no van a salir en la ficha, que muestra solo los datos guardados." & vbCrLf &
+                "¿Imprimir igual?",
+                "Cambios sin guardar",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning)
+            If respuesta = DialogResult.No Then Exit Sub
+        End If
+
+        If Not CargarDatosFicha() Then Exit Sub
+
+        'abro la vista previa maximizada; desde su boton de impresora se imprime
+        'esta pantalla va dentro de la ventana principal: la vista previa se abre sobre esa ventana
+        Try
+            prdFicha.DefaultPageSettings.Margins = New Printing.Margins(MARGEN_HOJA, MARGEN_HOJA, MARGEN_HOJA, MARGEN_HOJA)
+            ppdVistaPrevia.Document = prdFicha
+            ppdVistaPrevia.WindowState = FormWindowState.Maximized
+            ppdVistaPrevia.ShowDialog(Me.TopLevelControl)
+        Catch ex As Exception
+            MessageBox.Show("No se pudo preparar la impresión: " & ex.Message)
+        End Try
+    End Sub
+
+    Function CargarDatosFicha() As Boolean
+        'leo el cliente, sus vehiculos y sus ordenes; armo la lista de bloques de la ficha
+        Dim consultaCliente As String =
+            "SELECT razon_social, documento, telefono, email, domicilio, localidad, fecha_alta, activo, observaciones " &
+            "FROM cliente WHERE id_cliente = @id_cliente;"
+
+        'vehiculos que hoy son del cliente (tambien los dados de baja) y, despues, los que ya no son suyos
+        'pero que trajo al taller: propio = 1 o 0
+        Dim consultaVehiculos As String =
+            "SELECT v.id_vehiculo, v.patente, CONCAT(ma.descripcion, ' ', mo.descripcion) AS vehiculo, " &
+            "v.anio, v.color, v.km_actual, v.activo, 1 AS propio " &
+            "FROM vehiculo AS v " &
+            "JOIN modelo AS mo ON mo.id_modelo = v.id_modelo " &
+            "JOIN marca AS ma ON ma.id_marca = mo.id_marca " &
+            "WHERE v.id_cliente = @id_cliente " &
+            "UNION " &
+            "SELECT v.id_vehiculo, v.patente, CONCAT(ma.descripcion, ' ', mo.descripcion) AS vehiculo, " &
+            "v.anio, v.color, v.km_actual, v.activo, 0 AS propio " &
+            "FROM vehiculo AS v " &
+            "JOIN modelo AS mo ON mo.id_modelo = v.id_modelo " &
+            "JOIN marca AS ma ON ma.id_marca = mo.id_marca " &
+            "WHERE v.id_cliente <> @id_cliente " &
+            "AND v.id_vehiculo IN (SELECT ot.id_vehiculo FROM orden_trabajo AS ot WHERE ot.id_cliente = @id_cliente) " &
+            "ORDER BY propio DESC, activo DESC, patente;"
+
+        'ordenes del cliente; el total es el aprobado si hay, si no el presupuestado
+        Dim consultaOrdenes As String =
+            "SELECT ot.id_vehiculo, ot.nro_orden, ot.fecha_recepcion, e.codigo, e.descripcion AS estado, " &
+            "COALESCE(m.nombre_completo, 'Sin asignar') AS mecanico, " &
+            "CASE WHEN ot.total_aprobado > 0 THEN ot.total_aprobado ELSE ot.total_presupuestado END AS total " &
+            "FROM orden_trabajo AS ot " &
+            "JOIN estado_ot AS e ON e.id_estado_ot = ot.id_estado_ot " &
+            "LEFT JOIN mecanico AS m ON m.id_mecanico = ot.id_mecanico " &
+            "WHERE ot.id_cliente = @id_cliente " &
+            "ORDER BY ot.fecha_recepcion, ot.nro_orden;"
+
+        Try
+            Using cn As New MySqlConnection(CADENA)
+                cn.Open()
+                Dim cliente As DataTable = LeerTablaFicha(cn, consultaCliente)
+                If cliente.Rows.Count = 0 Then
+                    MessageBox.Show("No se encontró el cliente para imprimir su ficha.")
+                    Return False
+                End If
+                clienteFicha = cliente.Rows(0)
+                vehiculosFicha = LeerTablaFicha(cn, consultaVehiculos)
+                ordenesFicha = LeerTablaFicha(cn, consultaOrdenes)
+            End Using
+        Catch ex As Exception
+            MessageBox.Show("Error al leer los datos de la ficha: " & ex.Message)
+            Return False
+        End Try
+
+        ArmarPasosFicha()
+        fechaFicha = DateTime.Now
+        Return True
+    End Function
+
+    Function LeerTablaFicha(cn As MySqlConnection, consulta As String) As DataTable
+        'ejecuto una consulta del cliente y devuelvo sus filas
+        Using cmd As New MySqlCommand(consulta, cn)
+            cmd.Parameters.AddWithValue("@id_cliente", idCliente)
+            Dim tabla As New DataTable
+            Using lector As MySqlDataReader = cmd.ExecuteReader
+                tabla.Load(lector)
+            End Using
+            Return tabla
+        End Using
+    End Function
+
+    Sub ArmarPasosFicha()
+        'orden de la ficha: cliente, sus vehiculos, los que ya no son suyos (si hay) y el resumen
+        pasosFicha.Clear()
+        pasosFicha.Add(PASO_CLIENTE)
+        pasosFicha.Add(PASO_PROPIOS)
+        For i As Integer = 0 To vehiculosFicha.Rows.Count - 1
+            If CInt(vehiculosFicha.Rows(i)("propio")) = 1 Then pasosFicha.Add(i)
+        Next
+
+        Dim primeraVendida As Boolean = True
+        For i As Integer = 0 To vehiculosFicha.Rows.Count - 1
+            If CInt(vehiculosFicha.Rows(i)("propio")) = 0 Then
+                If primeraVendida Then pasosFicha.Add(PASO_VENDIDOS)
+                primeraVendida = False
+                pasosFicha.Add(i)
+            End If
+        Next
+
+        pasosFicha.Add(PASO_RESUMEN)
+    End Sub
+
+    Function OrdenesDelVehiculo(fila As DataRow) As DataRow()
+        'ordenes del cliente hechas con ese vehiculo
+        Return ordenesFicha.Select("id_vehiculo = " & CInt(fila("id_vehiculo")).ToString())
+    End Function
+
+    Function TituloVehiculo(fila As DataRow) As String
+        'renglon de cabecera de cada vehiculo: patente, modelo, año, color y km
+        Dim titulo As String = fila("patente").ToString() & " · " & fila("vehiculo").ToString()
+        If Not IsDBNull(fila("anio")) Then titulo = titulo & " · " & fila("anio").ToString()
+        If fila("color").ToString() <> "" Then titulo = titulo & " · " & fila("color").ToString()
+        titulo = titulo & " · " & CInt(fila("km_actual")).ToString("N0") & " km"
+        If CInt(fila("propio")) = 1 AndAlso Not Convert.ToBoolean(fila("activo")) Then titulo = titulo & " (Baja)"
+        Return titulo
+    End Function
+
+    Private Sub prdFicha_BeginPrint(sender As Object, e As Printing.PrintEventArgs) Handles prdFicha.BeginPrint
+        'la vista previa y la impresion real recorren las hojas cada una desde el principio
+        hojaFicha = 0
+        pasoFicha = 0
+        filaFicha = 0
+        errorFicha = False
+    End Sub
+
+    Private Sub prdFicha_PrintPage(sender As Object, e As Printing.PrintPageEventArgs) Handles prdFicha.PrintPage
+        'un error al dibujar corta la ficha con un aviso, sin cerrar el sistema
+        Try
+            DibujarHojaFicha(e)
+        Catch ex As Exception
+            e.HasMorePages = False
+            If Not errorFicha Then
+                errorFicha = True
+                MessageBox.Show("No se pudo dibujar la ficha: " & ex.Message)
+            End If
+        End Try
+    End Sub
+
+    Sub DibujarHojaFicha(e As Printing.PrintPageEventArgs)
+        'dibujo los bloques que entran en la hoja; lo que no entra sigue en la siguiente
+        Dim g As Graphics = e.Graphics
+        Dim area As Rectangle = e.MarginBounds
+        Dim x As Integer = area.Left
+        Dim ancho As Integer = area.Width
+        Dim limite As Integer = area.Bottom - ALTO_PIE
+        Dim nombre As String = clienteFicha("razon_social").ToString()
+
+        hojaFicha += 1
+
+        Dim y As Integer = DibujarCabecera(g, x, area.Top, ancho, "Ficha del cliente", nombre)
+        Dim inicioHoja As Integer = y
+
+        Do While pasoFicha < pasosFicha.Count
+            Dim paso As Integer = pasosFicha(pasoFicha)
+            Dim termino As Boolean
+
+            If paso >= 0 AndAlso OrdenesDelVehiculo(vehiculosFicha.Rows(paso)).Length > 0 Then
+                'vehiculo con ordenes: tabla que se puede partir entre hojas
+                termino = ImprimirOrdenesVehiculo(g, vehiculosFicha.Rows(paso), x, y, ancho, limite, y = inicioHoja)
+            Else
+                'los demas bloques no se parten: si no entran pasan enteros a la hoja siguiente
+                Dim fin As Integer = DibujarBloqueFicha(g, paso, x, y, ancho, False)
+                termino = (fin <= limite OrElse y = inicioHoja)
+                If termino Then y = DibujarBloqueFicha(g, paso, x, y, ancho, True)
+            End If
+
+            If Not termino Then Exit Do
+            pasoFicha += 1
+            filaFicha = 0
+        Loop
+
+        DibujarPie(g, area, "Ficha del cliente · " & nombre & " · Impreso el " & fechaFicha.ToString("dd/MM/yyyy HH:mm"), hojaFicha)
+        e.HasMorePages = (pasoFicha < pasosFicha.Count)
+    End Sub
+
+    Function DibujarBloqueFicha(g As Graphics, paso As Integer, x As Integer, y As Integer, ancho As Integer,
+                                dibujar As Boolean) As Integer
+        'dibujo (o solo mido, con dibujar en False) un bloque de la ficha y devuelvo el y donde termina
+        Select Case paso
+            Case PASO_CLIENTE
+                Return DibujarCajaCliente(g, x, y, ancho, dibujar)
+
+            Case PASO_PROPIOS, PASO_VENDIDOS
+                'titulo de grupo; reservo lugar para que no quede solo al pie de la hoja
+                Dim titulo As String = "Vehículos del cliente"
+                Dim nota As String = "Vehículos que hoy están a nombre del cliente, cada uno con sus órdenes de trabajo."
+                If paso = PASO_VENDIDOS Then
+                    titulo = "Vehículos que ya no son del cliente"
+                    nota = "Órdenes que el cliente trajo al taller con vehículos que hoy tienen otro titular."
+                ElseIf vehiculosFicha.Select("propio = 1").Length = 0 Then
+                    nota = "El cliente no tiene vehículos a su nombre."
+                End If
+
+                Dim yFin As Integer = DibujarTituloCaja(g, titulo, x, y, ancho, dibujar)
+                yFin = DibujarParrafo(g, nota, x + 8, yFin - 4, ancho - 16, dibujar) + 10
+                If Not dibujar Then Return yFin + 90
+                Return yFin
+
+            Case PASO_RESUMEN
+                Return DibujarResumenFicha(g, x, y, ancho, dibujar)
+        End Select
+
+        'vehiculo sin ordenes: su renglon de cabecera y un aviso
+        Dim vehiculo As DataRow = vehiculosFicha.Rows(paso)
+        y = DibujarTituloSeccion(g, TituloVehiculo(vehiculo), x, y, ancho, dibujar)
+        Return DibujarParrafo(g, "Sin órdenes de trabajo registradas.", x, y, ancho, dibujar) + 14
+    End Function
+
+    Function DibujarCajaCliente(g As Graphics, x As Integer, y As Integer, ancho As Integer, dibujar As Boolean) As Integer
+        'caja con los datos del cliente en dos columnas y las observaciones debajo
+        Const ANCHO_ETIQUETA As Integer = 105
+        Dim fila As DataRow = clienteFicha
+        Dim anchoColumna As Integer = (ancho - 32) \ 2
+        Dim xDerecha As Integer = x + 16 + anchoColumna + 16
+
+        Dim domicilio As String = fila("domicilio").ToString()
+        If fila("localidad").ToString() <> "" Then
+            If domicilio <> "" Then domicilio = domicilio & ", "
+            domicilio = domicilio & fila("localidad").ToString()
+        End If
+
+        Dim estado As String = "Activo"
+        If Not Convert.ToBoolean(fila("activo")) Then estado = "Dado de baja"
+
+        Dim yInicio As Integer = DibujarTituloCaja(g, "Cliente", x, y, ancho, dibujar)
+
+        Dim yIzquierda As Integer = yInicio
+        yIzquierda = DibujarDato(g, "Razón social", fila("razon_social").ToString(), x + 8, yIzquierda, anchoColumna, ANCHO_ETIQUETA, dibujar)
+        yIzquierda = DibujarDato(g, "Documento", fila("documento").ToString(), x + 8, yIzquierda, anchoColumna, ANCHO_ETIQUETA, dibujar)
+        yIzquierda = DibujarDato(g, "Teléfono", fila("telefono").ToString(), x + 8, yIzquierda, anchoColumna, ANCHO_ETIQUETA, dibujar)
+        yIzquierda = DibujarDato(g, "Email", fila("email").ToString(), x + 8, yIzquierda, anchoColumna, ANCHO_ETIQUETA, dibujar)
+
+        Dim yDerecha As Integer = yInicio
+        yDerecha = DibujarDato(g, "Domicilio", domicilio, xDerecha, yDerecha, anchoColumna, ANCHO_ETIQUETA, dibujar)
+        yDerecha = DibujarDato(g, "Cliente desde", TextoFecha(fila("fecha_alta"), "dd/MM/yyyy"), xDerecha, yDerecha, anchoColumna, ANCHO_ETIQUETA, dibujar)
+        yDerecha = DibujarDato(g, "Estado", estado, xDerecha, yDerecha, anchoColumna, ANCHO_ETIQUETA, dibujar)
+
+        Dim yFin As Integer = Math.Max(yIzquierda, yDerecha)
+        yFin = DibujarDato(g, "Observaciones", fila("observaciones").ToString(), x + 8, yFin + 2, ancho - 16, ANCHO_ETIQUETA, dibujar) + 4
+
+        If dibujar Then DibujarBordeCaja(g, x, y, ancho, yFin)
+        Return yFin + 18
+    End Function
+
+    Function ImprimirOrdenesVehiculo(g As Graphics, vehiculo As DataRow, x As Integer, ByRef y As Integer, ancho As Integer,
+                                     limite As Integer, inicioHoja As Boolean) As Boolean
+        'tabla con las ordenes de un vehiculo, con su renglon de cabecera como titulo
+        Dim columnas() As String = {"N.º", "Ingreso", "Estado", "Mecánico", "Total"}
+        Dim pesos() As Single = {0.9F, 1.6F, 1.8F, 2.6F, 1.7F}
+        Dim alineaciones() As StringAlignment = {StringAlignment.Near, StringAlignment.Near, StringAlignment.Near,
+                                                 StringAlignment.Near, StringAlignment.Far}
+
+        Dim filas As New List(Of String())
+        For Each orden As DataRow In OrdenesDelVehiculo(vehiculo)
+            filas.Add({orden("nro_orden").ToString(),
+                       CDate(orden("fecha_recepcion")).ToString("dd/MM/yyyy"),
+                       orden("estado").ToString(),
+                       orden("mecanico").ToString(),
+                       CDec(orden("total")).ToString("C2")})
+        Next
+
+        Return DibujarTabla(g, TituloVehiculo(vehiculo), columnas, pesos, alineaciones, filas,
+                            x, y, ancho, limite, filaFicha, inicioHoja)
+    End Function
+
+    Function DibujarResumenFicha(g As Graphics, x As Integer, y As Integer, ancho As Integer, dibujar As Boolean) As Integer
+        'totales de la ficha: vehiculos a nombre del cliente, ordenes y lo facturado en ordenes entregadas
+        Const ANCHO_ETIQUETA As Integer = 300
+        Dim facturado As Decimal = 0
+        For Each orden As DataRow In ordenesFicha.Rows
+            If orden("codigo").ToString() = "ENTREGADA" Then facturado += CDec(orden("total"))
+        Next
+
+        y = DibujarTituloSeccion(g, "Resumen", x, y, ancho, dibujar)
+        y = DibujarDato(g, "Vehículos a nombre del cliente", vehiculosFicha.Select("propio = 1").Length.ToString(), x, y, ancho, ANCHO_ETIQUETA, dibujar)
+        y = DibujarDato(g, "Órdenes de trabajo (todas)", ordenesFicha.Rows.Count.ToString(), x, y, ancho, ANCHO_ETIQUETA, dibujar)
+        y = DibujarDato(g, "Total facturado (solo órdenes entregadas)", facturado.ToString("C2"), x, y, ancho, ANCHO_ETIQUETA, dibujar)
+        Return y + 12
+    End Function
+
+    Private Sub FrmClientes_FormClosed(sender As Object, e As FormClosedEventArgs) Handles MyBase.FormClosed
+        'la vista previa y el documento de impresion no estan en components: los libero al cerrar
+        ppdVistaPrevia.Dispose()
+        prdFicha.Dispose()
     End Sub
 
 End Class
