@@ -15,6 +15,12 @@ Module Impresion
     'alto que se reserva abajo de cada hoja para el pie
     Public Const ALTO_PIE As Integer = 34
 
+    'dias que vale un presupuesto desde que se emite
+    Public Const DIAS_VALIDEZ_PRESUPUESTO As Integer = 15
+
+    'alto del titulo que va debajo de cada foto
+    Public Const ALTO_TITULO_FOTO As Integer = 22
+
     'colores de la impresion: se leen bien tambien en blanco y negro
     ReadOnly colorOscuro As Color = Color.FromArgb(30, 39, 46)
     ReadOnly colorEtiqueta As Color = Color.DimGray
@@ -342,6 +348,75 @@ Module Impresion
         End Using
 
         g.Restore(estado)
+    End Sub
+
+    Function DibujarParrafo(g As Graphics, texto As String, x As Integer, y As Integer, ancho As Integer,
+                            Optional dibujar As Boolean = True) As Integer
+        'texto corrido en gris, partido en renglones, por ejemplo una nota al pie de un presupuesto
+        Using fuente As New Font("Segoe UI", 9)
+            Dim alto As Integer = AltoTexto(g, texto, fuente, ancho)
+            If dibujar Then
+                Using gris As New SolidBrush(Color.FromArgb(70, 70, 70))
+                    g.DrawString(texto, fuente, gris, New RectangleF(x, y, ancho, alto))
+                End Using
+            End If
+            Return y + alto + 4
+        End Using
+    End Function
+
+    Function DibujarFirmas(g As Graphics, leyendas() As String, x As Integer, y As Integer, ancho As Integer,
+                           Optional dibujar As Boolean = True) As Integer
+        'lineas de firma repartidas en el ancho, con su leyenda centrada debajo (puede tener dos renglones)
+        Const ESPACIO_FIRMA As Integer = 60
+        Const SEPARACION As Integer = 30
+
+        Dim anchoFirma As Integer = (ancho - SEPARACION * (leyendas.Length - 1)) \ leyendas.Length
+        Dim yLinea As Integer = y + ESPACIO_FIRMA
+
+        Using fuente As New Font("Segoe UI", 9),
+              linea As New Pen(Color.Black),
+              centrado As New StringFormat()
+
+            centrado.Alignment = StringAlignment.Center
+            Dim altoLeyenda As Integer = 0
+            For i As Integer = 0 To leyendas.Length - 1
+                Dim xFirma As Integer = x + i * (anchoFirma + SEPARACION)
+                Dim alto As Integer = AltoTexto(g, leyendas(i), fuente, anchoFirma)
+                altoLeyenda = Math.Max(altoLeyenda, alto)
+                If dibujar Then
+                    g.DrawLine(linea, xFirma, yLinea, xFirma + anchoFirma, yLinea)
+                    g.DrawString(leyendas(i), fuente, Brushes.Black, New RectangleF(xFirma, yLinea + 4, anchoFirma, alto), centrado)
+                End If
+            Next
+            Return yLinea + 4 + altoLeyenda + 16
+        End Using
+    End Function
+
+    Sub DibujarFoto(g As Graphics, foto As Image, titulo As String, aviso As String, caja As Rectangle)
+        'cuadro de una foto con borde y su titulo debajo; sin foto muestra el aviso en gris
+        Using borde As New Pen(Color.DarkGray),
+              fuente As New Font("Segoe UI", 9, FontStyle.Bold),
+              fuenteAviso As New Font("Segoe UI", 9),
+              gris As New SolidBrush(colorEtiqueta),
+              fondo As New SolidBrush(colorCebra),
+              centrado As New StringFormat()
+
+            centrado.Alignment = StringAlignment.Center
+            centrado.LineAlignment = StringAlignment.Center
+
+            If foto Is Nothing Then
+                g.FillRectangle(fondo, caja)
+                g.DrawString(aviso, fuenteAviso, gris, caja, centrado)
+            Else
+                Dim adentro As Rectangle = caja
+                adentro.Inflate(-RELLENO, -RELLENO)
+                DibujarImagenAjustada(g, foto, adentro)
+            End If
+            g.DrawRectangle(borde, caja)
+
+            g.DrawString(titulo, fuente, Brushes.Black,
+                         New RectangleF(caja.Left, caja.Bottom, caja.Width, ALTO_TITULO_FOTO), centrado)
+        End Using
     End Sub
 
     Sub DibujarImagenAjustada(g As Graphics, imagen As Image, caja As Rectangle)

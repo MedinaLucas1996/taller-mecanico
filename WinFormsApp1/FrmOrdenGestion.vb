@@ -54,6 +54,13 @@ Public Class FrmOrdenGestion
     Private seccionImpresa As Integer = 0
     Private filaImpresa As Integer = 0
 
+    'reporte que se esta imprimiendo, y si ya se aviso un error al dibujarlo
+    Private reporteImpreso As Integer = 0
+    Private errorImpresion As Boolean = False
+
+    'fotos de la recepcion para el acta, por angulo; se liberan al volver a leerlas y al cerrar
+    Private fotosImpresion As New Dictionary(Of String, Image)
+
     Function ColorEstado(codigo As String) As Color
         'color de fondo de cada estado, los mismos que usa el tablero de ordenes
         If codigo = "RECEPCIONADA" Then Return Color.Lavender
@@ -2137,7 +2144,12 @@ Public Class FrmOrdenGestion
 
     '----- reportes impresos -----
 
-    'secciones del reporte de la orden, en el orden en que se imprimen
+    'reportes que se imprimen desde esta ventana
+    Const REPORTE_ORDEN As Integer = 1
+    Const REPORTE_PRESUPUESTO As Integer = 2
+    Const REPORTE_ACTA As Integer = 3
+
+    'secciones de los reportes; cada reporte usa algunas, en el orden de SeccionesReporte
     Const SECCION_DATOS As Integer = 0
     Const SECCION_RECEPCION As Integer = 1
     Const SECCION_SERVICIOS As Integer = 2
@@ -2145,27 +2157,145 @@ Public Class FrmOrdenGestion
     Const SECCION_TRABAJO As Integer = 4
     Const SECCION_MOTIVO As Integer = 5
     Const SECCION_HISTORIAL As Integer = 6
-    Const SECCION_FIN As Integer = 7
+    Const SECCION_SINTOMA As Integer = 7
+    Const SECCION_VALIDEZ As Integer = 8
+    Const SECCION_CONFORMIDAD As Integer = 9
+    Const SECCION_FOTOS As Integer = 10
+    Const SECCION_FIRMAS_ACTA As Integer = 11
+
+    'angulos de las fotos como los guarda la base, y el titulo que sale debajo de cada una
+    ReadOnly angulosFoto() As String = {"FRENTE", "TRASERA", "LATERAL_IZQUIERDO", "LATERAL_DERECHO", "TABLERO"}
+    ReadOnly titulosFoto() As String = {"Frente", "Trasera", "Lateral izquierdo", "Lateral derecho", "Tablero"}
+
+    Function SeccionesReporte(reporte As Integer) As Integer()
+        'secciones de cada reporte, en el orden en que se imprimen
+        If reporte = REPORTE_PRESUPUESTO Then
+            Return {SECCION_DATOS, SECCION_SINTOMA, SECCION_SERVICIOS, SECCION_TOTALES, SECCION_VALIDEZ, SECCION_CONFORMIDAD}
+        End If
+        If reporte = REPORTE_ACTA Then
+            Return {SECCION_DATOS, SECCION_RECEPCION, SECCION_FOTOS, SECCION_FIRMAS_ACTA}
+        End If
+        Return {SECCION_DATOS, SECCION_RECEPCION, SECCION_SERVICIOS, SECCION_TOTALES, SECCION_TRABAJO, SECCION_MOTIVO, SECCION_HISTORIAL}
+    End Function
+
+    Function TituloReporte(reporte As Integer) As String
+        'titulo de la banda de cabecera de cada reporte
+        If reporte = REPORTE_PRESUPUESTO Then Return "Presupuesto"
+        If reporte = REPORTE_ACTA Then Return "Acta de recepción"
+        Return "Orden de trabajo"
+    End Function
 
     Private Sub btnImprimir_Click(sender As Object, e As EventArgs) Handles btnImprimir.Click
+        'el mecanico solo imprime la orden de trabajo, sin importes
+        mnuPresupuesto.Visible = Not modoMecanico
+        mnuActa.Visible = Not modoMecanico
+
+        'el presupuesto necesita lineas y no se imprime de una orden anulada
+        Dim conLineas As Boolean = False
+        Dim lineas As DataTable = TryCast(dgvDetalle.DataSource, DataTable)
+        If lineas IsNot Nothing Then conLineas = (lineas.Rows.Count > 0)
+        mnuPresupuesto.Enabled = conLineas AndAlso codigoEstado <> "ANULADA"
+
         'muestro el menu de reportes encima del boton, que esta al pie de la ventana
         cmsImprimir.Show(btnImprimir, New Point(0, 0), ToolStripDropDownDirection.AboveRight)
     End Sub
 
-    Private Sub mnuOrdenTrabajo_Click(sender As Object, e As EventArgs) Handles mnuOrdenTrabajo.Click
+    Function ConfirmarAvanceSinGuardar() As Boolean
         'el reporte sale de lo guardado en la base: si hay avance sin guardar, aviso que no va a aparecer
-        If avanceSinGuardar Then
-            Dim respuesta As DialogResult = MessageBox.Show(
-                "Hay cantidades, horas u observaciones sin guardar y no van a salir en el reporte." & vbCrLf &
-                "¿Imprimir igual?",
-                "Avance sin guardar",
-                MessageBoxButtons.YesNo,
-                MessageBoxIcon.Warning)
-            If respuesta = DialogResult.No Then Exit Sub
-        End If
+        If Not avanceSinGuardar Then Return True
 
+        Dim respuesta As DialogResult = MessageBox.Show(
+            "Hay cantidades, horas u observaciones sin guardar y no van a salir en el reporte." & vbCrLf &
+            "¿Imprimir igual?",
+            "Avance sin guardar",
+            MessageBoxButtons.YesNo,
+            MessageBoxIcon.Warning)
+        Return (respuesta = DialogResult.Yes)
+    End Function
+
+    Private Sub mnuOrdenTrabajo_Click(sender As Object, e As EventArgs) Handles mnuOrdenTrabajo.Click
+        If Not ConfirmarAvanceSinGuardar() Then Exit Sub
         If Not CargarDatosImpresion() Then Exit Sub
         MostrarVistaPrevia(prdOrdenTrabajo)
+    End Sub
+
+    Private Sub mnuPresupuesto_Click(sender As Object, e As EventArgs) Handles mnuPresupuesto.Click
+        'el menu ya lo oculta para el mecanico; igual lo compruebo, el presupuesto lleva importes
+        If modoMecanico Then Exit Sub
+        If Not ConfirmarAvanceSinGuardar() Then Exit Sub
+        If Not CargarDatosImpresion() Then Exit Sub
+
+        If lineasImpresion.Rows.Count = 0 OrElse datosImpresion("codigo").ToString() = "ANULADA" Then
+            MessageBox.Show("El presupuesto se imprime solo de una orden con líneas que no esté anulada.")
+            Exit Sub
+        End If
+        MostrarVistaPrevia(prdPresupuesto)
+    End Sub
+
+    Private Sub mnuActa_Click(sender As Object, e As EventArgs) Handles mnuActa.Click
+        'el acta muestra lo que se registro al recibir el vehiculo, con sus cinco fotos
+        If modoMecanico Then Exit Sub
+        If Not CargarDatosImpresion() Then Exit Sub
+        If Not CargarFotosImpresion() Then Exit Sub
+        MostrarVistaPrevia(prdActa)
+    End Sub
+
+    Function CargarFotosImpresion() As Boolean
+        'leo las fotos de la recepcion; las anteriores se liberan antes de leer las nuevas
+        LiberarFotosImpresion()
+
+        Try
+            Using cn As New MySqlConnection(CADENA)
+                cn.Open()
+                Dim consulta As String = "SELECT angulo, imagen FROM ot_foto WHERE id_orden_trabajo = @id_orden_trabajo;"
+                Using cmd As New MySqlCommand(consulta, cn)
+                    cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
+                    Using lector As MySqlDataReader = cmd.ExecuteReader
+                        Do While lector.Read()
+                            'una foto ilegible queda guardada como Nothing: el acta la marca como ilegible
+                            fotosImpresion(lector("angulo").ToString()) = BytesAImagen(CType(lector("imagen"), Byte()))
+                        Loop
+                    End Using
+                End Using
+            End Using
+        Catch ex As Exception
+            MessageBox.Show("Error al leer las fotos de la recepción: " & ex.Message)
+            LiberarFotosImpresion()
+            Return False
+        End Try
+
+        Return True
+    End Function
+
+    Function BytesAImagen(bytes() As Byte) As Image
+        'paso los bytes guardados en la base a una foto, como en el tablero de ordenes
+        Try
+            Using memoria As New System.IO.MemoryStream(bytes)
+                Using original As Image = Image.FromStream(memoria)
+                    'copio la foto a un bitmap nuevo, que ya no depende de la memoria leida
+                    Return New Bitmap(original)
+                End Using
+            End Using
+        Catch ex As Exception
+            Return Nothing
+        End Try
+    End Function
+
+    Sub LiberarFotosImpresion()
+        'libero las fotos leidas para el acta
+        For Each foto As Image In fotosImpresion.Values
+            If foto IsNot Nothing Then foto.Dispose()
+        Next
+        fotosImpresion.Clear()
+    End Sub
+
+    Private Sub FrmOrdenGestion_FormClosed(sender As Object, e As FormClosedEventArgs) Handles MyBase.FormClosed
+        'la vista previa y los documentos de impresion no estan en components: los libero aca, con las fotos
+        LiberarFotosImpresion()
+        ppdVistaPrevia.Dispose()
+        prdOrdenTrabajo.Dispose()
+        prdPresupuesto.Dispose()
+        prdActa.Dispose()
     End Sub
 
     Sub MostrarVistaPrevia(documento As Printing.PrintDocument)
@@ -2303,41 +2433,83 @@ Public Class FrmOrdenGestion
         Return codigo <> "RECEPCIONADA" AndAlso codigo <> "PRESUPUESTADA" AndAlso EtapaImpresa() >= 2
     End Function
 
-    Private Sub prdOrdenTrabajo_BeginPrint(sender As Object, e As Printing.PrintEventArgs) Handles prdOrdenTrabajo.BeginPrint
+    Sub EmpezarReporte(reporte As Integer)
         'la vista previa y la impresion real recorren las hojas cada una desde el principio
+        reporteImpreso = reporte
         hojaImpresa = 0
-        seccionImpresa = SECCION_DATOS
+        seccionImpresa = 0
         filaImpresa = 0
+        errorImpresion = False
+    End Sub
+
+    Private Sub prdOrdenTrabajo_BeginPrint(sender As Object, e As Printing.PrintEventArgs) Handles prdOrdenTrabajo.BeginPrint
+        EmpezarReporte(REPORTE_ORDEN)
+    End Sub
+
+    Private Sub prdPresupuesto_BeginPrint(sender As Object, e As Printing.PrintEventArgs) Handles prdPresupuesto.BeginPrint
+        EmpezarReporte(REPORTE_PRESUPUESTO)
+    End Sub
+
+    Private Sub prdActa_BeginPrint(sender As Object, e As Printing.PrintEventArgs) Handles prdActa.BeginPrint
+        EmpezarReporte(REPORTE_ACTA)
     End Sub
 
     Private Sub prdOrdenTrabajo_PrintPage(sender As Object, e As Printing.PrintPageEventArgs) Handles prdOrdenTrabajo.PrintPage
-        'dibujo una hoja del reporte de la orden; lo que no entra sigue en la hoja siguiente
+        ImprimirHoja(e)
+    End Sub
+
+    Private Sub prdPresupuesto_PrintPage(sender As Object, e As Printing.PrintPageEventArgs) Handles prdPresupuesto.PrintPage
+        ImprimirHoja(e)
+    End Sub
+
+    Private Sub prdActa_PrintPage(sender As Object, e As Printing.PrintPageEventArgs) Handles prdActa.PrintPage
+        ImprimirHoja(e)
+    End Sub
+
+    Sub ImprimirHoja(e As Printing.PrintPageEventArgs)
+        'dibujo una hoja del reporte en curso; un error corta el reporte con un aviso, sin cerrar el sistema
+        Try
+            DibujarHoja(e)
+        Catch ex As Exception
+            e.HasMorePages = False
+            If Not errorImpresion Then
+                errorImpresion = True
+                MessageBox.Show("No se pudo dibujar el reporte: " & ex.Message)
+            End If
+        End Try
+    End Sub
+
+    Sub DibujarHoja(e As Printing.PrintPageEventArgs)
+        'dibujo las secciones del reporte que entran en la hoja; lo que no entra sigue en la siguiente
         Dim g As Graphics = e.Graphics
         Dim area As Rectangle = e.MarginBounds
         Dim x As Integer = area.Left
         Dim ancho As Integer = area.Width
         Dim limite As Integer = area.Bottom - ALTO_PIE
+        Dim titulo As String = TituloReporte(reporteImpreso)
         Dim numero As String = "N.º " & datosImpresion("nro_orden").ToString()
+        Dim secciones() As Integer = SeccionesReporte(reporteImpreso)
 
         hojaImpresa += 1
 
         'la orden anulada lleva la marca de agua detras de todo
         If datosImpresion("codigo").ToString() = "ANULADA" Then DibujarMarcaAgua(g, area, "ANULADA")
 
-        Dim y As Integer = DibujarCabecera(g, x, area.Top, ancho, "Orden de trabajo", numero)
+        Dim y As Integer = DibujarCabecera(g, x, area.Top, ancho, titulo, numero)
         Dim inicioHoja As Integer = y
 
-        Do While seccionImpresa < SECCION_FIN
+        Do While seccionImpresa < secciones.Length
+            Dim seccion As Integer = secciones(seccionImpresa)
             Dim termino As Boolean
-            If seccionImpresa = SECCION_SERVICIOS Then
+            If seccion = SECCION_SERVICIOS Then
                 termino = ImprimirServicios(g, x, y, ancho, limite, y = inicioHoja)
-            ElseIf seccionImpresa = SECCION_HISTORIAL Then
+            ElseIf seccion = SECCION_HISTORIAL Then
                 termino = ImprimirHistorial(g, x, y, ancho, limite, y = inicioHoja)
             Else
                 'las demas secciones son bloques que no se parten: si no entran pasan enteros a la hoja siguiente
-                Dim fin As Integer = DibujarSeccionOrden(g, seccionImpresa, x, y, ancho, False)
+                Dim fin As Integer = DibujarSeccionOrden(g, seccion, x, y, ancho, False)
                 termino = (fin <= limite OrElse y = inicioHoja)
-                If termino Then y = DibujarSeccionOrden(g, seccionImpresa, x, y, ancho, True)
+                If termino Then y = DibujarSeccionOrden(g, seccion, x, y, ancho, True)
             End If
 
             If Not termino Then Exit Do
@@ -2345,8 +2517,8 @@ Public Class FrmOrdenGestion
             filaImpresa = 0
         Loop
 
-        DibujarPie(g, area, "Orden de trabajo " & numero & " · Impreso el " & fechaImpresion.ToString("dd/MM/yyyy HH:mm"), hojaImpresa)
-        e.HasMorePages = (seccionImpresa < SECCION_FIN)
+        DibujarPie(g, area, titulo & " " & numero & " · Impreso el " & fechaImpresion.ToString("dd/MM/yyyy HH:mm"), hojaImpresa)
+        e.HasMorePages = (seccionImpresa < secciones.Length)
     End Sub
 
     Function DibujarSeccionOrden(g As Graphics, seccion As Integer, x As Integer, y As Integer, ancho As Integer,
@@ -2364,8 +2536,11 @@ Public Class FrmOrdenGestion
                     DibujarTextoChico(g, "Recibida el " & TextoFecha(fila("fecha_recepcion"), "dd/MM/yyyy HH:mm") &
                                       " · Patente " & fila("patente").ToString(), x, yRenglon)
                 End If
+                'el acta registra la recepcion: no lleva el estado actual de la orden
                 Dim yInsignia As Integer = y + 24
-                If dibujar Then yInsignia = DibujarInsignia(g, fila("estado").ToString(), ColorEstado(codigo), x + ancho, y)
+                If dibujar AndAlso reporteImpreso <> REPORTE_ACTA Then
+                    yInsignia = DibujarInsignia(g, fila("estado").ToString(), ColorEstado(codigo), x + ancho, y)
+                End If
                 y = yInsignia + 12
 
                 'dos cajas lado a lado: cliente y vehiculo
@@ -2451,9 +2626,89 @@ Public Class FrmOrdenGestion
                 Dim motivo As String = MotivoImpreso()
                 If motivo = "" Then motivo = "Sin motivo registrado."
                 Return DibujarRecuadro(g, titulo, motivo, x, y, ancho, dibujar)
+
+            Case SECCION_SINTOMA
+                'presupuesto: lo que pidio el cliente al dejar el vehiculo
+                y = DibujarTituloSeccion(g, "Motivo de la consulta", x, y, ancho, dibujar)
+                y = DibujarDato(g, "Síntoma reportado", fila("sintoma_reportado").ToString(), x, y, ancho, 175, dibujar)
+                Return y + 12
+
+            Case SECCION_VALIDEZ
+                'el presupuesto vale una cantidad de dias desde que se cargo; los importes son precios finales
+                Dim emision As DateTime = FechaPresupuesto()
+                Dim nota As String =
+                    "Presupuesto emitido el " & emision.ToString("dd/MM/yyyy") & ", válido por " &
+                    DIAS_VALIDEZ_PRESUPUESTO.ToString() & " días (hasta el " &
+                    emision.AddDays(DIAS_VALIDEZ_PRESUPUESTO).ToString("dd/MM/yyyy") & "). " &
+                    "Los importes son precios finales."
+                Return DibujarParrafo(g, nota, x, y, ancho, dibujar) + 16
+
+            Case SECCION_CONFORMIDAD
+                'espacio para que el cliente firme que acepta el presupuesto
+                y = DibujarTituloSeccion(g, "Conformidad del cliente", x, y, ancho, dibujar)
+                y = DibujarParrafo(g, "Acepto el presupuesto detallado y autorizo la realización de los trabajos.", x, y, ancho, dibujar)
+                Return DibujarFirmas(g, {"Firma", "Aclaración", "Fecha"}, x, y, ancho, dibujar)
+
+            Case SECCION_FOTOS
+                Return DibujarFotosRecepcion(g, x, y, ancho, dibujar)
+
+            Case SECCION_FIRMAS_ACTA
+                'firma del cliente que deja el vehiculo y de quien lo recibio en el taller
+                y = DibujarParrafo(g, "El cliente deja el vehículo en el estado descripto en esta acta.", x, y + 4, ancho, dibujar)
+                Return DibujarFirmas(g, {"Cliente" & vbLf & fila("cliente").ToString(),
+                                         "Recibió" & vbLf & UsuarioRecepcion()}, x, y, ancho, dibujar)
         End Select
 
         Return y
+    End Function
+
+    Function FechaPresupuesto() As DateTime
+        'fecha en que la orden paso a presupuestada (la ultima vez); si todavia no paso, la de impresion
+        Dim fecha As DateTime = fechaImpresion
+        For Each registro As DataRow In historialImpresion.Rows
+            If registro("codigo").ToString() = "PRESUPUESTADA" Then fecha = CDate(registro("fecha_hora"))
+        Next
+        Return fecha
+    End Function
+
+    Function UsuarioRecepcion() As String
+        'quien recibio el vehiculo: el usuario de la fila de historial que recepciono la orden
+        For Each registro As DataRow In historialImpresion.Rows
+            If registro("codigo").ToString() = "RECEPCIONADA" Then Return registro("usuario").ToString()
+        Next
+        Return ""
+    End Function
+
+    Function DibujarFotosRecepcion(g As Graphics, x As Integer, y As Integer, ancho As Integer, dibujar As Boolean) As Integer
+        'las cinco fotos de la recepcion en una grilla de tres columnas, cada una con su titulo
+        Const COLUMNAS As Integer = 3
+        Const SEPARACION As Integer = 12
+
+        y = DibujarTituloSeccion(g, "Fotos de la recepción", x, y, ancho, dibujar)
+
+        Dim anchoFoto As Integer = (ancho - SEPARACION * (COLUMNAS - 1)) \ COLUMNAS
+        Dim altoFoto As Integer = anchoFoto * 2 \ 3
+        Dim altoCelda As Integer = altoFoto + ALTO_TITULO_FOTO
+
+        For i As Integer = 0 To angulosFoto.Length - 1
+            Dim columna As Integer = i Mod COLUMNAS
+            Dim renglon As Integer = i \ COLUMNAS
+            Dim caja As New Rectangle(x + columna * (anchoFoto + SEPARACION), y + renglon * (altoCelda + SEPARACION), anchoFoto, altoFoto)
+
+            If dibujar Then
+                'sin fila en ot_foto no hay foto; con fila pero bytes ilegibles queda guardada como Nothing
+                Dim foto As Image = Nothing
+                Dim aviso As String = "Sin foto"
+                If fotosImpresion.ContainsKey(angulosFoto(i)) Then
+                    foto = fotosImpresion(angulosFoto(i))
+                    aviso = "Foto ilegible"
+                End If
+                DibujarFoto(g, foto, titulosFoto(i), aviso, caja)
+            End If
+        Next
+
+        Dim renglones As Integer = (angulosFoto.Length + COLUMNAS - 1) \ COLUMNAS
+        Return y + renglones * (altoCelda + SEPARACION) + 8
     End Function
 
     Function ImprimirServicios(g As Graphics, x As Integer, ByRef y As Integer, ancho As Integer, limite As Integer,
@@ -2462,7 +2717,8 @@ Public Class FrmOrdenGestion
         If lineasImpresion.Rows.Count = 0 Then Return True
 
         Dim conAprobado As Boolean = MuestraAprobacion()
-        Dim conHoras As Boolean = (EtapaImpresa() >= 4)
+        'las horas son del trabajo: van solo en la orden de trabajo, no en el presupuesto
+        Dim conHoras As Boolean = (reporteImpreso = REPORTE_ORDEN AndAlso EtapaImpresa() >= 4)
 
         Dim columnas As New List(Of String) From {"Servicio", "Cant."}
         Dim pesos As New List(Of Single) From {5.0F, 1.1F}

@@ -58,7 +58,7 @@ No test project; the output is drawing on a page. No meaningful runnable RED. Ch
 ## Tasks
 
 - [x] **T1 — `Impresion` module + Orden de trabajo report in `FrmOrdenGestion`** (route: delegated writer; trigger: 2+ non-trivial files)
-- [ ] **T2 — Presupuesto and Acta de recepción** (route: delegated writer, continues T1)
+- [x] **T2 — Presupuesto and Acta de recepción** (route: delegated writer, continues T1)
 - [ ] **T3 — Ficha del cliente in `FrmClientes`** (route: delegated writer)
 - [ ] **T4 — Docs** (route: delegated writer, with T3)
 
@@ -80,7 +80,7 @@ Strategy `single-pr`, following the user's working pattern (one `feature/TM-00NN
 | Task | Status | Commit | Evidence |
 |---|---|---|---|
 | T1 | done | | `dotnet build WinFormsApp1.slnx --no-incremental`: 0 warnings, 0 errors. Off-screen render through `PreviewPrintController` against the local DB (local states: EN_PROCESO, FINALIZADA, ENTREGADA only): EN_PROCESO as ADMINISTRADOR and as MECANICO (no amount columns, no totals), FINALIZADA, ENTREGADA (2 sheets, history continues with "(continuación)" and "Hoja 2"). ANULADA (watermark + reason), RECHAZADA (reason, Aprobado = No, no work section) and RECEPCIONADA with 41 lines (3 sheets, totals after the table) simulated in memory only, no DB writes. Grep: no INSERT/UPDATE/DELETE added; the mechanic SELECT texts have no `total_`, `precio_unitario` or `subtotal`. Menu: Presupuesto and Acta items exist hidden until T2; the preview opens with `ShowDialog(Me)` because the order form is itself modal. |
-| T2 | pending | | |
+| T2 | done | | `dotnet build WinFormsApp1.slnx --no-incremental`: 0 warnings, 0 errors. Off-screen render through `PreviewPrintController`: Presupuesto for all five local orders with lines (EN_PROCESO, FINALIZADA, ENTREGADA; Aprobado column + Total aprobado shown since all are past APROBADA; validity note with emission = last PRESUPUESTADA history date + 15 days; signature lines Firma/Aclaración/Fecha). Acta: the local DB has no `ot_foto` rows, so the real acta renders five "Sin foto" boxes; a second render injects generated 16:9, 9:16 and 1:1 bitmaps plus one unreadable photo in memory (no DB writes) and shows them fitted without distortion, "Sin foto" and "Foto ilegible"; "Recibió" shows the user of the RECEPCIONADA history row. Menu as MECANICO: only "Orden de trabajo" visible; as ADMINISTRADOR all three, Presupuesto enabled only with lines and not ANULADA. Review fixes: R3-preview-dialog-not-disposed (preview dialog, the three PrintDocuments and the photos are disposed in FormClosed); R3-print-exception-unguarded (every PrintPage goes through a Try/Catch that sets HasMorePages = False and shows one message; verified with a forced DBNull km: one message, errorImpresion = True, no crash). Grep: the only added SQL is `SELECT angulo, imagen FROM ot_foto`; no INSERT/UPDATE/DELETE; mechanic SELECTs still without amounts. |
 | T3 | pending | | |
 | T4 | pending | | |
 

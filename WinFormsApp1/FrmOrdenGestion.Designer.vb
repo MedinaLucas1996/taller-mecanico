@@ -116,6 +116,8 @@ Partial Class FrmOrdenGestion
         mnuPresupuesto = New ToolStripMenuItem()
         mnuActa = New ToolStripMenuItem()
         prdOrdenTrabajo = New Printing.PrintDocument()
+        prdPresupuesto = New Printing.PrintDocument()
+        prdActa = New Printing.PrintDocument()
         ppdVistaPrevia = New PrintPreviewDialog()
         tlpEtapas.SuspendLayout()
         pnlEtapa1.SuspendLayout()
@@ -1218,18 +1220,24 @@ Partial Class FrmOrdenGestion
         mnuPresupuesto.Name = "mnuPresupuesto"
         mnuPresupuesto.Size = New Size(220, 26)
         mnuPresupuesto.Text = "Presupuesto"
-        mnuPresupuesto.Visible = False
         '
         ' mnuActa
         '
         mnuActa.Name = "mnuActa"
         mnuActa.Size = New Size(220, 26)
         mnuActa.Text = "Acta de recepción"
-        mnuActa.Visible = False
         '
         ' prdOrdenTrabajo
         '
         prdOrdenTrabajo.DocumentName = "Orden de trabajo"
+        '
+        ' prdPresupuesto
+        '
+        prdPresupuesto.DocumentName = "Presupuesto"
+        '
+        ' prdActa
+        '
+        prdActa.DocumentName = "Acta de recepción"
         '
         ' ppdVistaPrevia
         '
@@ -1395,5 +1403,7 @@ Partial Class FrmOrdenGestion
     Friend WithEvents mnuPresupuesto As ToolStripMenuItem
     Friend WithEvents mnuActa As ToolStripMenuItem
     Friend WithEvents prdOrdenTrabajo As Printing.PrintDocument
+    Friend WithEvents prdPresupuesto As Printing.PrintDocument
+    Friend WithEvents prdActa As Printing.PrintDocument
     Friend WithEvents ppdVistaPrevia As PrintPreviewDialog
 End Class
