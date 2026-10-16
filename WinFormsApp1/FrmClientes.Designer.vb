@@ -55,6 +55,9 @@ Partial Class FrmClientes
         btnGuardar = New Button()
         btnBaja = New Button()
         btnCancelar = New Button()
+        btnImprimirFicha = New Button()
+        prdFicha = New Printing.PrintDocument()
+        ppdVistaPrevia = New PrintPreviewDialog()
         pnlLista.SuspendLayout()
         pnlFicha.SuspendLayout()
         pnlRegistro.SuspendLayout()
@@ -68,7 +71,7 @@ Partial Class FrmClientes
         lblTitulo.Font = New Font("Segoe UI", 24F, FontStyle.Bold)
         lblTitulo.Location = New Point(30, 10)
         lblTitulo.Name = "lblTitulo"
-        lblTitulo.Size = New Size(520, 60)
+        lblTitulo.Size = New Size(420, 60)
         lblTitulo.TabIndex = 3
         lblTitulo.Text = "Clientes"
         '
@@ -100,6 +103,37 @@ Partial Class FrmClientes
         btnNuevo.Text = " Nuevo cliente"
         btnNuevo.TextImageRelation = TextImageRelation.ImageBeforeText
         btnNuevo.UseVisualStyleBackColor = False
+        '
+        ' btnImprimirFicha
+        '
+        btnImprimirFicha.Anchor = AnchorStyles.Top Or AnchorStyles.Right
+        btnImprimirFicha.BackColor = Color.White
+        btnImprimirFicha.Cursor = Cursors.Hand
+        btnImprimirFicha.Enabled = False
+        btnImprimirFicha.FlatAppearance.BorderColor = Color.Silver
+        btnImprimirFicha.FlatStyle = FlatStyle.Flat
+        btnImprimirFicha.Font = New Font("Segoe UI", 10F)
+        btnImprimirFicha.Location = New Point(470, 34)
+        btnImprimirFicha.Name = "btnImprimirFicha"
+        btnImprimirFicha.Size = New Size(160, 40)
+        btnImprimirFicha.TabIndex = 4
+        btnImprimirFicha.Text = "Imprimir ficha"
+        btnImprimirFicha.UseVisualStyleBackColor = False
+        '
+        ' prdFicha
+        '
+        prdFicha.DocumentName = "Ficha del cliente"
+        '
+        ' ppdVistaPrevia
+        '
+        ppdVistaPrevia.AutoScrollMargin = New Size(0, 0)
+        ppdVistaPrevia.AutoScrollMinSize = New Size(0, 0)
+        ppdVistaPrevia.ClientSize = New Size(400, 300)
+        ppdVistaPrevia.Enabled = True
+        ppdVistaPrevia.Name = "ppdVistaPrevia"
+        ppdVistaPrevia.ShowIcon = False
+        ppdVistaPrevia.UseAntiAlias = True
+        ppdVistaPrevia.Visible = False
         '
         ' pnlLista
         '
@@ -511,6 +545,7 @@ Partial Class FrmClientes
         Controls.Add(pnlFicha)
         Controls.Add(pnlLista)
         Controls.Add(btnNuevo)
+        Controls.Add(btnImprimirFicha)
         Controls.Add(lblSubtitulo)
         Controls.Add(lblTitulo)
         Name = "FrmClientes"
@@ -560,4 +595,7 @@ Partial Class FrmClientes
     Friend WithEvents btnGuardar As Button
     Friend WithEvents btnBaja As Button
     Friend WithEvents btnCancelar As Button
+    Friend WithEvents btnImprimirFicha As Button
+    Friend WithEvents prdFicha As Printing.PrintDocument
+    Friend WithEvents ppdVistaPrevia As PrintPreviewDialog
 End Class
