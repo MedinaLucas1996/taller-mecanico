@@ -22,6 +22,7 @@ Partial Class FrmOrdenGestion
     'No lo modifique con el editor de código.
     <System.Diagnostics.DebuggerStepThrough()> _
     Private Sub InitializeComponent()
+        components = New ComponentModel.Container()
         lblTitulo = New Label()
         lblEstado = New Label()
         lblSubtitulo = New Label()
@@ -109,6 +110,13 @@ Partial Class FrmOrdenGestion
         lblProximo = New Label()
         btnSecundario = New Button()
         btnPrimario = New Button()
+        btnImprimir = New Button()
+        cmsImprimir = New ContextMenuStrip(components)
+        mnuOrdenTrabajo = New ToolStripMenuItem()
+        mnuPresupuesto = New ToolStripMenuItem()
+        mnuActa = New ToolStripMenuItem()
+        prdOrdenTrabajo = New Printing.PrintDocument()
+        ppdVistaPrevia = New PrintPreviewDialog()
         tlpEtapas.SuspendLayout()
         pnlEtapa1.SuspendLayout()
         pnlEtapa2.SuspendLayout()
@@ -124,6 +132,7 @@ Partial Class FrmOrdenGestion
         pnlCabeceraEtapa.SuspendLayout()
         pnlDatos.SuspendLayout()
         pnlHistorial.SuspendLayout()
+        cmsImprimir.SuspendLayout()
         CType(dgvDetalle, ComponentModel.ISupportInitialize).BeginInit()
         CType(picAvisoMecanico, ComponentModel.ISupportInitialize).BeginInit()
         CType(nudCantidad, ComponentModel.ISupportInitialize).BeginInit()
@@ -1117,7 +1126,7 @@ Partial Class FrmOrdenGestion
         btnAnular.FlatStyle = FlatStyle.Flat
         btnAnular.Font = New Font("Segoe UI", 10F)
         btnAnular.ForeColor = Color.Firebrick
-        btnAnular.Location = New Point(24, 800)
+        btnAnular.Location = New Point(182, 800)
         btnAnular.Name = "btnAnular"
         btnAnular.Size = New Size(180, 42)
         btnAnular.TabIndex = 8
@@ -1172,6 +1181,67 @@ Partial Class FrmOrdenGestion
         btnPrimario.Location = New Point(906, 800)
         btnPrimario.Size = New Size(250, 42)
         '
+        ' btnImprimir
+        '
+        btnImprimir.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left
+        btnImprimir.BackColor = Color.FromArgb(CByte(30), CByte(39), CByte(46))
+        btnImprimir.Cursor = Cursors.Hand
+        btnImprimir.FlatAppearance.BorderSize = 0
+        btnImprimir.FlatAppearance.MouseOverBackColor = Color.FromArgb(CByte(52), CByte(73), CByte(94))
+        btnImprimir.FlatStyle = FlatStyle.Flat
+        btnImprimir.Font = New Font("Segoe UI", 10F, FontStyle.Bold)
+        btnImprimir.ForeColor = Color.White
+        btnImprimir.Location = New Point(24, 800)
+        btnImprimir.Name = "btnImprimir"
+        btnImprimir.Size = New Size(150, 42)
+        btnImprimir.TabIndex = 12
+        btnImprimir.Text = " Imprimir"
+        btnImprimir.TextImageRelation = TextImageRelation.ImageBeforeText
+        btnImprimir.UseVisualStyleBackColor = False
+        '
+        ' cmsImprimir
+        '
+        cmsImprimir.Font = New Font("Segoe UI", 10F)
+        cmsImprimir.ImageScalingSize = New Size(20, 20)
+        cmsImprimir.Items.AddRange(New ToolStripItem() {mnuOrdenTrabajo, mnuPresupuesto, mnuActa})
+        cmsImprimir.Name = "cmsImprimir"
+        cmsImprimir.Size = New Size(221, 82)
+        '
+        ' mnuOrdenTrabajo
+        '
+        mnuOrdenTrabajo.Name = "mnuOrdenTrabajo"
+        mnuOrdenTrabajo.Size = New Size(220, 26)
+        mnuOrdenTrabajo.Text = "Orden de trabajo"
+        '
+        ' mnuPresupuesto
+        '
+        mnuPresupuesto.Name = "mnuPresupuesto"
+        mnuPresupuesto.Size = New Size(220, 26)
+        mnuPresupuesto.Text = "Presupuesto"
+        mnuPresupuesto.Visible = False
+        '
+        ' mnuActa
+        '
+        mnuActa.Name = "mnuActa"
+        mnuActa.Size = New Size(220, 26)
+        mnuActa.Text = "Acta de recepción"
+        mnuActa.Visible = False
+        '
+        ' prdOrdenTrabajo
+        '
+        prdOrdenTrabajo.DocumentName = "Orden de trabajo"
+        '
+        ' ppdVistaPrevia
+        '
+        ppdVistaPrevia.AutoScrollMargin = New Size(0, 0)
+        ppdVistaPrevia.AutoScrollMinSize = New Size(0, 0)
+        ppdVistaPrevia.ClientSize = New Size(400, 300)
+        ppdVistaPrevia.Enabled = True
+        ppdVistaPrevia.Name = "ppdVistaPrevia"
+        ppdVistaPrevia.ShowIcon = False
+        ppdVistaPrevia.UseAntiAlias = True
+        ppdVistaPrevia.Visible = False
+        '
         ' FrmOrdenGestion
         '
         AutoScaleDimensions = New SizeF(8F, 20F)
@@ -1182,6 +1252,7 @@ Partial Class FrmOrdenGestion
         Controls.Add(btnSecundario)
         Controls.Add(lblProximo)
         Controls.Add(btnAnular)
+        Controls.Add(btnImprimir)
         Controls.Add(pnlHistorial)
         Controls.Add(pnlDatos)
         Controls.Add(pnlTrabajo)
@@ -1216,6 +1287,7 @@ Partial Class FrmOrdenGestion
         pnlDatos.PerformLayout()
         pnlHistorial.ResumeLayout(False)
         pnlHistorial.PerformLayout()
+        cmsImprimir.ResumeLayout(False)
         CType(dgvDetalle, ComponentModel.ISupportInitialize).EndInit()
         CType(picAvisoMecanico, ComponentModel.ISupportInitialize).EndInit()
         CType(nudCantidad, ComponentModel.ISupportInitialize).EndInit()
@@ -1317,4 +1389,11 @@ Partial Class FrmOrdenGestion
     Friend WithEvents lblProximo As Label
     Friend WithEvents btnSecundario As Button
     Friend WithEvents btnPrimario As Button
+    Friend WithEvents btnImprimir As Button
+    Friend WithEvents cmsImprimir As ContextMenuStrip
+    Friend WithEvents mnuOrdenTrabajo As ToolStripMenuItem
+    Friend WithEvents mnuPresupuesto As ToolStripMenuItem
+    Friend WithEvents mnuActa As ToolStripMenuItem
+    Friend WithEvents prdOrdenTrabajo As Printing.PrintDocument
+    Friend WithEvents ppdVistaPrevia As PrintPreviewDialog
 End Class

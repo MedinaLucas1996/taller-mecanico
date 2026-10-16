@@ -43,6 +43,17 @@ Public Class FrmOrdenGestion
     Private iconoRechazar As Image
     Private iconoGuardar As Image
 
+    'datos del reporte de la orden: se leen al pedir la impresion y el evento PrintPage solo dibuja
+    Private datosImpresion As DataRow
+    Private lineasImpresion As DataTable
+    Private historialImpresion As DataTable
+    Private fechaImpresion As DateTime
+
+    'por donde va la impresion: hoja, seccion y fila de la tabla; se reinician en BeginPrint
+    Private hojaImpresa As Integer = 0
+    Private seccionImpresa As Integer = 0
+    Private filaImpresa As Integer = 0
+
     Function ColorEstado(codigo As String) As Color
         'color de fondo de cada estado, los mismos que usa el tablero de ordenes
         If codigo = "RECEPCIONADA" Then Return Color.Lavender
@@ -86,6 +97,7 @@ Public Class FrmOrdenGestion
         btnQuitar.Image = LeerIcono("quitar-oscuro.png")
         btnGuardarMecanico.Image = LeerIcono("guardar-oscuro.png")
         btnAnular.Image = LeerIcono("anular-rojo.png")
+        btnImprimir.Image = LeerIcono("reportes.png")
 
         picMecanico.Image = iconoMecanico
         picKm.Image = LeerIcono("km-oscuro.png")
@@ -2122,5 +2134,397 @@ Public Class FrmOrdenGestion
         'vuelvo a cargar la orden con su estado actual
         CargarOrden()
     End Sub
+
+    '----- reportes impresos -----
+
+    'secciones del reporte de la orden, en el orden en que se imprimen
+    Const SECCION_DATOS As Integer = 0
+    Const SECCION_RECEPCION As Integer = 1
+    Const SECCION_SERVICIOS As Integer = 2
+    Const SECCION_TOTALES As Integer = 3
+    Const SECCION_TRABAJO As Integer = 4
+    Const SECCION_MOTIVO As Integer = 5
+    Const SECCION_HISTORIAL As Integer = 6
+    Const SECCION_FIN As Integer = 7
+
+    Private Sub btnImprimir_Click(sender As Object, e As EventArgs) Handles btnImprimir.Click
+        'muestro el menu de reportes encima del boton, que esta al pie de la ventana
+        cmsImprimir.Show(btnImprimir, New Point(0, 0), ToolStripDropDownDirection.AboveRight)
+    End Sub
+
+    Private Sub mnuOrdenTrabajo_Click(sender As Object, e As EventArgs) Handles mnuOrdenTrabajo.Click
+        'el reporte sale de lo guardado en la base: si hay avance sin guardar, aviso que no va a aparecer
+        If avanceSinGuardar Then
+            Dim respuesta As DialogResult = MessageBox.Show(
+                "Hay cantidades, horas u observaciones sin guardar y no van a salir en el reporte." & vbCrLf &
+                "¿Imprimir igual?",
+                "Avance sin guardar",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning)
+            If respuesta = DialogResult.No Then Exit Sub
+        End If
+
+        If Not CargarDatosImpresion() Then Exit Sub
+        MostrarVistaPrevia(prdOrdenTrabajo)
+    End Sub
+
+    Sub MostrarVistaPrevia(documento As Printing.PrintDocument)
+        'abro la vista previa maximizada; desde su boton de impresora se imprime
+        'uso ShowDialog porque este formulario ya se abre como dialogo: asi la vista previa queda encima
+        'y no sigue abierta si se cierra la orden
+        Try
+            documento.DefaultPageSettings.Margins = New Printing.Margins(MARGEN_HOJA, MARGEN_HOJA, MARGEN_HOJA, MARGEN_HOJA)
+            ppdVistaPrevia.Document = documento
+            ppdVistaPrevia.WindowState = FormWindowState.Maximized
+            ppdVistaPrevia.ShowDialog(Me)
+        Catch ex As Exception
+            MessageBox.Show("No se pudo preparar la impresión: " & ex.Message)
+        End Try
+    End Sub
+
+    Function CargarDatosImpresion() As Boolean
+        'leo de la base todo lo que muestra el reporte de la orden: cabecera, lineas e historial
+        'el mecanico no ve importes: sus consultas no traen ningun total ni precio
+        Dim consultaCabecera As String
+        Dim consultaLineas As String
+
+        If modoMecanico Then
+            consultaCabecera =
+                "SELECT ot.nro_orden, ot.fecha_recepcion, ot.fecha_prometida, ot.km_ingreso, ot.nivel_combustible, " &
+                "ot.fecha_finalizacion, ot.fecha_entrega, " &
+                "ot.sintoma_reportado, ot.observaciones_recepcion, ot.observaciones_mecanico, " &
+                "v.patente, CONCAT(ma.descripcion, ' ', mo.descripcion) AS vehiculo, v.anio, v.color, " &
+                "c.razon_social AS cliente, c.documento, c.telefono, " &
+                "COALESCE(m.nombre_completo, 'Sin asignar') AS mecanico, " &
+                "e.codigo, e.descripcion AS estado " &
+                "FROM orden_trabajo AS ot " &
+                "JOIN vehiculo AS v ON v.id_vehiculo = ot.id_vehiculo " &
+                "JOIN modelo AS mo ON mo.id_modelo = v.id_modelo " &
+                "JOIN marca AS ma ON ma.id_marca = mo.id_marca " &
+                "JOIN cliente AS c ON c.id_cliente = ot.id_cliente " &
+                "JOIN estado_ot AS e ON e.id_estado_ot = ot.id_estado_ot " &
+                "LEFT JOIN mecanico AS m ON m.id_mecanico = ot.id_mecanico " &
+                "WHERE ot.id_orden_trabajo = @id_orden_trabajo;"
+            consultaLineas =
+                "SELECT descripcion, cantidad, aprobado, horas_reales " &
+                "FROM ot_detalle " &
+                "WHERE id_orden_trabajo = @id_orden_trabajo " &
+                "ORDER BY id_ot_detalle;"
+        Else
+            consultaCabecera =
+                "SELECT ot.nro_orden, ot.fecha_recepcion, ot.fecha_prometida, ot.km_ingreso, ot.nivel_combustible, " &
+                "ot.fecha_finalizacion, ot.fecha_entrega, " &
+                "ot.sintoma_reportado, ot.observaciones_recepcion, ot.observaciones_mecanico, " &
+                "ot.total_presupuestado, ot.total_aprobado, " &
+                "v.patente, CONCAT(ma.descripcion, ' ', mo.descripcion) AS vehiculo, v.anio, v.color, " &
+                "c.razon_social AS cliente, c.documento, c.telefono, " &
+                "COALESCE(m.nombre_completo, 'Sin asignar') AS mecanico, " &
+                "e.codigo, e.descripcion AS estado " &
+                "FROM orden_trabajo AS ot " &
+                "JOIN vehiculo AS v ON v.id_vehiculo = ot.id_vehiculo " &
+                "JOIN modelo AS mo ON mo.id_modelo = v.id_modelo " &
+                "JOIN marca AS ma ON ma.id_marca = mo.id_marca " &
+                "JOIN cliente AS c ON c.id_cliente = ot.id_cliente " &
+                "JOIN estado_ot AS e ON e.id_estado_ot = ot.id_estado_ot " &
+                "LEFT JOIN mecanico AS m ON m.id_mecanico = ot.id_mecanico " &
+                "WHERE ot.id_orden_trabajo = @id_orden_trabajo;"
+            consultaLineas =
+                "SELECT descripcion, cantidad, precio_unitario, subtotal, aprobado, horas_reales " &
+                "FROM ot_detalle " &
+                "WHERE id_orden_trabajo = @id_orden_trabajo " &
+                "ORDER BY id_ot_detalle;"
+        End If
+
+        'en papel el historial se lee de arriba hacia abajo: el cambio mas viejo primero
+        Dim consultaHistorial As String =
+            "SELECT h.fecha_hora, e.codigo, e.descripcion AS estado, u.nombre_completo AS usuario, h.observacion " &
+            "FROM ot_historial_estado AS h " &
+            "JOIN estado_ot AS e ON e.id_estado_ot = h.id_estado_ot " &
+            "JOIN usuario AS u ON u.id_usuario = h.id_usuario " &
+            "WHERE h.id_orden_trabajo = @id_orden_trabajo " &
+            "ORDER BY h.fecha_hora, h.id_ot_historial;"
+
+        Try
+            Using cn As New MySqlConnection(CADENA)
+                cn.Open()
+                Dim cabecera As DataTable = LeerTablaImpresion(cn, consultaCabecera)
+                If cabecera.Rows.Count = 0 Then
+                    MessageBox.Show("No se encontró la orden de trabajo para imprimir.")
+                    Return False
+                End If
+                datosImpresion = cabecera.Rows(0)
+                lineasImpresion = LeerTablaImpresion(cn, consultaLineas)
+                historialImpresion = LeerTablaImpresion(cn, consultaHistorial)
+            End Using
+        Catch ex As Exception
+            MessageBox.Show("Error al leer los datos del reporte: " & ex.Message)
+            Return False
+        End Try
+
+        fechaImpresion = DateTime.Now
+        Return True
+    End Function
+
+    Function LeerTablaImpresion(cn As MySqlConnection, consulta As String) As DataTable
+        'ejecuto una consulta de la orden y devuelvo sus filas
+        Using cmd As New MySqlCommand(consulta, cn)
+            cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
+            Dim tabla As New DataTable
+            Using lector As MySqlDataReader = cmd.ExecuteReader
+                tabla.Load(lector)
+            End Using
+            Return tabla
+        End Using
+    End Function
+
+    Function EtapaImpresa() As Integer
+        'etapa mas avanzada por la que paso la orden, segun el historial leido para el reporte
+        Dim etapa As Integer = 0
+        For Each registro As DataRow In historialImpresion.Rows
+            Dim etapaRegistro As Integer = OrdenEtapa(registro("codigo").ToString())
+            If etapaRegistro > etapa Then etapa = etapaRegistro
+        Next
+        Return etapa
+    End Function
+
+    Function MotivoImpreso() As String
+        'motivo del rechazo o de la anulacion: la observacion del ultimo paso al estado actual
+        Dim motivo As String = ""
+        Dim codigo As String = datosImpresion("codigo").ToString()
+        For Each registro As DataRow In historialImpresion.Rows
+            If registro("codigo").ToString() = codigo Then motivo = registro("observacion").ToString()
+        Next
+        Return motivo
+    End Function
+
+    Function MuestraAprobacion() As Boolean
+        'la columna Aprobado tiene sentido cuando la orden ya paso por el presupuesto y se decidio
+        Dim codigo As String = datosImpresion("codigo").ToString()
+        Return codigo <> "RECEPCIONADA" AndAlso codigo <> "PRESUPUESTADA" AndAlso EtapaImpresa() >= 2
+    End Function
+
+    Private Sub prdOrdenTrabajo_BeginPrint(sender As Object, e As Printing.PrintEventArgs) Handles prdOrdenTrabajo.BeginPrint
+        'la vista previa y la impresion real recorren las hojas cada una desde el principio
+        hojaImpresa = 0
+        seccionImpresa = SECCION_DATOS
+        filaImpresa = 0
+    End Sub
+
+    Private Sub prdOrdenTrabajo_PrintPage(sender As Object, e As Printing.PrintPageEventArgs) Handles prdOrdenTrabajo.PrintPage
+        'dibujo una hoja del reporte de la orden; lo que no entra sigue en la hoja siguiente
+        Dim g As Graphics = e.Graphics
+        Dim area As Rectangle = e.MarginBounds
+        Dim x As Integer = area.Left
+        Dim ancho As Integer = area.Width
+        Dim limite As Integer = area.Bottom - ALTO_PIE
+        Dim numero As String = "N.º " & datosImpresion("nro_orden").ToString()
+
+        hojaImpresa += 1
+
+        'la orden anulada lleva la marca de agua detras de todo
+        If datosImpresion("codigo").ToString() = "ANULADA" Then DibujarMarcaAgua(g, area, "ANULADA")
+
+        Dim y As Integer = DibujarCabecera(g, x, area.Top, ancho, "Orden de trabajo", numero)
+        Dim inicioHoja As Integer = y
+
+        Do While seccionImpresa < SECCION_FIN
+            Dim termino As Boolean
+            If seccionImpresa = SECCION_SERVICIOS Then
+                termino = ImprimirServicios(g, x, y, ancho, limite, y = inicioHoja)
+            ElseIf seccionImpresa = SECCION_HISTORIAL Then
+                termino = ImprimirHistorial(g, x, y, ancho, limite, y = inicioHoja)
+            Else
+                'las demas secciones son bloques que no se parten: si no entran pasan enteros a la hoja siguiente
+                Dim fin As Integer = DibujarSeccionOrden(g, seccionImpresa, x, y, ancho, False)
+                termino = (fin <= limite OrElse y = inicioHoja)
+                If termino Then y = DibujarSeccionOrden(g, seccionImpresa, x, y, ancho, True)
+            End If
+
+            If Not termino Then Exit Do
+            seccionImpresa += 1
+            filaImpresa = 0
+        Loop
+
+        DibujarPie(g, area, "Orden de trabajo " & numero & " · Impreso el " & fechaImpresion.ToString("dd/MM/yyyy HH:mm"), hojaImpresa)
+        e.HasMorePages = (seccionImpresa < SECCION_FIN)
+    End Sub
+
+    Function DibujarSeccionOrden(g As Graphics, seccion As Integer, x As Integer, y As Integer, ancho As Integer,
+                                 dibujar As Boolean) As Integer
+        'dibujo (o solo mido, con dibujar en False) una seccion del reporte y devuelvo el y donde termina
+        'una seccion que no corresponde al estado de la orden no ocupa lugar
+        Dim fila As DataRow = datosImpresion
+        Dim codigo As String = fila("codigo").ToString()
+
+        Select Case seccion
+            Case SECCION_DATOS
+                'renglon del vehiculo con el estado a la derecha
+                Dim yRenglon As Integer = y + 4
+                If dibujar Then
+                    DibujarTextoChico(g, "Recibida el " & TextoFecha(fila("fecha_recepcion"), "dd/MM/yyyy HH:mm") &
+                                      " · Patente " & fila("patente").ToString(), x, yRenglon)
+                End If
+                Dim yInsignia As Integer = y + 24
+                If dibujar Then yInsignia = DibujarInsignia(g, fila("estado").ToString(), ColorEstado(codigo), x + ancho, y)
+                y = yInsignia + 12
+
+                'dos cajas lado a lado: cliente y vehiculo
+                Const ANCHO_ETIQUETA As Integer = 105
+                Dim anchoCaja As Integer = (ancho - 16) \ 2
+                Dim xVehiculo As Integer = x + anchoCaja + 16
+
+                Dim yCliente As Integer = DibujarTituloCaja(g, "Cliente", x, y, anchoCaja, dibujar)
+                yCliente = DibujarDato(g, "Nombre", fila("cliente").ToString(), x + 8, yCliente, anchoCaja - 16, ANCHO_ETIQUETA, dibujar)
+                yCliente = DibujarDato(g, "Documento", fila("documento").ToString(), x + 8, yCliente, anchoCaja - 16, ANCHO_ETIQUETA, dibujar)
+                yCliente = DibujarDato(g, "Teléfono", fila("telefono").ToString(), x + 8, yCliente, anchoCaja - 16, ANCHO_ETIQUETA, dibujar)
+
+                Dim yVehiculo As Integer = DibujarTituloCaja(g, "Vehículo", xVehiculo, y, anchoCaja, dibujar)
+                yVehiculo = DibujarDato(g, "Patente", fila("patente").ToString(), xVehiculo + 8, yVehiculo, anchoCaja - 16, ANCHO_ETIQUETA, dibujar)
+                yVehiculo = DibujarDato(g, "Marca y modelo", fila("vehiculo").ToString(), xVehiculo + 8, yVehiculo, anchoCaja - 16, ANCHO_ETIQUETA, dibujar)
+                yVehiculo = DibujarDato(g, "Año", fila("anio").ToString(), xVehiculo + 8, yVehiculo, anchoCaja - 16, ANCHO_ETIQUETA, dibujar)
+                yVehiculo = DibujarDato(g, "Color", fila("color").ToString(), xVehiculo + 8, yVehiculo, anchoCaja - 16, ANCHO_ETIQUETA, dibujar)
+                yVehiculo = DibujarDato(g, "Km de ingreso", CInt(fila("km_ingreso")).ToString("N0") & " km", xVehiculo + 8, yVehiculo, anchoCaja - 16, ANCHO_ETIQUETA, dibujar)
+                yVehiculo = DibujarDato(g, "Combustible", NombreCombustible(fila("nivel_combustible")), xVehiculo + 8, yVehiculo, anchoCaja - 16, ANCHO_ETIQUETA, dibujar)
+
+                'las dos cajas terminan a la misma altura
+                Dim yFin As Integer = Math.Max(yCliente, yVehiculo) + 4
+                If dibujar Then
+                    DibujarBordeCaja(g, x, y, anchoCaja, yFin)
+                    DibujarBordeCaja(g, xVehiculo, y, anchoCaja, yFin)
+                End If
+                Return yFin + 16
+
+            Case SECCION_RECEPCION
+                Const ANCHO_ETIQUETA As Integer = 175
+                Dim prometida As String = TextoFecha(fila("fecha_prometida"), "dd/MM/yyyy")
+                If prometida = "-" Then prometida = "Sin fecha"
+
+                y = DibujarTituloSeccion(g, "Recepción", x, y, ancho, dibujar)
+                y = DibujarDato(g, "Fecha de recepción", TextoFecha(fila("fecha_recepcion"), "dd/MM/yyyy HH:mm"), x, y, ancho, ANCHO_ETIQUETA, dibujar)
+                y = DibujarDato(g, "Entrega prometida", prometida, x, y, ancho, ANCHO_ETIQUETA, dibujar)
+                y = DibujarDato(g, "Síntoma reportado", fila("sintoma_reportado").ToString(), x, y, ancho, ANCHO_ETIQUETA, dibujar)
+                y = DibujarDato(g, "Observaciones", fila("observaciones_recepcion").ToString(), x, y, ancho, ANCHO_ETIQUETA, dibujar)
+                Return y + 12
+
+            Case SECCION_TOTALES
+                'solo para quien ve importes y cuando la orden tiene lineas
+                If modoMecanico OrElse lineasImpresion.Rows.Count = 0 Then Return y
+
+                Dim derecha As Integer = x + ancho - 4
+                Dim conAprobado As Boolean = MuestraAprobacion()
+                y = DibujarImporte(g, "Total presupuestado:", CDec(fila("total_presupuestado")).ToString("C2"), derecha, y,
+                                   Not conAprobado, dibujar)
+                If conAprobado Then
+                    y = DibujarImporte(g, "Total aprobado:", CDec(fila("total_aprobado")).ToString("C2"), derecha, y, True, dibujar)
+                End If
+                Return y + 14
+
+            Case SECCION_TRABAJO
+                'el trabajo del mecanico se muestra desde que la orden llego a estar en proceso
+                If EtapaImpresa() < 4 Then Return y
+
+                Const ANCHO_ETIQUETA As Integer = 175
+                Dim horas As Decimal = 0
+                For Each linea As DataRow In lineasImpresion.Rows
+                    If Not IsDBNull(linea("horas_reales")) Then horas += CDec(linea("horas_reales"))
+                Next
+
+                y = DibujarTituloSeccion(g, "Trabajo realizado", x, y, ancho, dibujar)
+                y = DibujarDato(g, "Mecánico", fila("mecanico").ToString(), x, y, ancho, ANCHO_ETIQUETA, dibujar)
+                y = DibujarDato(g, "Horas trabajadas", horas.ToString("N2") & " h", x, y, ancho, ANCHO_ETIQUETA, dibujar)
+                If Not IsDBNull(fila("fecha_finalizacion")) Then
+                    y = DibujarDato(g, "Fecha de finalización", TextoFecha(fila("fecha_finalizacion"), "dd/MM/yyyy HH:mm"), x, y, ancho, ANCHO_ETIQUETA, dibujar)
+                End If
+                If Not IsDBNull(fila("fecha_entrega")) Then
+                    y = DibujarDato(g, "Fecha de entrega", TextoFecha(fila("fecha_entrega"), "dd/MM/yyyy HH:mm"), x, y, ancho, ANCHO_ETIQUETA, dibujar)
+                End If
+                y = DibujarDato(g, "Observaciones del mecánico", fila("observaciones_mecanico").ToString(), x, y, ancho, ANCHO_ETIQUETA, dibujar)
+                Return y + 12
+
+            Case SECCION_MOTIVO
+                'una orden rechazada o anulada lleva el motivo que quedo en el historial
+                Dim titulo As String = ""
+                If codigo = "RECHAZADA" Then titulo = "Motivo del rechazo"
+                If codigo = "ANULADA" Then titulo = "Motivo de la anulación"
+                If titulo = "" Then Return y
+
+                Dim motivo As String = MotivoImpreso()
+                If motivo = "" Then motivo = "Sin motivo registrado."
+                Return DibujarRecuadro(g, titulo, motivo, x, y, ancho, dibujar)
+        End Select
+
+        Return y
+    End Function
+
+    Function ImprimirServicios(g As Graphics, x As Integer, ByRef y As Integer, ancho As Integer, limite As Integer,
+                               inicioHoja As Boolean) As Boolean
+        'tabla de servicios de la orden; las columnas dependen del estado y de quien imprime
+        If lineasImpresion.Rows.Count = 0 Then Return True
+
+        Dim conAprobado As Boolean = MuestraAprobacion()
+        Dim conHoras As Boolean = (EtapaImpresa() >= 4)
+
+        Dim columnas As New List(Of String) From {"Servicio", "Cant."}
+        Dim pesos As New List(Of Single) From {5.0F, 1.1F}
+        Dim alineaciones As New List(Of StringAlignment) From {StringAlignment.Near, StringAlignment.Far}
+        If conAprobado Then
+            columnas.Add("Aprobado")
+            pesos.Add(1.3F)
+            alineaciones.Add(StringAlignment.Center)
+        End If
+        If conHoras Then
+            columnas.Add("Horas")
+            pesos.Add(1.1F)
+            alineaciones.Add(StringAlignment.Far)
+        End If
+        If Not modoMecanico Then
+            columnas.Add("P. unitario")
+            pesos.Add(1.8F)
+            alineaciones.Add(StringAlignment.Far)
+            columnas.Add("Subtotal")
+            pesos.Add(1.8F)
+            alineaciones.Add(StringAlignment.Far)
+        End If
+
+        Dim filas As New List(Of String())
+        For Each linea As DataRow In lineasImpresion.Rows
+            Dim valores As New List(Of String) From {linea("descripcion").ToString(), CDec(linea("cantidad")).ToString("N2")}
+            If conAprobado Then
+                If CBool(linea("aprobado")) Then valores.Add("Sí") Else valores.Add("No")
+            End If
+            If conHoras Then
+                If IsDBNull(linea("horas_reales")) Then valores.Add("-") Else valores.Add(CDec(linea("horas_reales")).ToString("N2"))
+            End If
+            If Not modoMecanico Then
+                valores.Add(CDec(linea("precio_unitario")).ToString("C2"))
+                valores.Add(CDec(linea("subtotal")).ToString("C2"))
+            End If
+            filas.Add(valores.ToArray())
+        Next
+
+        Return DibujarTabla(g, "Servicios", columnas.ToArray(), pesos.ToArray(), alineaciones.ToArray(), filas,
+                            x, y, ancho, limite, filaImpresa, inicioHoja)
+    End Function
+
+    Function ImprimirHistorial(g As Graphics, x As Integer, ByRef y As Integer, ancho As Integer, limite As Integer,
+                               inicioHoja As Boolean) As Boolean
+        'tabla con los cambios de estado de la orden, al final del reporte
+        If historialImpresion.Rows.Count = 0 Then Return True
+
+        Dim columnas() As String = {"Fecha y hora", "Estado", "Usuario", "Observación"}
+        Dim pesos() As Single = {2.0F, 1.8F, 2.9F, 3.8F}
+        Dim alineaciones() As StringAlignment = {StringAlignment.Near, StringAlignment.Near, StringAlignment.Near, StringAlignment.Near}
+
+        Dim filas As New List(Of String())
+        For Each registro As DataRow In historialImpresion.Rows
+            filas.Add({CDate(registro("fecha_hora")).ToString("dd/MM/yyyy HH:mm"),
+                       registro("estado").ToString(),
+                       registro("usuario").ToString(),
+                       registro("observacion").ToString()})
+        Next
+
+        Return DibujarTabla(g, "Historial de estados", columnas, pesos, alineaciones, filas,
+                            x, y, ancho, limite, filaImpresa, inicioHoja)
+    End Function
 
 End Class
