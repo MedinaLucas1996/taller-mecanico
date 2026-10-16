@@ -223,6 +223,10 @@ Public Class FrmPrincipal
         AbrirFormulario(New FrmOrdenes())
     End Sub
 
+    Private Sub btnHistorial_Click(sender As Object, e As EventArgs) Handles btnHistorial.Click
+        AbrirFormulario(New FrmHistorial())
+    End Sub
+
     Private Sub btnClientes_Click(sender As Object, e As EventArgs) Handles btnClientes.Click
         AbrirFormulario(New FrmClientes())
     End Sub

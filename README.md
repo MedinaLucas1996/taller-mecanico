@@ -158,6 +158,7 @@ graph TD
             Usuarios["FrmUsuarios<br/>(solo administrador)"]
             Recepcion["FrmRecepcion<br/>(asistente de recepción)"]
             Ordenes["FrmOrdenes<br/>(tablero de órdenes)"]
+            Historial["FrmHistorial<br/>(historial por patente)"]
         end
         Conexion["Module ConexionBD<br/>(Const CADENA)"]
         Seguridad["Module Seguridad<br/>(hash PBKDF2)"]
@@ -185,6 +186,9 @@ graph TD
     Recepcion -.->|"lee rol e ID"| Sesion
     Ordenes -->|"usa CADENA"| Conexion
     Ordenes -.->|"lee rol"| Sesion
+    Principal -->|"abre en panel (los tres roles)"| Historial
+    Historial -->|"usa CADENA"| Conexion
+    Historial -.->|"lee rol"| Sesion
     Clientes -->|"usa CADENA"| Conexion
     Vehiculos -->|"usa CADENA"| Conexion
     Marcas -->|"usa CADENA"| Conexion
@@ -306,11 +310,12 @@ No aplica: aplicación de escritorio WinForms. No expone endpoints.
   - Terminado: Recepción (asistente de cuatro pasos: vehículo por patente, datos de ingreso, fotos por ángulo y confirmación; guarda en una transacción la orden en estado `RECEPCIONADA`, su primera fila de historial y sus fotos) y Órdenes de trabajo (tablero a todo el ancho: tarjetas con la cantidad de órdenes por estado, que también filtran la lista; filtros por texto y demoradas; grilla con el estado en color; y tarjeta de detalle de la orden seleccionada con sus fotos en miniatura, ampliables, y el botón "Gestionar orden"). Ver [Recepción y órdenes de trabajo](#recepción-y-órdenes-de-trabajo).
   - Terminado: Gestión de la orden (líneas de presupuesto con sus totales, mecánico, aprobación del cliente por línea o rechazo, inicio del trabajo, horas trabajadas por línea, cierre técnico, entrega con actualización del kilometraje y anulación con motivo, solo para el administrador; cada cambio de estado se guarda en una transacción con su fila de historial). Ver [Recepción y órdenes de trabajo](#recepción-y-órdenes-de-trabajo).
   - Terminado: Mis órdenes (pantalla del mecánico: sus órdenes en tres grupos, resumen de trabajo con fotos y un botón que abre la gestión de la orden en modo mecánico, sin importes; ver [Mis órdenes](#mis-órdenes-pantalla-del-mecánico)).
+  - Terminado: Historial por patente (`FrmHistorial`, para los tres roles y de solo consulta: búsqueda por patente, también de vehículos dados de baja; datos del vehículo y de su titular actual; todas sus órdenes de trabajo, en cualquier estado y la más reciente primero; y los servicios, el síntoma y las observaciones del mecánico de la orden elegida. El mecánico ve el historial sin ningún importe: sus consultas no traen totales, precios ni subtotales).
   - Pendiente en el flujo de la orden de trabajo: impresión del presupuesto, diagnóstico escrito por el mecánico antes del presupuesto y fotos cargadas por el mecánico.
   - Terminado: Mecánicos (ABM solo para el administrador: nombre completo obligatorio, especialidad y teléfono; búsqueda por nombre o especialidad; baja lógica, rechazada si el mecánico tiene órdenes de trabajo sin cerrar; un mecánico dado de baja se reactiva con el mismo botón; no admite dos mecánicos activos con el mismo nombre).
   - Terminado: Servicios (ABM solo para el administrador: código único, descripción, categoría y precio obligatorios, tiempo estimado en horas opcional; búsqueda por código, descripción o categoría; baja lógica y reactivación con el mismo botón, rechazada si la categoría del servicio está dada de baja; cambiar el precio no altera los presupuestos ya cargados).
   - Terminado: Categorías (ABM solo para el administrador: descripción única y obligatoria; la grilla muestra la cantidad de servicios activos de cada una, con búsqueda por descripción; baja lógica, rechazada si la categoría tiene servicios activos; una categoría dada de baja se reactiva con el mismo botón).
-  - Sin pantalla todavía (botones del menú sin evento): Historial y Reportes.
+  - Sin pantalla todavía (botón del menú sin evento): Reportes.
   - Decisión cerrada: hash de contraseñas con PBKDF2 + SHA256, igual que la referencia de la cátedra (reemplaza la mención de BCrypt de la especificación). Las bases ya cargadas deben ejecutar `database/06_migracion_hash_pbkdf2.sql`.
   - Base de datos: 13 tablas. A las 12 del modelo original se suma `ot_foto` (fotos de recepción) y `orden_trabajo` tiene la columna `fecha_prometida`. Las bases ya creadas deben ejecutar `database/07_recepcion_fotos.sql`.
 
