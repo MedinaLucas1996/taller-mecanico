@@ -27,18 +27,22 @@ Public Class FrmPrincipal
     'boton de la pantalla que esta abierta, para que se vea resaltado en el menu
     Private botonActivo As Button
 
+    'las dos fuentes de las opciones del menu, creadas una sola vez al abrir y liberadas al cerrar
+    Private fuenteOpcion As Font
+    Private fuenteOpcionActiva As Font
+
     Sub MarcarOpcionActiva(boton As Button)
         'resalto en el menu la opcion de la pantalla abierta y vuelvo a la normalidad la anterior
         If botonActivo IsNot Nothing Then
             botonActivo.BackColor = colorMenu
-            botonActivo.Font = New Font(botonActivo.Font, FontStyle.Regular)
+            botonActivo.Font = fuenteOpcion
         End If
 
         botonActivo = boton
 
         If botonActivo IsNot Nothing Then
             botonActivo.BackColor = colorOpcionActiva
-            botonActivo.Font = New Font(botonActivo.Font, FontStyle.Bold)
+            botonActivo.Font = fuenteOpcionActiva
         End If
     End Sub
 
@@ -122,6 +126,10 @@ Public Class FrmPrincipal
         'junto los botones del menu en el orden en que se ven
         botonesMenu = {btnMisOrdenes, btnRecepcion, btnOrdenes, btnHistorial, btnTableros, btnClientes, btnVehiculos,
                        btnMarcasModelos, btnServicios, btnCategorias, btnMecanicos, btnUsuarios}
+
+        'la fuente normal es la del diseñador; la de la opcion activa es la misma en negrita
+        fuenteOpcion = btnClientes.Font
+        fuenteOpcionActiva = New Font(fuenteOpcion, FontStyle.Bold)
 
         'cargo el icono de cada opcion, si alguno falta ese boton queda sin icono
         btnMisOrdenes.Image = LeerIcono("mis-ordenes.png")
@@ -316,6 +324,15 @@ Public Class FrmPrincipal
     End Sub
 
     Private Sub FrmPrincipal_FormClosed(sender As Object, e As FormClosedEventArgs) Handles MyBase.FormClosed
+        'libero la fuente en negrita que cree para la opcion activa (la normal es del diseñador y la libera el formulario)
+        If fuenteOpcionActiva IsNot Nothing Then
+            For Each boton As Button In botonesMenu
+                If boton.Font Is fuenteOpcionActiva Then boton.Font = fuenteOpcion
+            Next
+            fuenteOpcionActiva.Dispose()
+            fuenteOpcionActiva = Nothing
+        End If
+
         'si se esta cerrando la sesion, el login ya quedo a la vista y la aplicacion sigue
         If cerrandoSesion Then Exit Sub
 

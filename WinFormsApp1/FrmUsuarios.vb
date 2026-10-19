@@ -2,6 +2,9 @@ Imports MySqlConnector
 
 Public Class FrmUsuarios
 
+    'largo minimo de una contraseña nueva o cambiada (las de prueba tienen 8)
+    Private Const LARGO_MINIMO_CLAVE As Integer = 6
+
     'usuario que se ve en la tarjeta del registro, queda en 0 mientras no haya (el ID no se muestra)
     Private idUsuario As Integer = 0
     'indica que la tarjeta esta cargando un registro nuevo
@@ -381,9 +384,9 @@ Public Class FrmUsuarios
             Return False
         End If
 
-        'una clave nueva o cambiada tiene que tener al menos 6 caracteres y no ser solo espacios
-        If txtPassword.Text <> "" AndAlso txtPassword.Text.Trim.Length < 6 Then
-            MessageBox.Show("La contraseña debe tener al menos 6 caracteres.")
+        'una clave nueva o cambiada tiene que tener el largo minimo y no ser solo espacios
+        If txtPassword.Text <> "" AndAlso txtPassword.Text.Trim.Length < LARGO_MINIMO_CLAVE Then
+            MessageBox.Show("La contraseña debe tener al menos " & LARGO_MINIMO_CLAVE & " caracteres.")
             txtPassword.Focus()
             Return False
         End If
