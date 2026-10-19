@@ -318,6 +318,10 @@ Public Class FrmPrincipal
     End Sub
 
     Private Sub FrmPrincipal_FormClosing(sender As Object, e As FormClosingEventArgs) Handles MyBase.FormClosing
+        'si Windows se esta apagando no pregunto nada: un dialogo solo demoraria el cierre y lo cargado se pierde igual
+        'las pantallas del panel se cierran junto con esta ventana (un Close aca les llega como UserClosing, no como apagado)
+        If e.CloseReason = CloseReason.WindowsShutDown Then Exit Sub
+
         'antes de cerrar la ventana principal cierro la pantalla abierta, que puede pedir que no se cierre
         'al cerrar sesion la pantalla ya se cerro, asi que aca no se vuelve a preguntar
         If Not CerrarPantallaActual() Then e.Cancel = True

@@ -798,8 +798,7 @@ Public Class FrmRecepcion
 
     Private Sub FrmRecepcion_FormClosing(sender As Object, e As FormClosingEventArgs) Handles MyBase.FormClosing
         'al salir de la pantalla (otra opcion del menu, cerrar sesion o el programa) pregunto antes de perder la recepcion a medias
-        'si Windows se esta apagando no pregunto: el dialogo solo demoraria el cierre y la recepcion se pierde igual
-        If e.CloseReason = CloseReason.WindowsShutDown Then Exit Sub
+        'el apagado de Windows lo atiende FrmPrincipal, que en ese caso no cierra las pantallas una por una
         If Not ConfirmarCancelacion() Then e.Cancel = True
     End Sub
 
