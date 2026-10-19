@@ -203,7 +203,7 @@ Partial Class FrmRecepcion
         lblSubtitulo.AutoSize = True
         lblSubtitulo.Font = New Font("Segoe UI", 11F)
         lblSubtitulo.ForeColor = Color.DimGray
-        lblSubtitulo.Location = New Point(33, 62)
+        lblSubtitulo.Location = New Point(33, 70)
         lblSubtitulo.Name = "lblSubtitulo"
         lblSubtitulo.Size = New Size(110, 25)
         lblSubtitulo.TabIndex = 1
