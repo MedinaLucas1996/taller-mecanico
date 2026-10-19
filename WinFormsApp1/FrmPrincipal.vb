@@ -124,7 +124,7 @@ Public Class FrmPrincipal
         lblUsuario.Text = "Usuario: " & Sesion.NombreCompleto & " (" & Sesion.Rol & ")"
 
         'junto los botones del menu en el orden en que se ven
-        botonesMenu = {btnMisOrdenes, btnRecepcion, btnOrdenes, btnHistorial, btnTableros, btnClientes, btnVehiculos,
+        botonesMenu = {btnInicio, btnMisOrdenes, btnRecepcion, btnOrdenes, btnHistorial, btnTableros, btnClientes, btnVehiculos,
                        btnMarcasModelos, btnServicios, btnCategorias, btnMecanicos, btnUsuarios}
 
         'la fuente normal es la del diseñador; la de la opcion activa es la misma en negrita
@@ -132,6 +132,7 @@ Public Class FrmPrincipal
         fuenteOpcionActiva = New Font(fuenteOpcion, FontStyle.Bold)
 
         'cargo el icono de cada opcion, si alguno falta ese boton queda sin icono
+        btnInicio.Image = LeerIcono("inicio.png")
         btnMisOrdenes.Image = LeerIcono("mis-ordenes.png")
         btnRecepcion.Image = LeerIcono("recepcion.png")
         btnOrdenes.Image = LeerIcono("ordenes.png")
@@ -144,6 +145,7 @@ Public Class FrmPrincipal
         btnCategorias.Image = LeerIcono("categorias.png")
         btnMecanicos.Image = LeerIcono("mecanicos.png")
         btnUsuarios.Image = LeerIcono("usuarios.png")
+        btnCambiarClave.Image = LeerIcono("cambiar-clave.png")
         btnCerrarSesion.Image = LeerIcono("cerrar-sesion.png")
         iconoContraer = LeerIcono("menu-contraer.png")
         iconoExpandir = LeerIcono("menu-expandir.png")
@@ -153,6 +155,7 @@ Public Class FrmPrincipal
         'el administrador ve todo el menu
         If Sesion.Rol = ROL_ADMINISTRADOR Then
             verOperaciones = True
+            btnInicio.Visible = True
             btnRecepcion.Visible = True
             btnOrdenes.Visible = True
             btnHistorial.Visible = True
@@ -171,6 +174,7 @@ Public Class FrmPrincipal
         'el operador ve las operaciones y los datos de clientes y vehiculos
         If Sesion.Rol = ROL_OPERADOR Then
             verOperaciones = True
+            btnInicio.Visible = True
             btnRecepcion.Visible = True
             btnOrdenes.Visible = True
             btnHistorial.Visible = True
@@ -189,6 +193,12 @@ Public Class FrmPrincipal
 
         'muestro los titulos de las secciones del rol y dejo el menu expandido
         AplicarMenu()
+
+        'el administrador y el operador arrancan en la pantalla de inicio, con las ordenes que piden atencion hoy
+        'el mecanico se queda con el texto de bienvenida del panel
+        If Sesion.Rol = ROL_ADMINISTRADOR OrElse Sesion.Rol = ROL_OPERADOR Then
+            AbrirFormulario(New FrmInicio(), btnInicio)
+        End If
     End Sub
 
     Private Sub btnMenu_Click(sender As Object, e As EventArgs) Handles btnMenu.Click
@@ -246,6 +256,10 @@ Public Class FrmPrincipal
         Me.Text = "Taller Mecánico - " & formulario.Text
     End Sub
 
+    Private Sub btnInicio_Click(sender As Object, e As EventArgs) Handles btnInicio.Click
+        AbrirFormulario(New FrmInicio(), CType(sender, Button))
+    End Sub
+
     Private Sub btnMisOrdenes_Click(sender As Object, e As EventArgs) Handles btnMisOrdenes.Click
         AbrirFormulario(New FrmMisOrdenes(), CType(sender, Button))
     End Sub
@@ -292,6 +306,13 @@ Public Class FrmPrincipal
 
     Private Sub btnUsuarios_Click(sender As Object, e As EventArgs) Handles btnUsuarios.Click
         AbrirFormulario(New FrmUsuarios(), CType(sender, Button))
+    End Sub
+
+    Private Sub btnCambiarClave_Click(sender As Object, e As EventArgs) Handles btnCambiarClave.Click
+        'el usuario cambia su propia contraseña en una ventana aparte; la pantalla abierta no se toca
+        Using formulario As New FrmCambiarClave
+            formulario.ShowDialog()
+        End Using
     End Sub
 
     Private Sub btnCerrarSesion_Click(sender As Object, e As EventArgs) Handles btnCerrarSesion.Click

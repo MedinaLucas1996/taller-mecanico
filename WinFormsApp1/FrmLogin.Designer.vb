@@ -22,6 +22,7 @@ Partial Class FrmLogin
     'Do not modify it using the code editor.
     <System.Diagnostics.DebuggerStepThrough()>
     Private Sub InitializeComponent()
+        components = New ComponentModel.Container()
         lblTitulo = New Label()
         lblSubtitulo = New Label()
         lblUsuario = New Label()
@@ -29,6 +30,8 @@ Partial Class FrmLogin
         lblPassword = New Label()
         txtPassword = New TextBox()
         btnIngresar = New Button()
+        lblBloqueo = New Label()
+        tmrBloqueo = New Timer(components)
         SuspendLayout()
         '
         ' lblTitulo
@@ -93,6 +96,21 @@ Partial Class FrmLogin
         btnIngresar.Text = "INGRESAR"
         btnIngresar.UseVisualStyleBackColor = True
         '
+        ' lblBloqueo
+        '
+        lblBloqueo.Font = New Font("Segoe UI", 9F, FontStyle.Bold)
+        lblBloqueo.Location = New Point(90, 385)
+        lblBloqueo.Name = "lblBloqueo"
+        lblBloqueo.Size = New Size(300, 23)
+        lblBloqueo.TabIndex = 7
+        lblBloqueo.Text = "Demasiados intentos. Espere 30 s"
+        lblBloqueo.TextAlign = ContentAlignment.MiddleCenter
+        lblBloqueo.Visible = False
+        '
+        ' tmrBloqueo
+        '
+        tmrBloqueo.Interval = 1000
+        '
         ' FrmLogin
         '
         AcceptButton = btnIngresar
@@ -107,6 +125,7 @@ Partial Class FrmLogin
         Controls.Add(lblPassword)
         Controls.Add(txtPassword)
         Controls.Add(btnIngresar)
+        Controls.Add(lblBloqueo)
         FormBorderStyle = FormBorderStyle.FixedSingle
         MaximizeBox = False
         Name = "FrmLogin"
@@ -123,5 +142,7 @@ Partial Class FrmLogin
     Friend WithEvents lblPassword As Label
     Friend WithEvents txtPassword As TextBox
     Friend WithEvents btnIngresar As Button
+    Friend WithEvents lblBloqueo As Label
+    Friend WithEvents tmrBloqueo As Timer
 
 End Class

@@ -2,8 +2,7 @@ Imports MySqlConnector
 
 Public Class FrmUsuarios
 
-    'largo minimo de una contraseña nueva o cambiada (las de prueba tienen 8)
-    Private Const LARGO_MINIMO_CLAVE As Integer = 6
+    'el largo minimo de la contraseña (LARGO_MINIMO_CLAVE) esta en el modulo Seguridad, compartido con el cambio de clave propio
 
     'usuario que se ve en la tarjeta del registro, queda en 0 mientras no haya (el ID no se muestra)
     Private idUsuario As Integer = 0

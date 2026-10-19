@@ -11,6 +11,13 @@ Public Class FrmLogin
 
     Private musicaAbierta As Boolean = False
 
+    'bloqueo por intentos fallidos: despues de MAXIMO_INTENTOS seguidos el boton se apaga SEGUNDOS_BLOQUEO segundos
+    'cuenta igual un usuario inexistente que una clave incorrecta; vive solo en memoria, no toca la base
+    Private Const MAXIMO_INTENTOS As Integer = 5
+    Private Const SEGUNDOS_BLOQUEO As Integer = 30
+    Private intentosFallidos As Integer = 0
+    Private segundosRestantes As Integer = 0
+
     Private Sub btnIngresar_Click(sender As Object, e As EventArgs) Handles btnIngresar.Click
 
         'valido que no haya campos vacios
@@ -59,6 +66,7 @@ Public Class FrmLogin
 
                     'uso el mismo mensaje si el usuario no existe o la clave es incorrecta
                     If tabla.Rows.Count = 0 Then
+                        RegistrarIntentoFallido()
                         MessageBox.Show("Usuario o contraseña incorrectos.")
                         txtPassword.Clear()
                         txtPassword.Focus()
@@ -68,11 +76,15 @@ Public Class FrmLogin
                     Dim fila As DataRow = tabla.Rows(0)
 
                     If Not VerificarClave(txtPassword.Text, fila("hash_contrasena").ToString, fila("salt").ToString) Then
+                        RegistrarIntentoFallido()
                         MessageBox.Show("Usuario o contraseña incorrectos.")
                         txtPassword.Clear()
                         txtPassword.Focus()
                         Exit Sub
                     End If
+
+                    'entro bien: los intentos fallidos anteriores dejan de contar
+                    intentosFallidos = 0
 
                     'guardo los datos del usuario en la sesion
                     Sesion.IdUsuario = Convert.ToInt32(fila("id_usuario"))
@@ -92,9 +104,10 @@ Public Class FrmLogin
             MostrarError("No se pudo iniciar sesión.", ex)
             Exit Sub
         Finally
-            'pase lo que pase, el boton y el cursor vuelven a la normalidad
+            'pase lo que pase, el cursor vuelve a la normalidad
+            'el boton tambien, salvo que este intento haya completado el bloqueo: ahi lo vuelve a prender el reloj
             Cursor.Current = Cursors.Default
-            btnIngresar.Enabled = True
+            btnIngresar.Enabled = Not tmrBloqueo.Enabled
         End Try
 
         Dim principal As New FrmPrincipal()
@@ -103,6 +116,34 @@ Public Class FrmLogin
         DetenerMusica()
         Me.Hide()
 
+    End Sub
+
+    Private Sub RegistrarIntentoFallido()
+        'sumo un intento fallido; al llegar al maximo apago el boton y arranco la cuenta regresiva
+        intentosFallidos = intentosFallidos + 1
+        If intentosFallidos < MAXIMO_INTENTOS Then Exit Sub
+
+        segundosRestantes = SEGUNDOS_BLOQUEO
+        lblBloqueo.Text = "Demasiados intentos. Espere " & segundosRestantes & " s"
+        lblBloqueo.Visible = True
+        btnIngresar.Enabled = False
+        tmrBloqueo.Start()
+    End Sub
+
+    Private Sub tmrBloqueo_Tick(sender As Object, e As EventArgs) Handles tmrBloqueo.Tick
+        'cada segundo bajo la cuenta; al llegar a cero se puede volver a intentar
+        segundosRestantes = segundosRestantes - 1
+
+        If segundosRestantes > 0 Then
+            lblBloqueo.Text = "Demasiados intentos. Espere " & segundosRestantes & " s"
+            Exit Sub
+        End If
+
+        tmrBloqueo.Stop()
+        lblBloqueo.Visible = False
+        intentosFallidos = 0
+        btnIngresar.Enabled = True
+        txtPassword.Focus()
     End Sub
 
     Private Sub FrmLogin_Shown(sender As Object, e As EventArgs) Handles MyBase.Shown
