@@ -859,7 +859,16 @@ Public Class FrmRecepcion
         Dim angulos() As String = {"FRENTE", "TRASERA", "LATERAL_IZQUIERDO", "LATERAL_DERECHO", "TABLERO"}
         Dim fotos() As Image = {picFrente.Image, picTrasera.Image, picLateralIzq.Image, picLateralDer.Image, picTablero.Image}
 
+        'paso las fotos a JPEG antes de abrir la transaccion: asi el bloqueo del vehiculo dura lo menos posible
+        Dim bytesFotos(4)() As Byte
+        For i As Integer = 0 To 4
+            If fotos(i) IsNot Nothing Then bytesFotos(i) = ImagenABytes(fotos(i))
+        Next
+
         Dim nroOrden As Integer
+
+        'mientras se guarda muestro el reloj de espera: si otro puesto tiene tomado el vehiculo, hay que esperarlo
+        Cursor.Current = Cursors.WaitCursor
 
         Try
             Using cn As New MySqlConnection(CADENA)
@@ -957,7 +966,7 @@ Public Class FrmRecepcion
                             Using cmd As New MySqlCommand(consulta, cn, transaccion)
                                 cmd.Parameters.AddWithValue("@id_orden_trabajo", idOrden)
                                 cmd.Parameters.AddWithValue("@angulo", angulos(i))
-                                cmd.Parameters.AddWithValue("@imagen", ImagenABytes(fotos(i)))
+                                cmd.Parameters.AddWithValue("@imagen", bytesFotos(i))
                                 cmd.Parameters.AddWithValue("@id_usuario", Sesion.IdUsuario)
                                 cmd.ExecuteNonQuery()
                             End Using
@@ -974,6 +983,11 @@ Public Class FrmRecepcion
                 transaccion.Commit()
             End Using
 
+        Catch ex As MySqlException When ex.Number = 1205
+            'error 1205: otro puesto tiene tomado este vehiculo (esta registrando su orden) y no termino a tiempo
+            MessageBox.Show("Otro puesto está registrando una orden para este vehículo en este momento. " &
+                            "No se guardó nada: espere unos segundos y vuelva a buscar la patente.")
+            Exit Sub
         Catch ex As MySqlException When ex.Number = 1062
             'error 1062: otro puesto genero una orden con el mismo numero al mismo tiempo
             MessageBox.Show("Otro puesto registró una orden con el mismo número al mismo tiempo. " &
@@ -983,6 +997,9 @@ Public Class FrmRecepcion
             MessageBox.Show("No se pudo registrar la recepción y no se guardó ningún dato." & vbCrLf &
                             "Detalle: " & ex.Message)
             Exit Sub
+        Finally
+            'pase lo que pase, el cursor vuelve a la normalidad
+            Cursor.Current = Cursors.Default
         End Try
 
         MessageBox.Show("Recepción registrada. Orden de trabajo N.º " & nroOrden & ".")
