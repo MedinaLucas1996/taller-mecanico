@@ -27,9 +27,6 @@ Public Class FrmPrincipal
     'boton de la pantalla que esta abierta, para que se vea resaltado en el menu
     Private botonActivo As Button
 
-    'titulo de la ventana sin pantalla abierta
-    Private tituloBase As String = ""
-
     Sub MarcarOpcionActiva(boton As Button)
         'resalto en el menu la opcion de la pantalla abierta y vuelvo a la normalidad la anterior
         If botonActivo IsNot Nothing Then
@@ -121,7 +118,6 @@ Public Class FrmPrincipal
     Private Sub FrmPrincipal_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         'muestro el usuario que inicio sesion
         lblUsuario.Text = "Usuario: " & Sesion.NombreCompleto & " (" & Sesion.Rol & ")"
-        tituloBase = Me.Text
 
         'junto los botones del menu en el orden en que se ven
         botonesMenu = {btnMisOrdenes, btnRecepcion, btnOrdenes, btnHistorial, btnTableros, btnClientes, btnVehiculos,
@@ -239,7 +235,7 @@ Public Class FrmPrincipal
 
         'el menu y el titulo de la ventana muestran que pantalla esta abierta
         MarcarOpcionActiva(boton)
-        Me.Text = tituloBase & " - " & formulario.Text
+        Me.Text = "Taller Mecánico - " & formulario.Text
     End Sub
 
     Private Sub btnMisOrdenes_Click(sender As Object, e As EventArgs) Handles btnMisOrdenes.Click

@@ -13,15 +13,20 @@ Objective: harden the app against database outages and lost work, take the conne
 - S7 `FrmClientes`, `FrmVehiculos` and `FrmMarcasModelos` check `Sesion.Rol` in `Load` like the other screens (administrador or operador), so a screen opened outside the menu does not work for a mechanic. Role names become constants in `Module Sesion` and every literal in the forms uses them.
 - S8 `FrmPrincipal`: the option of the open screen stays highlighted in the side menu, and the window title shows the open screen ("Taller Mecánico - Clientes").
 - S9 Double-click on a row of the orders grid opens the order in `FrmOrdenes` and `FrmMisOrdenes` (same as the button). Escape triggers "Cancelar" in the six master data screens (`CancelButton`). `FrmTableros` shows the wait cursor while it recalculates and, when the database is unreachable, shows one message instead of five.
+- S10 (found while rendering) `FrmTableros`: the period subtitle was hidden behind the title; subtitle moved to y=72 like the other screens, indicators and charts shifted 8 px down.
 
 ## Tasks
 
-- [ ] T1 S1 S2 S3 — route inline — Errores module, ApplicationEvents handler, conexion.txt, login
-- [ ] T2 S4 S5 S6 S7 — route inline — reception closing/race/dispose, board dispose, Fotos, password rule, role checks and constants
-- [ ] T3 S8 S9 — route inline — active menu option + title, double-click, Escape, dashboard cursor and single outage message
-- [ ] T4 — build, off-screen render of FrmPrincipal/FrmLogin/an ABM, docs (README, Docu, this file)
+- [x] T1 S1 S2 S3 — route inline — commit 9daca89
+- [x] T2 S4 S5 S6 S7 (+ double-click of S9) — route inline — commit 9fb9461
+- [x] T3 S8 S9 — route inline — commit c00375a; title format and S10 in the closing commit
+- [x] T4 — build, off-screen render, docs — this document, closing commit
 
 ## Log
 
 - L1 (2026-10-19) User: "Buenas, quiero que mejores el proyecto, analiza con profundidad y añade mejoras que aportan valor al desarrollo, si consideras mejoras de UI/UX aplicalos"
 - Analysis (2026-10-19): read-only audit of the 18 forms and 5 modules. Sound: all 141 commands parameterised, every multi-step save in a transaction, every handler that runs SQL has Try/Catch. Gaps: no global exception handler; raw driver messages on outage (5 dialogs in a row in Tableros); login catches only MySqlException; FrmRecepcion loses the wizard silently when the menu changes, commits inside the inner Try and does not re-check the open-order rule in the transaction; FrmOrdenes thumbnails never disposed; no password rules; Clientes/Vehículos/Marcas have no role check; no visual cue of the open screen in the menu; no double-click, no Escape, no wait cursor anywhere. Left out on purpose (schema or product decisions): UNIQUE index on mecanico name, audit rows for mechanic reassignment and detail edits, debounce of the filter boxes.
+- Route: every task inline (no parallel independent units of several minutes each; the parent had the whole map). No test project, no runnable RED: checks are the build and the harness below.
+- Verification (2026-10-19): `dotnet build` 0 warnings, 0 errors after each task. Off-screen harness (scratchpad console project referencing the built DLL, forms shown at -5000,-5000, only its own windows, read paths only against the local `taller_mecanico`): S2 `CADENA` equals the text of a `conexion.txt` placed next to the harness executable (comment lines skipped); S1 `EsErrorDeConexion` returns True for a `MySqlException` with `ErrorCode = UnableToConnectToHost` (port 3399) and False for a generic exception, `RegistrarError` creates `%LocalAppData%\TallerMecanico\errores.log` with the entry (the test file was deleted afterwards); S8 after clicking Clientes then Vehículos the active button has BackColor 52,73,94 and bold font, the previous one returns to 30,39,46 regular, titles "Taller Mecánico - Clientes" / "Taller Mecánico - Vehículos" / "Taller Mecánico - Tableros", highlight visible with the menu collapsed; S9 `FrmClientes.CancelButton` is `btnCancelar`; Tableros opened with no error dialog; S10 subtitle readable in the render. Not exercised at runtime (no write paths in the harness): S4 FormClosing prompt and in-transaction re-check, S5 disposal on close, S6 password rule, S7 denied-role branches, double-click, Escape, the global handler and the login outage message. The user tests those by hand.
+- Risk: none for S1-S3, S5-S10 (new code, additive). S4 touches the reception save (item 1, data): the added checks only throw before any write, and Commit moved outside the inner Try follows the pattern of the other 22 transactions; no independent verifier was run because no automated path exercises the save (the user's manual test covers it).
+- Next step: the user runs the app (login with the database stopped, a reception left half way and then another menu option, Escape in Clientes, double-click in Órdenes, a password shorter than 6 in Usuarios) and asks for the PR when satisfied.

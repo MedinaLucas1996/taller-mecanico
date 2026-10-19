@@ -80,7 +80,7 @@ Partial Class FrmTableros
         lblSubtitulo.AutoSize = True
         lblSubtitulo.Font = New Font("Segoe UI", 11F)
         lblSubtitulo.ForeColor = Color.DimGray
-        lblSubtitulo.Location = New Point(33, 64)
+        lblSubtitulo.Location = New Point(33, 72)
         lblSubtitulo.Name = "lblSubtitulo"
         lblSubtitulo.Size = New Size(300, 25)
         lblSubtitulo.TabIndex = 1
@@ -171,7 +171,7 @@ Partial Class FrmTableros
         tlpIndicadores.Controls.Add(pnlTicket, 3, 0)
         tlpIndicadores.Controls.Add(pnlAprobacion, 4, 0)
         tlpIndicadores.Controls.Add(pnlDemoradas, 5, 0)
-        tlpIndicadores.Location = New Point(30, 94)
+        tlpIndicadores.Location = New Point(30, 102)
         tlpIndicadores.Name = "tlpIndicadores"
         tlpIndicadores.RowCount = 1
         tlpIndicadores.RowStyles.Add(New RowStyle(SizeType.Percent, 100F))
@@ -398,12 +398,12 @@ Partial Class FrmTableros
         tlpGraficos.Controls.Add(fpServicios, 1, 0)
         tlpGraficos.Controls.Add(fpHoras, 0, 1)
         tlpGraficos.Controls.Add(fpEstados, 1, 1)
-        tlpGraficos.Location = New Point(30, 182)
+        tlpGraficos.Location = New Point(30, 190)
         tlpGraficos.Name = "tlpGraficos"
         tlpGraficos.RowCount = 2
         tlpGraficos.RowStyles.Add(New RowStyle(SizeType.Percent, 50F))
         tlpGraficos.RowStyles.Add(New RowStyle(SizeType.Percent, 50F))
-        tlpGraficos.Size = New Size(810, 436)
+        tlpGraficos.Size = New Size(810, 428)
         tlpGraficos.TabIndex = 4
         '
         ' fpFacturacion
