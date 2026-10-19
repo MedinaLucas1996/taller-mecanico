@@ -859,20 +859,26 @@ Public Class FrmRecepcion
         Dim angulos() As String = {"FRENTE", "TRASERA", "LATERAL_IZQUIERDO", "LATERAL_DERECHO", "TABLERO"}
         Dim fotos() As Image = {picFrente.Image, picTrasera.Image, picLateralIzq.Image, picLateralDer.Image, picTablero.Image}
 
-        'paso las fotos a JPEG antes de abrir la transaccion: asi el bloqueo del vehiculo dura lo menos posible
         Dim bytesFotos(4)() As Byte
-        For i As Integer = 0 To 4
-            If fotos(i) IsNot Nothing Then bytesFotos(i) = ImagenABytes(fotos(i))
-        Next
-
         Dim nroOrden As Integer
 
         'mientras se guarda muestro el reloj de espera: si otro puesto tiene tomado el vehiculo, hay que esperarlo
         Cursor.Current = Cursors.WaitCursor
 
         Try
+            'paso las fotos a JPEG antes de abrir la transaccion: asi el bloqueo del vehiculo dura lo menos posible
+            'va dentro del Try para que una foto que no se pueda convertir termine en el mensaje de abajo, no en un error general
+            For i As Integer = 0 To 4
+                If fotos(i) IsNot Nothing Then bytesFotos(i) = ImagenABytes(fotos(i))
+            Next
+
             Using cn As New MySqlConnection(CADENA)
                 cn.Open()
+
+                'si otro puesto tiene tomado el vehiculo espero a lo sumo 5 segundos, no los 50 por defecto del servidor
+                Using cmd As New MySqlCommand("SET SESSION innodb_lock_wait_timeout = 5;", cn)
+                    cmd.ExecuteNonQuery()
+                End Using
 
                 'la orden, su historial y sus fotos se guardan todos juntos o ninguno
                 Dim transaccion As MySqlTransaction = cn.BeginTransaction()

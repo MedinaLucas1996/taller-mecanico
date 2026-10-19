@@ -52,6 +52,8 @@ Namespace My
             If erroresSeguidos >= 3 Then
                 MessageBox.Show("El error se repite y el sistema se va a cerrar." & vbCrLf & vbCrLf & detalle,
                                 "Taller Mecánico", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                'aviso a las pantallas que el cierre va en serio: ninguna pregunta por cambios sin guardar lo frena
+                CierreForzado = True
                 e.ExitApplication = True
                 Exit Sub
             End If
@@ -61,7 +63,8 @@ Namespace My
                 "¿Desea seguir trabajando? Si elige No, el sistema se cierra.",
                 "Taller Mecánico", MessageBoxButtons.YesNo, MessageBoxIcon.Error)
 
-            e.ExitApplication = (respuesta = DialogResult.No)
+            CierreForzado = (respuesta = DialogResult.No)
+            e.ExitApplication = CierreForzado
         End Sub
 
     End Class

@@ -66,7 +66,7 @@ Las tres pantallas están disponibles para el administrador y el operador.
 - Una barra muestra los cuatro pasos: el actual resaltado, los completos con una marca y los que faltan atenuados. Un clic en un paso completo vuelve a él; hacia adelante solo se avanza con "Siguiente".
 - A la derecha, la tarjeta "Resumen de la recepción" está siempre a la vista y se completa a medida que se avanza: vehículo, cliente, kilometraje, combustible, mecánico, fecha prometida, cantidad de fotos y síntoma.
 - Al pie quedan siempre en el mismo lugar "Cancelar", "Anterior" y el botón principal, que dice "Siguiente" en los pasos 1 a 3 y "Confirmar recepción" en el paso 4. Si hay una recepción a medias, tanto "Cancelar" como salir de la pantalla (otra opción del menú, cerrar sesión o cerrar el programa) preguntan antes de perder lo cargado.
-- Al confirmar, la orden se guarda solo si el vehículo sigue activo y sin otra orden abierta en ese momento: si otro puesto lo recepcionó o lo dio de baja después de la búsqueda del paso 1, se avisa y no se guarda nada.
+- Al confirmar, la orden se guarda solo si el vehículo sigue activo y sin otra orden abierta en ese momento: si otro puesto lo recepcionó o lo dio de baja después de la búsqueda del paso 1, se avisa y no se guarda nada. Si otro puesto está confirmando una orden para el mismo vehículo en ese instante, se espera hasta 5 segundos y, si no termina, se avisa y se pide volver a buscar la patente.
 
 **Registro rápido** (`FrmAltaRapida`): cuando la patente buscada no existe, "Registrar vehículo" abre una ventana para darla de alta sin salir de la recepción.
 

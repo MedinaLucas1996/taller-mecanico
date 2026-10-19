@@ -6,6 +6,9 @@ Module Errores
     'rutinas compartidas para avisar y registrar errores
     'las usan el login, el manejador global de la aplicacion y las pantallas que lo necesiten
 
+    'queda en True cuando el manejador global decidio cerrar el sistema: las pantallas no deben frenar ese cierre con preguntas
+    Public CierreForzado As Boolean = False
+
     'carpeta de datos del usuario donde queda el archivo de errores
     Public ReadOnly Property RutaRegistro As String
         Get
