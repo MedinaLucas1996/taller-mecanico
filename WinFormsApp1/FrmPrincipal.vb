@@ -121,7 +121,7 @@ Public Class FrmPrincipal
         'las opciones del menu arrancan ocultas, muestro las que corresponden a cada rol
 
         'el administrador ve todo el menu
-        If Sesion.Rol = "ADMINISTRADOR" Then
+        If Sesion.Rol = ROL_ADMINISTRADOR Then
             verOperaciones = True
             btnRecepcion.Visible = True
             btnOrdenes.Visible = True
@@ -139,7 +139,7 @@ Public Class FrmPrincipal
         End If
 
         'el operador ve las operaciones y los datos de clientes y vehiculos
-        If Sesion.Rol = "OPERADOR" Then
+        If Sesion.Rol = ROL_OPERADOR Then
             verOperaciones = True
             btnRecepcion.Visible = True
             btnOrdenes.Visible = True
@@ -151,7 +151,7 @@ Public Class FrmPrincipal
         End If
 
         'el mecanico ve sus ordenes asignadas y el historial
-        If Sesion.Rol = "MECANICO" Then
+        If Sesion.Rol = ROL_MECANICO Then
             verOperaciones = True
             btnMisOrdenes.Visible = True
             btnHistorial.Visible = True

@@ -471,7 +471,7 @@ Public Class FrmMisOrdenes
         dgvOrdenes.AdvancedColumnHeadersBorderStyle.Bottom = DataGridViewAdvancedCellBorderStyle.Single
 
         'esta pantalla es del mecanico (el menu solo le muestra el boton a ese rol)
-        If Sesion.Rol <> "MECANICO" Then
+        If Sesion.Rol <> ROL_MECANICO Then
             MessageBox.Show("Esta pantalla es solo para el mecánico.")
             tlpGrupos.Enabled = False
             pnlLista.Enabled = False
@@ -520,6 +520,15 @@ Public Class FrmMisOrdenes
     Private Sub FrmMisOrdenes_Shown(sender As Object, e As EventArgs) Handles MyBase.Shown
         'al mostrarse por primera vez la grilla toma sola la primera fila como celda actual: la suelto
         MarcarFila(idOrden)
+    End Sub
+
+    Private Sub dgvOrdenes_CellDoubleClick(sender As Object, e As DataGridViewCellEventArgs) Handles dgvOrdenes.CellDoubleClick
+        'doble click sobre una fila: abro la gestion de esa orden, igual que el boton
+        If e.RowIndex < 0 Then Exit Sub
+        If cargando Then Exit Sub
+        If idOrden = 0 Then Exit Sub
+
+        btnAbrir.PerformClick()
     End Sub
 
     Private Sub FrmMisOrdenes_FormClosed(sender As Object, e As FormClosedEventArgs) Handles MyBase.FormClosed

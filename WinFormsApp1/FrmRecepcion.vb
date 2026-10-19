@@ -457,7 +457,7 @@ Public Class FrmRecepcion
 
     Private Sub FrmRecepcion_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         'solo el administrador y el operador recepcionan vehiculos (el menu ya oculta el boton)
-        If Sesion.Rol <> "ADMINISTRADOR" AndAlso Sesion.Rol <> "OPERADOR" Then
+        If Sesion.Rol <> ROL_ADMINISTRADOR AndAlso Sesion.Rol <> ROL_OPERADOR Then
             MessageBox.Show("Solo el administrador y el operador pueden recepcionar vehículos.")
             tlpPasos.Enabled = False
             pnlTarjeta.Enabled = False
@@ -778,19 +778,40 @@ Public Class FrmRecepcion
         If pasoActual > 1 Then MostrarPaso(pasoActual - 1)
     End Sub
 
+    Function ConfirmarCancelacion() As Boolean
+        'si ya hay algo cargado pido confirmacion antes de descartarlo; devuelve True cuando se puede seguir
+        If Not HayDatosCargados() Then Return True
+
+        Dim respuesta As DialogResult = MessageBox.Show(
+            "¿Cancelar la recepción? Se pierden los datos y las fotos cargadas.",
+            "Cancelar recepción",
+            MessageBoxButtons.YesNo,
+            MessageBoxIcon.Warning)
+
+        Return respuesta = DialogResult.Yes
+    End Function
+
     Private Sub btnCancelar_Click(sender As Object, e As EventArgs) Handles btnCancelar.Click
-        'si ya hay algo cargado pido confirmacion antes de descartarlo
-        If HayDatosCargados() Then
-            Dim respuesta As DialogResult = MessageBox.Show(
-                "¿Cancelar la recepción? Se pierden los datos y las fotos cargadas.",
-                "Cancelar recepción",
-                MessageBoxButtons.YesNo,
-                MessageBoxIcon.Warning)
-
-            If respuesta = DialogResult.No Then Exit Sub
-        End If
-
+        If Not ConfirmarCancelacion() Then Exit Sub
         ReiniciarAsistente()
+    End Sub
+
+    Private Sub FrmRecepcion_FormClosing(sender As Object, e As FormClosingEventArgs) Handles MyBase.FormClosing
+        'al salir de la pantalla (otra opcion del menu, cerrar sesion o el programa) pregunto antes de perder la recepcion a medias
+        If Not ConfirmarCancelacion() Then e.Cancel = True
+    End Sub
+
+    Private Sub FrmRecepcion_FormClosed(sender As Object, e As FormClosedEventArgs) Handles MyBase.FormClosed
+        'libero la memoria de las fotos que quedaron cargadas
+        'las miniaturas del paso 4 apuntan a las mismas fotos: las suelto primero, sin liberarlas dos veces
+        LimpiarVistasPrevias()
+        For Each pic As PictureBox In {picFrente, picTrasera, picLateralIzq, picLateralDer, picTablero}
+            If pic.Image IsNot Nothing Then
+                Dim foto As Image = pic.Image
+                pic.Image = Nothing
+                foto.Dispose()
+            End If
+        Next
     End Sub
 
     Private Sub btnConfirmar_Click(sender As Object, e As EventArgs) Handles btnConfirmar.Click
@@ -846,9 +867,32 @@ Public Class FrmRecepcion
                 'la orden, su historial y sus fotos se guardan todos juntos o ninguno
                 Dim transaccion As MySqlTransaction = cn.BeginTransaction()
                 Try
+                    'vuelvo a comprobar, ya dentro de la transaccion, que el vehiculo siga activo y sin otra orden abierta:
+                    'otro puesto pudo darlo de baja o recepcionarlo despues de la busqueda del paso 1
+                    'FOR UPDATE bloquea la fila del vehiculo hasta confirmar, asi dos puestos no abren dos ordenes a la vez
+                    Dim consulta As String = "SELECT activo FROM vehiculo WHERE id_vehiculo = @id_vehiculo FOR UPDATE;"
+                    Using cmd As New MySqlCommand(consulta, cn, transaccion)
+                        cmd.Parameters.AddWithValue("@id_vehiculo", idVehiculo)
+                        Dim activo As Object = cmd.ExecuteScalar()
+                        If activo Is Nothing OrElse Not Convert.ToBoolean(activo) Then
+                            Throw New Exception("el vehículo fue dado de baja desde otro puesto. Vuelva a buscar la patente.")
+                        End If
+                    End Using
+
+                    consulta =
+                        "SELECT COUNT(*) FROM orden_trabajo AS ot " &
+                        "JOIN estado_ot AS e ON e.id_estado_ot = ot.id_estado_ot " &
+                        "WHERE ot.id_vehiculo = @id_vehiculo AND e.es_estado_final = 0;"
+                    Using cmd As New MySqlCommand(consulta, cn, transaccion)
+                        cmd.Parameters.AddWithValue("@id_vehiculo", idVehiculo)
+                        If CInt(cmd.ExecuteScalar()) > 0 Then
+                            Throw New Exception("el vehículo ya tiene una orden de trabajo abierta, registrada desde otro puesto. Vuelva a buscar la patente.")
+                        End If
+                    End Using
+
                     'busco la clave del estado RECEPCIONADA por su codigo
                     Dim idEstado As Integer
-                    Dim consulta As String = "SELECT id_estado_ot FROM estado_ot WHERE codigo = 'RECEPCIONADA';"
+                    consulta = "SELECT id_estado_ot FROM estado_ot WHERE codigo = 'RECEPCIONADA';"
                     Using cmd As New MySqlCommand(consulta, cn, transaccion)
                         Dim resultado As Object = cmd.ExecuteScalar()
                         If resultado Is Nothing Then
@@ -919,13 +963,14 @@ Public Class FrmRecepcion
                         End If
                     Next
 
-                    'todo salio bien, confirmo los cambios
-                    transaccion.Commit()
                 Catch ex As Exception
                     'algo fallo: deshago todo y dejo que el error llegue a los mensajes de abajo
                     transaccion.Rollback()
                     Throw
                 End Try
+
+                'confirmo fuera del Try de arriba: si el Commit falla no se intenta deshacer una transaccion ya cerrada
+                transaccion.Commit()
             End Using
 
         Catch ex As MySqlException When ex.Number = 1062

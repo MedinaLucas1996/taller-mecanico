@@ -409,7 +409,7 @@ Public Class FrmServicios
         MostrarAyuda()
 
         'solo el administrador puede gestionar servicios (el menu ya oculta el boton)
-        If Sesion.Rol <> "ADMINISTRADOR" Then
+        If Sesion.Rol <> ROL_ADMINISTRADOR Then
             MessageBox.Show("Solo el administrador puede gestionar servicios.")
             btnNuevo.Enabled = False
             pnlLista.Enabled = False

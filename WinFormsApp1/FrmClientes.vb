@@ -355,6 +355,15 @@ Public Class FrmClientes
 
         'la tarjeta arranca con la ayuda; la grilla se carga al mostrarse la pantalla (ver Shown)
         MostrarAyuda()
+
+        'solo el administrador y el operador gestionan clientes (el menu ya oculta el boton)
+        If Sesion.Rol <> ROL_ADMINISTRADOR AndAlso Sesion.Rol <> ROL_OPERADOR Then
+            MessageBox.Show("Solo el administrador y el operador pueden gestionar clientes.")
+            btnNuevo.Enabled = False
+            btnImprimirFicha.Enabled = False
+            pnlLista.Enabled = False
+            pnlFicha.Enabled = False
+        End If
     End Sub
 
     Private Sub txtFiltro_TextChanged(sender As Object, e As EventArgs) Handles txtFiltro.TextChanged
@@ -429,6 +438,9 @@ Public Class FrmClientes
     End Sub
 
     Private Sub FrmClientes_Shown(sender As Object, e As EventArgs) Handles MyBase.Shown
+        'sin permiso la lista quedo deshabilitada en Load y no se carga
+        If Not pnlLista.Enabled Then Exit Sub
+
         'cargo la grilla de clientes recien ahora, cuando la pantalla ya tiene su tamaño final dentro de la ventana:
         'cargada en Load se repartia el ancho con la grilla mas angosta y las columnas se movian en la primera recarga
         CargarClientes()

@@ -433,7 +433,7 @@ Public Class FrmOrdenGestion
         End If
 
         'la anulacion es solo del administrador y vale en cualquier estado que no sea final
-        btnAnular.Visible = (Sesion.Rol = "ADMINISTRADOR" AndAlso Not esEstadoFinal)
+        btnAnular.Visible = (Sesion.Rol = ROL_ADMINISTRADOR AndAlso Not esEstadoFinal)
 
         'el mecanico ve la misma pantalla con menos cosas: lo ajusto al final, sobre lo ya armado
         If modoMecanico Then MostrarEtapaMecanico()
@@ -834,9 +834,9 @@ Public Class FrmOrdenGestion
     Private Sub FrmOrdenGestion_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         'el administrador y el operador gestionan las ordenes; el mecanico entra en un modo propio,
         'solo para sus ordenes; el modo se decide aca, una sola vez
-        If Sesion.Rol = "MECANICO" Then
+        If Sesion.Rol = ROL_MECANICO Then
             modoMecanico = True
-        ElseIf Sesion.Rol <> "ADMINISTRADOR" AndAlso Sesion.Rol <> "OPERADOR" Then
+        ElseIf Sesion.Rol <> ROL_ADMINISTRADOR AndAlso Sesion.Rol <> ROL_OPERADOR Then
             MessageBox.Show("Solo el administrador y el operador pueden gestionar las órdenes de trabajo.")
             Me.Close()
             Exit Sub
@@ -2079,7 +2079,7 @@ Public Class FrmOrdenGestion
         'anulo la orden desde cualquier estado que no sea final
 
         'el boton solo lo ve el administrador, igual vuelvo a comprobar el rol
-        If Sesion.Rol <> "ADMINISTRADOR" Then
+        If Sesion.Rol <> ROL_ADMINISTRADOR Then
             MessageBox.Show("Solo el administrador puede anular órdenes de trabajo.")
             Exit Sub
         End If

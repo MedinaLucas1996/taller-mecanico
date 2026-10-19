@@ -253,12 +253,23 @@ Public Class FrmMarcasModelos
         dgvMarcas.AdvancedColumnHeadersBorderStyle.Bottom = DataGridViewAdvancedCellBorderStyle.Single
         dgvModelos.AdvancedColumnHeadersBorderStyle.Bottom = DataGridViewAdvancedCellBorderStyle.Single
 
+        'solo el administrador y el operador gestionan marcas y modelos (el menu ya oculta el boton)
+        If Sesion.Rol <> ROL_ADMINISTRADOR AndAlso Sesion.Rol <> ROL_OPERADOR Then
+            MessageBox.Show("Solo el administrador y el operador pueden gestionar marcas y modelos.")
+            pnlMarcas.Enabled = False
+            pnlModelos.Enabled = False
+            Exit Sub
+        End If
+
         'cargo la grilla de marcas al abrir el formulario, sin marca elegida
         NuevaMarca()
         CargarMarcas()
     End Sub
 
     Private Sub FrmMarcasModelos_Shown(sender As Object, e As EventArgs) Handles MyBase.Shown
+        'sin permiso las listas quedaron deshabilitadas en Load y no se cargan
+        If Not pnlMarcas.Enabled Then Exit Sub
+
         'al mostrarse por primera vez la grilla toma sola la primera fila como celda actual: la suelto
         MarcarFila(dgvMarcas, "id_marca", idMarca)
     End Sub

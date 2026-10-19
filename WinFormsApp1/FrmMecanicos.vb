@@ -329,7 +329,7 @@ Public Class FrmMecanicos
         MostrarAyuda()
 
         'solo el administrador puede gestionar mecanicos (el menu ya oculta el boton)
-        If Sesion.Rol <> "ADMINISTRADOR" Then
+        If Sesion.Rol <> ROL_ADMINISTRADOR Then
             MessageBox.Show("Solo el administrador puede gestionar mecánicos.")
             btnNuevo.Enabled = False
             pnlLista.Enabled = False

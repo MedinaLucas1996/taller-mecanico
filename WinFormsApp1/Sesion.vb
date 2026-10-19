@@ -1,4 +1,9 @@
 Module Sesion
+    'nombres de los roles tal como estan guardados en usuario.rol
+    Public Const ROL_ADMINISTRADOR As String = "ADMINISTRADOR"
+    Public Const ROL_OPERADOR As String = "OPERADOR"
+    Public Const ROL_MECANICO As String = "MECANICO"
+
     'declaro variables con los datos del usuario que inicio sesion
     Public IdUsuario As Integer
     Public NombreUsuario As String = ""

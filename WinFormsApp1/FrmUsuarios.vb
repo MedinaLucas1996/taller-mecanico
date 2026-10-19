@@ -365,7 +365,7 @@ Public Class FrmUsuarios
         End If
 
         'solo el rol MECANICO necesita un mecanico asociado
-        If cboRol.Text = "MECANICO" Then
+        If cboRol.Text = ROL_MECANICO Then
             'la clave 0 corresponde a la opcion de ayuda, no a un mecanico real
             If Not TypeOf cboMecanico.SelectedValue Is Integer OrElse CInt(cboMecanico.SelectedValue) = 0 Then
                 MessageBox.Show("Seleccione un mecánico")
@@ -377,6 +377,13 @@ Public Class FrmUsuarios
         'la clave solo es obligatoria al crear, al modificar puede quedar vacia
         If passwordObligatoria AndAlso txtPassword.Text = "" Then
             MessageBox.Show("Falta la contraseña")
+            txtPassword.Focus()
+            Return False
+        End If
+
+        'una clave nueva o cambiada tiene que tener al menos 6 caracteres y no ser solo espacios
+        If txtPassword.Text <> "" AndAlso txtPassword.Text.Trim.Length < 6 Then
+            MessageBox.Show("La contraseña debe tener al menos 6 caracteres.")
             txtPassword.Focus()
             Return False
         End If
@@ -400,7 +407,7 @@ Public Class FrmUsuarios
         MostrarAyuda()
 
         'solo el administrador puede gestionar usuarios (el menu ya oculta el boton)
-        If Sesion.Rol <> "ADMINISTRADOR" Then
+        If Sesion.Rol <> ROL_ADMINISTRADOR Then
             MessageBox.Show("Solo el administrador puede gestionar usuarios.")
             btnNuevo.Enabled = False
             pnlLista.Enabled = False
@@ -532,7 +539,7 @@ Public Class FrmUsuarios
 
     Private Sub cboRol_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cboRol.SelectedIndexChanged
         'el mecanico solo se elige cuando el rol es MECANICO
-        If cboRol.Text = "MECANICO" Then
+        If cboRol.Text = ROL_MECANICO Then
             cboMecanico.Enabled = True
         Else
             cboMecanico.Enabled = False
@@ -564,7 +571,7 @@ Public Class FrmUsuarios
 
         'el mecanico solo se guarda para el rol MECANICO, en los demas va NULL
         Dim idMecanico As Object = DBNull.Value
-        If cboRol.Text = "MECANICO" Then idMecanico = CInt(cboMecanico.SelectedValue)
+        If cboRol.Text = ROL_MECANICO Then idMecanico = CInt(cboMecanico.SelectedValue)
 
         If creando Then
             'genero el salt y calculo el hash, nunca guardo la clave en texto plano
@@ -611,7 +618,7 @@ Public Class FrmUsuarios
             End Try
         Else
             'el administrador logueado no puede quitarse su propio rol de administrador
-            If idUsuario = Sesion.IdUsuario AndAlso cboRol.Text <> "ADMINISTRADOR" Then
+            If idUsuario = Sesion.IdUsuario AndAlso cboRol.Text <> ROL_ADMINISTRADOR Then
                 MessageBox.Show("No puede cambiar su propio rol.")
                 cboRol.Focus()
                 Exit Sub
@@ -767,7 +774,7 @@ Public Class FrmUsuarios
                     End If
 
                     'de aca en mas decido con el estado leido en la base, no con el de la pantalla
-                    If aviso = "" AndAlso activoEnBase AndAlso rolEnBase = "ADMINISTRADOR" Then
+                    If aviso = "" AndAlso activoEnBase AndAlso rolEnBase = ROL_ADMINISTRADOR Then
                         'el sistema no puede quedar sin ningun administrador activo
                         'puede pasar si dos administradores se dan de baja uno al otro desde dos puestos
                         'aca si bloqueo a los demas administradores, para que las dos bajas no pasen a la vez
@@ -788,7 +795,7 @@ Public Class FrmUsuarios
                         End If
                     End If
 
-                    If aviso = "" AndAlso Not activoEnBase AndAlso rolEnBase = "MECANICO" Then
+                    If aviso = "" AndAlso Not activoEnBase AndAlso rolEnBase = ROL_MECANICO Then
                         'no se reactiva un usuario mecanico cuyo mecanico asociado esta dado de baja
                         consulta = "SELECT nombre_completo, activo FROM mecanico WHERE id_mecanico = @id_mecanico;"
                         Using cmd As New MySqlCommand(consulta, cn, transaccion)

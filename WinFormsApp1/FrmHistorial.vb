@@ -383,7 +383,7 @@ Public Class FrmHistorial
         dgvServicios.AdvancedColumnHeadersBorderStyle.Bottom = DataGridViewAdvancedCellBorderStyle.Single
 
         'los tres roles abren esta pantalla; el rol solo decide si se ven los importes
-        esMecanico = (Sesion.Rol = "MECANICO")
+        esMecanico = (Sesion.Rol = ROL_MECANICO)
 
         MostrarAyuda()
         CargarVehiculos()
