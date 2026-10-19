@@ -385,6 +385,14 @@ Public Class FrmTableros
             torta.ExplodeFraction = 0.05
             torta.SliceLabelDistance = 0.6
 
+            'la torta mide 1 de radio (un poco mas con las porciones separadas): muestro solo ese cuadrado,
+            'asi ocupa todo el alto del grafico sin el margen que agrega el ajuste automatico
+            fpEstados.Plot.Axes.SetLimits(-1.08, 1.08, -1.08, 1.08)
+            'y siempre redonda: la misma escala en los dos ejes, alejando el lado que sobra (el ancho)
+            'para que entre entera en cualquier tamaño de ventana
+            fpEstados.Plot.Axes.Rules.Add(New ScottPlot.AxisRules.SquareZoomOut(fpEstados.Plot.Axes.Bottom, fpEstados.Plot.Axes.Left))
+
+            'la leyenda va a la derecha, donde sobra ancho
             fpEstados.Plot.ShowLegend(ScottPlot.Edge.Right)
             'el titulo va despues de ocultar los ejes, porque ocultarlos tambien lo oculta
             fpEstados.Plot.HideAxesAndGrid()
