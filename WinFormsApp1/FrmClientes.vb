@@ -70,19 +70,22 @@ Public Class FrmClientes
                     dgvClientes.Columns("activo").Visible = False
                     dgvClientes.Columns("fecha_alta").Visible = False
 
-                    'pongo titulos legibles en las columnas y reparto el ancho, con un minimo para cada una
+                    'pongo titulos legibles en las columnas, con un ancho minimo para cada una
                     dgvClientes.Columns("razon_social").HeaderText = "Nombre"
-                    dgvClientes.Columns("razon_social").FillWeight = 40
                     dgvClientes.Columns("razon_social").MinimumWidth = 150
                     dgvClientes.Columns("documento").HeaderText = "Documento"
-                    dgvClientes.Columns("documento").FillWeight = 20
                     dgvClientes.Columns("documento").MinimumWidth = 95
                     dgvClientes.Columns("telefono").HeaderText = "Teléfono"
-                    dgvClientes.Columns("telefono").FillWeight = 20
                     dgvClientes.Columns("telefono").MinimumWidth = 95
                     dgvClientes.Columns("localidad").HeaderText = "Localidad"
-                    dgvClientes.Columns("localidad").FillWeight = 20
                     dgvClientes.Columns("localidad").MinimumWidth = 95
+
+                    'reparto el ancho recien despues de los minimos: un minimo que agranda una columna le cambia
+                    'a la grilla el reparto de las otras, y la lista se movia al recargarla
+                    dgvClientes.Columns("razon_social").FillWeight = 40
+                    dgvClientes.Columns("documento").FillWeight = 20
+                    dgvClientes.Columns("telefono").FillWeight = 20
+                    dgvClientes.Columns("localidad").FillWeight = 20
 
                     'el orden por columna lo hace el formulario al hacer click en el titulo (ver ColumnHeaderMouseClick)
                     dgvClientes.Columns("razon_social").SortMode = DataGridViewColumnSortMode.Programmatic
@@ -350,9 +353,8 @@ Public Class FrmClientes
         'el encabezado de la lista lleva solo una linea clara debajo, como las filas
         dgvClientes.AdvancedColumnHeadersBorderStyle.Bottom = DataGridViewAdvancedCellBorderStyle.Single
 
-        'cargo la grilla de clientes al abrir el formulario, la tarjeta arranca con la ayuda
+        'la tarjeta arranca con la ayuda; la grilla se carga al mostrarse la pantalla (ver Shown)
         MostrarAyuda()
-        CargarClientes()
     End Sub
 
     Private Sub txtFiltro_TextChanged(sender As Object, e As EventArgs) Handles txtFiltro.TextChanged
@@ -427,8 +429,9 @@ Public Class FrmClientes
     End Sub
 
     Private Sub FrmClientes_Shown(sender As Object, e As EventArgs) Handles MyBase.Shown
-        'al mostrarse por primera vez la grilla toma sola la primera fila como celda actual: la suelto
-        MarcarFila(idCliente)
+        'cargo la grilla de clientes recien ahora, cuando la pantalla ya tiene su tamaño final dentro de la ventana:
+        'cargada en Load se repartia el ancho con la grilla mas angosta y las columnas se movian en la primera recarga
+        CargarClientes()
     End Sub
 
     Private Sub dgvClientes_SelectionChanged(sender As Object, e As EventArgs) Handles dgvClientes.SelectionChanged

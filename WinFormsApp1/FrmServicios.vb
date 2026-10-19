@@ -70,29 +70,32 @@ Public Class FrmServicios
                     dgvServicios.Columns("id_categoria_servicio").Visible = False
                     dgvServicios.Columns("categoria_activa").Visible = False
 
-                    'pongo titulos legibles en las columnas y reparto el ancho, con un minimo para cada una
+                    'pongo titulos legibles en las columnas, con un ancho minimo para cada una
                     dgvServicios.Columns("codigo").HeaderText = "Código"
-                    dgvServicios.Columns("codigo").FillWeight = 16
                     dgvServicios.Columns("codigo").MinimumWidth = 75
                     dgvServicios.Columns("descripcion").HeaderText = "Descripción"
-                    dgvServicios.Columns("descripcion").FillWeight = 36
                     dgvServicios.Columns("descripcion").MinimumWidth = 130
                     dgvServicios.Columns("categoria").HeaderText = "Categoría"
-                    dgvServicios.Columns("categoria").FillWeight = 22
                     dgvServicios.Columns("categoria").MinimumWidth = 90
                     'el precio y las horas van alineados a la derecha, con su titulo
                     dgvServicios.Columns("precio").HeaderText = "Precio"
                     dgvServicios.Columns("precio").DefaultCellStyle.Format = "C2"
                     dgvServicios.Columns("precio").DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight
                     dgvServicios.Columns("precio").HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleRight
-                    dgvServicios.Columns("precio").FillWeight = 16
                     dgvServicios.Columns("precio").MinimumWidth = 85
                     dgvServicios.Columns("tiempo_estimado_horas").HeaderText = "Horas"
                     dgvServicios.Columns("tiempo_estimado_horas").DefaultCellStyle.Format = "N2"
                     dgvServicios.Columns("tiempo_estimado_horas").DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight
                     dgvServicios.Columns("tiempo_estimado_horas").HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleRight
-                    dgvServicios.Columns("tiempo_estimado_horas").FillWeight = 10
                     dgvServicios.Columns("tiempo_estimado_horas").MinimumWidth = 55
+
+                    'reparto el ancho recien despues de los minimos: un minimo que agranda una columna le cambia
+                    'a la grilla el reparto de las otras, y la lista se movia al recargarla
+                    dgvServicios.Columns("codigo").FillWeight = 16
+                    dgvServicios.Columns("descripcion").FillWeight = 36
+                    dgvServicios.Columns("categoria").FillWeight = 22
+                    dgvServicios.Columns("precio").FillWeight = 16
+                    dgvServicios.Columns("tiempo_estimado_horas").FillWeight = 10
 
                     'el orden por columna lo hace el formulario al hacer click en el titulo (ver ColumnHeaderMouseClick)
                     dgvServicios.Columns("codigo").SortMode = DataGridViewColumnSortMode.Programmatic
@@ -414,13 +417,16 @@ Public Class FrmServicios
             Exit Sub
         End If
 
-        'cargo la grilla de servicios al abrir el formulario, el combo se carga al abrir un registro
-        CargarServicios()
+        'la grilla de servicios se carga al mostrarse la pantalla (ver Shown), el combo se carga al abrir un registro
     End Sub
 
     Private Sub FrmServicios_Shown(sender As Object, e As EventArgs) Handles MyBase.Shown
-        'al mostrarse por primera vez la grilla toma sola la primera fila como celda actual: la suelto
-        MarcarFila(idServicio)
+        'sin permiso la lista quedo deshabilitada en Load y no se carga
+        If Not pnlLista.Enabled Then Exit Sub
+
+        'cargo la grilla de servicios recien ahora, cuando la pantalla ya tiene su tamaño final dentro de la ventana:
+        'cargada en Load se repartia el ancho con la grilla mas angosta y las columnas se movian en la primera recarga
+        CargarServicios()
     End Sub
 
     Private Sub FrmServicios_FormClosing(sender As Object, e As FormClosingEventArgs) Handles MyBase.FormClosing

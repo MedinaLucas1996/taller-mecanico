@@ -69,19 +69,22 @@ Public Class FrmUsuarios
                     dgvUsuarios.Columns("id_mecanico").Visible = False
                     dgvUsuarios.Columns("activo").Visible = False
 
-                    'pongo titulos legibles en las columnas y reparto el ancho, con un minimo para cada una
+                    'pongo titulos legibles en las columnas, con un ancho minimo para cada una
                     dgvUsuarios.Columns("nombre_usuario").HeaderText = "Usuario"
-                    dgvUsuarios.Columns("nombre_usuario").FillWeight = 22
                     dgvUsuarios.Columns("nombre_usuario").MinimumWidth = 90
                     dgvUsuarios.Columns("nombre_completo").HeaderText = "Nombre completo"
-                    dgvUsuarios.Columns("nombre_completo").FillWeight = 32
                     dgvUsuarios.Columns("nombre_completo").MinimumWidth = 130
                     dgvUsuarios.Columns("rol").HeaderText = "Rol"
-                    dgvUsuarios.Columns("rol").FillWeight = 22
                     dgvUsuarios.Columns("rol").MinimumWidth = 110
                     dgvUsuarios.Columns("mecanico").HeaderText = "Mecánico"
-                    dgvUsuarios.Columns("mecanico").FillWeight = 24
                     dgvUsuarios.Columns("mecanico").MinimumWidth = 100
+
+                    'reparto el ancho recien despues de los minimos: un minimo que agranda una columna le cambia
+                    'a la grilla el reparto de las otras, y la lista se movia al recargarla
+                    dgvUsuarios.Columns("nombre_usuario").FillWeight = 22
+                    dgvUsuarios.Columns("nombre_completo").FillWeight = 32
+                    dgvUsuarios.Columns("rol").FillWeight = 22
+                    dgvUsuarios.Columns("mecanico").FillWeight = 24
 
                     'el orden por columna lo hace el formulario al hacer click en el titulo (ver ColumnHeaderMouseClick)
                     dgvUsuarios.Columns("nombre_usuario").SortMode = DataGridViewColumnSortMode.Programmatic
@@ -405,7 +408,7 @@ Public Class FrmUsuarios
             Exit Sub
         End If
 
-        'cargo combos y grilla al abrir el formulario
+        'cargo los combos al abrir el formulario; la grilla se carga al mostrarse la pantalla (ver Shown)
         cargando = True
         Try
             CargarComboMecanicos()
@@ -413,13 +416,15 @@ Public Class FrmUsuarios
         Finally
             cargando = False
         End Try
-
-        CargarUsuarios()
     End Sub
 
     Private Sub FrmUsuarios_Shown(sender As Object, e As EventArgs) Handles MyBase.Shown
-        'al mostrarse por primera vez la grilla toma sola la primera fila como celda actual: la suelto
-        MarcarFila(idUsuario)
+        'sin permiso la lista quedo deshabilitada en Load y no se carga
+        If Not pnlLista.Enabled Then Exit Sub
+
+        'cargo la grilla de usuarios recien ahora, cuando la pantalla ya tiene su tamaño final dentro de la ventana:
+        'cargada en Load se repartia el ancho con la grilla mas angosta y las columnas se movian en la primera recarga
+        CargarUsuarios()
     End Sub
 
     Private Sub FrmUsuarios_FormClosing(sender As Object, e As FormClosingEventArgs) Handles MyBase.FormClosing
