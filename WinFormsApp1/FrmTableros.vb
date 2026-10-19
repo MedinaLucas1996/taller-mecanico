@@ -407,11 +407,28 @@ Public Class FrmTableros
         'recalculo todo el tablero con el periodo elegido
         lblSubtitulo.Text = "Período del " & dtpDesde.Value.ToString("dd/MM/yyyy") &
                             " al " & dtpHasta.Value.ToString("dd/MM/yyyy")
-        CargarIndicadores()
-        GraficoFacturacion()
-        GraficoServicios()
-        GraficoHoras()
-        GraficoEstados()
+
+        'si la base no responde aviso una sola vez, en lugar de un mensaje por cada indicador y grafico
+        Try
+            Using cn As New MySqlConnection(CADENA)
+                cn.Open()
+            End Using
+        Catch ex As Exception
+            MostrarError("No se pudo actualizar el tablero.", ex)
+            Exit Sub
+        End Try
+
+        'mientras se recalculan los indicadores y los graficos muestro el reloj de espera
+        Cursor.Current = Cursors.WaitCursor
+        Try
+            CargarIndicadores()
+            GraficoFacturacion()
+            GraficoServicios()
+            GraficoHoras()
+            GraficoEstados()
+        Finally
+            Cursor.Current = Cursors.Default
+        End Try
     End Sub
 
     Private Sub FrmTableros_Load(sender As Object, e As EventArgs) Handles MyBase.Load

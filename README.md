@@ -20,7 +20,7 @@ El código sigue de forma deliberada el estilo de la cátedra de programación o
 
 El menú principal muestra a cada usuario solo las opciones de su rol. Los botones están ocultos por defecto en el diseñador y `FrmPrincipal_Load` muestra los que corresponden según `Sesion.Rol`; un rol desconocido no ve ninguna opción.
 
-El menú lateral se lee de arriba hacia abajo: primero **Operaciones** (Mis órdenes, Recepción, Órdenes de trabajo, Historial), después **Reportes** (la opción **Tableros**) y, al pie del menú, **Datos maestros** (Clientes, Vehículos, Marcas y modelos, Servicios, Categorías, Mecánicos, Usuarios). Cada opción lleva un icono. El botón que está junto al nombre del sistema contrae el menú a una columna de iconos y lo vuelve a expandir; contraído, el nombre de cada opción aparece al pasar el mouse y el panel de contenido ocupa el ancho liberado. El menú siempre arranca expandido.
+El menú lateral se lee de arriba hacia abajo: primero **Operaciones** (Mis órdenes, Recepción, Órdenes de trabajo, Historial), después **Reportes** (la opción **Tableros**) y, al pie del menú, **Datos maestros** (Clientes, Vehículos, Marcas y modelos, Servicios, Categorías, Mecánicos, Usuarios). Cada opción lleva un icono. El botón que está junto al nombre del sistema contrae el menú a una columna de iconos y lo vuelve a expandir; contraído, el nombre de cada opción aparece al pasar el mouse y el panel de contenido ocupa el ancho liberado. El menú siempre arranca expandido. La opción de la pantalla abierta queda resaltada en el menú, y el título de la ventana muestra el nombre de esa pantalla.
 
 Los iconos son archivos PNG de [Lucide](https://lucide.dev) (licencia ISC, en `WinFormsApp1/Recursos/iconos/LICENCIA-lucide.txt`). Se copian a la carpeta de salida y se leen al abrir el menú; si falta alguno, esa opción queda sin icono y la aplicación sigue funcionando.
 
@@ -47,7 +47,7 @@ Los títulos de sección siguen la misma regla: "OPERACIONES" se muestra a todos
 
 - **Lista**: búsqueda por nombre o documento mientras se escribe, casilla "Mostrar dados de baja" y grilla con nombre, documento, teléfono y localidad. Los clientes dados de baja se listan al final, en gris. El subtítulo cuenta lo listado.
 - **Registro**: al elegir un cliente, con el mouse o con el teclado, se cargan sus datos, una etiqueta con su estado ("Activo" o "Dado de baja") y una línea con su cantidad de vehículos y la fecha desde la que es cliente. Sin nada elegido, la tarjeta solo muestra una ayuda.
-- **Acciones según el caso**: "Nuevo cliente" (arriba a la derecha) abre un registro en blanco con "Guardar" y "Cancelar"; un cliente existente muestra "Guardar cambios" y "Dar de baja", o "Reactivar" si está dado de baja. Si hay cambios sin guardar, se pregunta antes de descartarlos, también al pasar a otra pantalla, cerrar la sesión o cerrar el programa. Un clic en el título de una columna ordena la lista sin cambiar el cliente abierto.
+- **Acciones según el caso**: "Nuevo cliente" (arriba a la derecha) abre un registro en blanco con "Guardar" y "Cancelar"; un cliente existente muestra "Guardar cambios" y "Dar de baja", o "Reactivar" si está dado de baja. Si hay cambios sin guardar, se pregunta antes de descartarlos, también al pasar a otra pantalla, cerrar la sesión o cerrar el programa. La tecla Escape equivale a "Cancelar". Un clic en el título de una columna ordena la lista sin cambiar el cliente abierto.
 
 - **Imprimir ficha** (arriba, a la izquierda de "Nuevo cliente"): se habilita con un cliente guardado elegido y abre la vista previa de su ficha (ver [Reportes impresos](#reportes-impresos)). Si hay cambios sin guardar, avisa que la ficha muestra solo lo guardado.
 
@@ -65,7 +65,8 @@ Las tres pantallas están disponibles para el administrador y el operador.
 
 - Una barra muestra los cuatro pasos: el actual resaltado, los completos con una marca y los que faltan atenuados. Un clic en un paso completo vuelve a él; hacia adelante solo se avanza con "Siguiente".
 - A la derecha, la tarjeta "Resumen de la recepción" está siempre a la vista y se completa a medida que se avanza: vehículo, cliente, kilometraje, combustible, mecánico, fecha prometida, cantidad de fotos y síntoma.
-- Al pie quedan siempre en el mismo lugar "Cancelar", "Anterior" y el botón principal, que dice "Siguiente" en los pasos 1 a 3 y "Confirmar recepción" en el paso 4.
+- Al pie quedan siempre en el mismo lugar "Cancelar", "Anterior" y el botón principal, que dice "Siguiente" en los pasos 1 a 3 y "Confirmar recepción" en el paso 4. Si hay una recepción a medias, tanto "Cancelar" como salir de la pantalla (otra opción del menú, cerrar sesión o cerrar el programa) preguntan antes de perder lo cargado.
+- Al confirmar, la orden se guarda solo si el vehículo sigue activo y sin otra orden abierta en ese momento: si otro puesto lo recepcionó o lo dio de baja después de la búsqueda del paso 1, se avisa y no se guarda nada.
 
 **Registro rápido** (`FrmAltaRapida`): cuando la patente buscada no existe, "Registrar vehículo" abre una ventana para darla de alta sin salir de la recepción.
 
@@ -90,7 +91,7 @@ El cliente y el vehículo quedan registrados aunque después se cancele la recep
 | Tarjetas de estado | Una tarjeta por estado, con la cantidad de órdenes en ese estado. Cuentan siempre todas las órdenes, sin aplicar los filtros. Un clic en una tarjeta filtra la lista por ese estado; otro clic en la misma tarjeta quita el filtro. |
 | Filtros | Texto (parte de la patente o del nombre del cliente), que filtra mientras se escribe, "Solo demoradas" y "Limpiar filtros", que también quita el estado elegido. |
 | Grilla | Una fila por orden, la más reciente primero: número, fecha de recepción, patente, vehículo, cliente de la orden, mecánico, estado, fecha prometida y situación. La celda del estado lleva un color por estado. Una orden figura como **Demorada**, con la fila resaltada, cuando su fecha prometida ya pasó y su estado no es final. |
-| Detalle | Datos de la orden seleccionada (número, estado, vehículo, cliente, mecánico, fechas y total presupuestado), sus cinco fotos de recepción en miniatura y el botón "Gestionar orden". Sin una orden seleccionada solo muestra una ayuda. |
+| Detalle | Datos de la orden seleccionada (número, estado, vehículo, cliente, mecánico, fechas y total presupuestado), sus cinco fotos de recepción en miniatura y el botón "Gestionar orden". Un doble clic en una fila de la grilla también abre la gestión. Sin una orden seleccionada solo muestra una ayuda. |
 
 Las fotos se leen de la base recién al elegir la orden. Un clic en una miniatura con foto la abre ampliada en una ventana aparte (`FrmFoto`). "Gestionar orden" abre la gestión de la orden seleccionada; al cerrarla, las tarjetas y la grilla se recargan y la orden sigue seleccionada si continúa en la lista.
 
@@ -131,7 +132,7 @@ Un usuario con rol `MECANICO` ve en el menú **Mis órdenes** (`FrmMisOrdenes`),
 - **Tres grupos** arriba, cada uno con su cantidad, que también filtran la lista: "En curso" (en proceso), "Para empezar" (aprobadas) y "Terminadas" (finalizadas y entregadas). Siempre hay uno elegido; al entrar es el primero que tenga órdenes.
 - **Lista**: número, vehículo, fecha prometida y horas cargadas ("2 de 3" servicios). Las órdenes demoradas van resaltadas, como en el tablero.
 - **Resumen** de la orden elegida: vehículo y kilometraje de ingreso, lo que dijo el cliente, las observaciones de recepción, los servicios a realizar con sus horas y las cinco fotos de recepción, que se pueden ampliar pero no cambiar.
-- **Un botón** según el caso: "Iniciar trabajo", "Cargar horas y finalizar" o "Ver orden". Abre la misma ventana de gestión de la orden, en modo mecánico.
+- **Un botón** según el caso: "Iniciar trabajo", "Cargar horas y finalizar" o "Ver orden". Abre la misma ventana de gestión de la orden, en modo mecánico. Un doble clic en la fila de la lista hace lo mismo.
 
 En modo mecánico la gestión de la orden no muestra ningún importe (ni precios, ni subtotales, ni totales) y solo deja iniciar el trabajo, cargar las horas y las observaciones, guardar el avance y finalizar. El presupuesto, la aprobación del cliente, la entrega, la anulación y el cambio de mecánico siguen siendo de la recepción y del administrador. Un mecánico no puede abrir ni modificar una orden asignada a otro: se comprueba en la base al abrirla y otra vez al guardar.
 
@@ -150,7 +151,7 @@ Para el mecánico el menú "Imprimir" muestra solo "Orden de trabajo", y ese rep
 
 ### Tableros
 
-**Tableros** (`FrmTableros`, menú Reportes → Tableros, solo el administrador) es un tablero de gestión de solo lectura. Arriba se elige el período ("Desde" y "Hasta", por defecto del día 1 del mes actual a hoy) y "Actualizar" recalcula todo; "Hasta" incluye ese día completo. Los gráficos se dibujan con [ScottPlot](https://scottplot.net) 5 (`ScottPlot.WinForms` 5.1.59), como en la clase del tablero de Biblioteca2026.
+**Tableros** (`FrmTableros`, menú Reportes → Tableros, solo el administrador) es un tablero de gestión de solo lectura. Arriba se elige el período ("Desde" y "Hasta", por defecto del día 1 del mes actual a hoy) y "Actualizar" recalcula todo; "Hasta" incluye ese día completo. Mientras recalcula se muestra el reloj de espera, y si la base de datos no responde se avisa una sola vez. Los gráficos se dibujan con [ScottPlot](https://scottplot.net) 5 (`ScottPlot.WinForms` 5.1.59), como en la clase del tablero de Biblioteca2026.
 
 | Indicador | Qué cuenta |
 |---|---|

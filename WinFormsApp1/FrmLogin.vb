@@ -26,8 +26,8 @@ Public Class FrmLogin
             Exit Sub
         End If
 
-        'mientras se verifica la clave muestro el reloj y evito un segundo click
-        Me.UseWaitCursor = True
+        'mientras se verifica la clave muestro el reloj de espera y evito un segundo click
+        Cursor.Current = Cursors.WaitCursor
         btnIngresar.Enabled = False
 
         Try
@@ -85,7 +85,7 @@ Public Class FrmLogin
             Exit Sub
         Finally
             'pase lo que pase, el boton y el cursor vuelven a la normalidad
-            Me.UseWaitCursor = False
+            Cursor.Current = Cursors.Default
             btnIngresar.Enabled = True
         End Try
 

@@ -20,6 +20,31 @@ Public Class FrmPrincipal
     Private iconoContraer As Image
     Private iconoExpandir As Image
 
+    'colores de las opciones del menu: el fondo normal y el de la opcion de la pantalla abierta
+    Private ReadOnly colorMenu As Color = Color.FromArgb(30, 39, 46)
+    Private ReadOnly colorOpcionActiva As Color = Color.FromArgb(52, 73, 94)
+
+    'boton de la pantalla que esta abierta, para que se vea resaltado en el menu
+    Private botonActivo As Button
+
+    'titulo de la ventana sin pantalla abierta
+    Private tituloBase As String = ""
+
+    Sub MarcarOpcionActiva(boton As Button)
+        'resalto en el menu la opcion de la pantalla abierta y vuelvo a la normalidad la anterior
+        If botonActivo IsNot Nothing Then
+            botonActivo.BackColor = colorMenu
+            botonActivo.Font = New Font(botonActivo.Font, FontStyle.Regular)
+        End If
+
+        botonActivo = boton
+
+        If botonActivo IsNot Nothing Then
+            botonActivo.BackColor = colorOpcionActiva
+            botonActivo.Font = New Font(botonActivo.Font, FontStyle.Bold)
+        End If
+    End Sub
+
     Function LeerIcono(archivo As String) As Image
         'leo un icono de la carpeta Recursos\iconos que esta junto al ejecutable
         Try
@@ -96,6 +121,7 @@ Public Class FrmPrincipal
     Private Sub FrmPrincipal_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         'muestro el usuario que inicio sesion
         lblUsuario.Text = "Usuario: " & Sesion.NombreCompleto & " (" & Sesion.Rol & ")"
+        tituloBase = Me.Text
 
         'junto los botones del menu en el orden en que se ven
         botonesMenu = {btnMisOrdenes, btnRecepcion, btnOrdenes, btnHistorial, btnTableros, btnClientes, btnVehiculos,
@@ -194,8 +220,9 @@ Public Class FrmPrincipal
         Return True
     End Function
 
-    Private Sub AbrirFormulario(formulario As Form)
+    Private Sub AbrirFormulario(formulario As Form, boton As Button)
         'abro el formulario dentro del panel de contenido, despues de cerrar la pantalla que estaba abierta
+        'el boton es la opcion del menu que lo abrio, que queda resaltada
         If Not CerrarPantallaActual() Then
             'la pantalla actual se queda: descarto la que se iba a abrir
             formulario.Dispose()
@@ -209,54 +236,58 @@ Public Class FrmPrincipal
         panelContenido.Controls.Add(formulario)
 
         formulario.Show()
+
+        'el menu y el titulo de la ventana muestran que pantalla esta abierta
+        MarcarOpcionActiva(boton)
+        Me.Text = tituloBase & " - " & formulario.Text
     End Sub
 
     Private Sub btnMisOrdenes_Click(sender As Object, e As EventArgs) Handles btnMisOrdenes.Click
-        AbrirFormulario(New FrmMisOrdenes())
+        AbrirFormulario(New FrmMisOrdenes(), CType(sender, Button))
     End Sub
 
     Private Sub btnRecepcion_Click(sender As Object, e As EventArgs) Handles btnRecepcion.Click
-        AbrirFormulario(New FrmRecepcion())
+        AbrirFormulario(New FrmRecepcion(), CType(sender, Button))
     End Sub
 
     Private Sub btnOrdenes_Click(sender As Object, e As EventArgs) Handles btnOrdenes.Click
-        AbrirFormulario(New FrmOrdenes())
+        AbrirFormulario(New FrmOrdenes(), CType(sender, Button))
     End Sub
 
     Private Sub btnHistorial_Click(sender As Object, e As EventArgs) Handles btnHistorial.Click
-        AbrirFormulario(New FrmHistorial())
+        AbrirFormulario(New FrmHistorial(), CType(sender, Button))
     End Sub
 
     Private Sub btnTableros_Click(sender As Object, e As EventArgs) Handles btnTableros.Click
-        AbrirFormulario(New FrmTableros())
+        AbrirFormulario(New FrmTableros(), CType(sender, Button))
     End Sub
 
     Private Sub btnClientes_Click(sender As Object, e As EventArgs) Handles btnClientes.Click
-        AbrirFormulario(New FrmClientes())
+        AbrirFormulario(New FrmClientes(), CType(sender, Button))
     End Sub
 
     Private Sub btnVehiculos_Click(sender As Object, e As EventArgs) Handles btnVehiculos.Click
-        AbrirFormulario(New FrmVehiculos())
+        AbrirFormulario(New FrmVehiculos(), CType(sender, Button))
     End Sub
 
     Private Sub btnMarcasModelos_Click(sender As Object, e As EventArgs) Handles btnMarcasModelos.Click
-        AbrirFormulario(New FrmMarcasModelos())
+        AbrirFormulario(New FrmMarcasModelos(), CType(sender, Button))
     End Sub
 
     Private Sub btnServicios_Click(sender As Object, e As EventArgs) Handles btnServicios.Click
-        AbrirFormulario(New FrmServicios())
+        AbrirFormulario(New FrmServicios(), CType(sender, Button))
     End Sub
 
     Private Sub btnCategorias_Click(sender As Object, e As EventArgs) Handles btnCategorias.Click
-        AbrirFormulario(New FrmCategorias())
+        AbrirFormulario(New FrmCategorias(), CType(sender, Button))
     End Sub
 
     Private Sub btnMecanicos_Click(sender As Object, e As EventArgs) Handles btnMecanicos.Click
-        AbrirFormulario(New FrmMecanicos())
+        AbrirFormulario(New FrmMecanicos(), CType(sender, Button))
     End Sub
 
     Private Sub btnUsuarios_Click(sender As Object, e As EventArgs) Handles btnUsuarios.Click
-        AbrirFormulario(New FrmUsuarios())
+        AbrirFormulario(New FrmUsuarios(), CType(sender, Button))
     End Sub
 
     Private Sub btnCerrarSesion_Click(sender As Object, e As EventArgs) Handles btnCerrarSesion.Click
