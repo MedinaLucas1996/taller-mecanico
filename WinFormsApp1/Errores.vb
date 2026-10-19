@@ -14,9 +14,9 @@ Module Errores
         End Get
     End Property
 
-    Sub RegistrarError(contexto As String, ex As Exception)
+    Function RegistrarError(contexto As String, ex As Exception) As Boolean
         'agrego al archivo una entrada con la fecha, el usuario, el contexto y el detalle completo
-        'si el archivo no se puede escribir el sistema sigue igual: el registro es una ayuda, no una obligacion
+        'devuelve False si el archivo no se pudo escribir; el sistema sigue igual, el registro es una ayuda, no una obligacion
         Try
             Directory.CreateDirectory(Path.GetDirectoryName(RutaRegistro))
 
@@ -25,10 +25,12 @@ Module Errores
                 ex.ToString() & vbCrLf & vbCrLf
 
             File.AppendAllText(RutaRegistro, entrada)
+            Return True
         Catch
             'nada que hacer: no hay donde registrar que no se pudo registrar
+            Return False
         End Try
-    End Sub
+    End Function
 
     Function EsErrorDeConexion(ex As Exception) As Boolean
         'indica si el error es por no poder llegar al servidor de la base de datos

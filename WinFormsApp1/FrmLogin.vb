@@ -26,6 +26,14 @@ Public Class FrmLogin
             Exit Sub
         End If
 
+        'si el archivo de conexion de este puesto esta roto no intento entrar: conectaria al servidor por defecto sin que nadie lo note
+        If PROBLEMA_CONEXION <> "" Then
+            MessageBox.Show(PROBLEMA_CONEXION & vbCrLf & vbCrLf &
+                            "Corrija o elimine el archivo " & ARCHIVO_CONEXION & " que está junto al ejecutable y vuelva a abrir el sistema.",
+                            "Taller Mecánico", MessageBoxButtons.OK, MessageBoxIcon.Error)
+            Exit Sub
+        End If
+
         'mientras se verifica la clave muestro el reloj de espera y evito un segundo click
         Cursor.Current = Cursors.WaitCursor
         btnIngresar.Enabled = False
