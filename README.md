@@ -293,7 +293,7 @@ dotnet run --project WinFormsApp1
 
 La única configuración es la cadena de conexión (servidor, puerto, base, usuario y contraseña). `Module ConexionBD` la lee de `conexion.txt`, junto al ejecutable, si el archivo existe; si no, usa la cadena por defecto (`localhost`, `root`, sin contraseña). El formato está en `WinFormsApp1/conexion.ejemplo.txt`.
 
-Los errores que ninguna pantalla atrapa, y los que se muestran con `Errores.MostrarError` (por ejemplo el del login), quedan registrados con fecha, usuario y detalle en `%LocalAppData%\TallerMecanico\errores.log`. Cuando la base de datos no responde, el mensaje dice "No se pudo conectar con la base de datos." en lugar del detalle del driver.
+Los errores que ninguna pantalla atrapa, y los que se muestran con `Errores.MostrarError` (por ejemplo el del login), quedan registrados con fecha, usuario y detalle en `%LocalAppData%\TallerMecanico\errores.log`. Cuando la base de datos no responde, el mensaje dice "No se pudo conectar con la base de datos." en lugar del detalle del driver; cuando el servidor responde pero rechaza el usuario o la contraseña, el mensaje indica revisar `conexion.txt`. Si `conexion.txt` existe pero no se puede leer o no tiene ninguna cadena, se usa la cadena por defecto y eso queda anotado en el mismo registro.
 
 ### appsettings por entorno
 

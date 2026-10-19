@@ -38,6 +38,14 @@ Module Errores
         Return errorMySql.ErrorCode = MySqlErrorCode.UnableToConnectToHost
     End Function
 
+    Function EsErrorDeAcceso(ex As Exception) As Boolean
+        'indica si el servidor respondio pero rechazo el usuario o la contraseña de la cadena de conexion
+        Dim errorMySql As MySqlException = TryCast(ex, MySqlException)
+        If errorMySql Is Nothing Then Return False
+
+        Return errorMySql.ErrorCode = MySqlErrorCode.AccessDenied
+    End Function
+
     Sub MostrarError(mensaje As String, ex As Exception)
         'muestro un mensaje claro para el usuario y guardo el detalle tecnico en el archivo de errores
         RegistrarError(mensaje, ex)
@@ -48,6 +56,11 @@ Module Errores
             texto = mensaje & vbCrLf & vbCrLf &
                     "No se pudo conectar con la base de datos." & vbCrLf &
                     "Verifique que el servidor MariaDB esté iniciado y vuelva a intentar."
+        ElseIf EsErrorDeAcceso(ex) Then
+            'el servidor esta, pero el usuario o la contraseña de este puesto no sirven: el arreglo es el archivo de conexion
+            texto = mensaje & vbCrLf & vbCrLf &
+                    "La base de datos rechazó el usuario o la contraseña de la conexión." & vbCrLf &
+                    "Revise el archivo " & ARCHIVO_CONEXION & " junto al ejecutable (formato en conexion.ejemplo.txt)."
         Else
             texto = mensaje & vbCrLf & vbCrLf & "Detalle: " & ex.Message
         End If

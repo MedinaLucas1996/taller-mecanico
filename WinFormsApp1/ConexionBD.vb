@@ -15,16 +15,21 @@ Module ConexionBD
 
     Function LeerCadena() As String
         'leo la cadena del archivo de conexion, si esta; tomo la primera linea con contenido que no sea un comentario
+        'si el archivo existe pero no sirve, lo dejo anotado en el registro de errores antes de seguir con la cadena por defecto:
+        'asi una conexion que termina en el servidor equivocado deja rastro
+        Dim ruta As String = Path.Combine(AppContext.BaseDirectory, ARCHIVO_CONEXION)
+        If Not File.Exists(ruta) Then Return CADENA_POR_DEFECTO
+
         Try
-            Dim ruta As String = Path.Combine(AppContext.BaseDirectory, ARCHIVO_CONEXION)
-            If File.Exists(ruta) Then
-                For Each linea As String In File.ReadAllLines(ruta)
-                    Dim texto As String = linea.Trim()
-                    If texto <> "" AndAlso Not texto.StartsWith("#") Then Return texto
-                Next
-            End If
+            For Each linea As String In File.ReadAllLines(ruta)
+                Dim texto As String = linea.Trim()
+                If texto <> "" AndAlso Not texto.StartsWith("#") Then Return texto
+            Next
+
+            RegistrarError("El archivo " & ARCHIVO_CONEXION & " no tiene ninguna cadena de conexión; se usa la cadena por defecto.",
+                           New InvalidDataException(ruta))
         Catch ex As Exception
-            'si el archivo no se puede leer sigo con la cadena por defecto
+            RegistrarError("No se pudo leer " & ARCHIVO_CONEXION & "; se usa la cadena por defecto.", ex)
         End Try
 
         Return CADENA_POR_DEFECTO
