@@ -40,7 +40,7 @@ Partial Class FrmPrincipal
         btnOrdenes = New Button()
         btnHistorial = New Button()
         lblTituloReportes = New Label()
-        btnReportes = New Button()
+        btnTableros = New Button()
         panelLogo = New Panel()
         lblLogo = New Label()
         btnMenu = New Button()
@@ -293,7 +293,7 @@ Partial Class FrmPrincipal
         panelMenuArriba.Controls.Add(btnOrdenes, 0, 3)
         panelMenuArriba.Controls.Add(btnHistorial, 0, 4)
         panelMenuArriba.Controls.Add(lblTituloReportes, 0, 5)
-        panelMenuArriba.Controls.Add(btnReportes, 0, 6)
+        panelMenuArriba.Controls.Add(btnTableros, 0, 6)
         panelMenuArriba.Dock = DockStyle.Top
         panelMenuArriba.Location = New Point(0, 76)
         panelMenuArriba.Name = "panelMenuArriba"
@@ -432,29 +432,29 @@ Partial Class FrmPrincipal
         lblTituloReportes.Text = "REPORTES"
         lblTituloReportes.Visible = False
         '
-        ' btnReportes
+        ' btnTableros
         '
-        btnReportes.Anchor = AnchorStyles.Left Or AnchorStyles.Right
-        btnReportes.BackColor = Color.FromArgb(CByte(30), CByte(39), CByte(46))
-        btnReportes.Cursor = Cursors.Hand
-        btnReportes.FlatAppearance.BorderSize = 0
-        btnReportes.FlatAppearance.MouseOverBackColor = Color.FromArgb(CByte(52), CByte(73), CByte(94))
-        btnReportes.FlatStyle = FlatStyle.Flat
-        btnReportes.Font = New Font("Segoe UI", 10F)
-        btnReportes.ForeColor = Color.White
-        btnReportes.ImageAlign = ContentAlignment.MiddleLeft
-        btnReportes.Location = New Point(0, 192)
-        btnReportes.Margin = New Padding(0)
-        btnReportes.Name = "btnReportes"
-        btnReportes.Padding = New Padding(16, 0, 0, 0)
-        btnReportes.Size = New Size(230, 40)
-        btnReportes.TabIndex = 5
-        btnReportes.Tag = "Reportes"
-        btnReportes.Text = "  Reportes"
-        btnReportes.TextAlign = ContentAlignment.MiddleLeft
-        btnReportes.TextImageRelation = TextImageRelation.ImageBeforeText
-        btnReportes.UseVisualStyleBackColor = False
-        btnReportes.Visible = False
+        btnTableros.Anchor = AnchorStyles.Left Or AnchorStyles.Right
+        btnTableros.BackColor = Color.FromArgb(CByte(30), CByte(39), CByte(46))
+        btnTableros.Cursor = Cursors.Hand
+        btnTableros.FlatAppearance.BorderSize = 0
+        btnTableros.FlatAppearance.MouseOverBackColor = Color.FromArgb(CByte(52), CByte(73), CByte(94))
+        btnTableros.FlatStyle = FlatStyle.Flat
+        btnTableros.Font = New Font("Segoe UI", 10F)
+        btnTableros.ForeColor = Color.White
+        btnTableros.ImageAlign = ContentAlignment.MiddleLeft
+        btnTableros.Location = New Point(0, 192)
+        btnTableros.Margin = New Padding(0)
+        btnTableros.Name = "btnTableros"
+        btnTableros.Padding = New Padding(16, 0, 0, 0)
+        btnTableros.Size = New Size(230, 40)
+        btnTableros.TabIndex = 5
+        btnTableros.Tag = "Tableros"
+        btnTableros.Text = "  Tableros"
+        btnTableros.TextAlign = ContentAlignment.MiddleLeft
+        btnTableros.TextImageRelation = TextImageRelation.ImageBeforeText
+        btnTableros.UseVisualStyleBackColor = False
+        btnTableros.Visible = False
         '
         ' panelLogo
         '
@@ -620,7 +620,7 @@ Partial Class FrmPrincipal
     Friend WithEvents btnOrdenes As Button
     Friend WithEvents btnHistorial As Button
     Friend WithEvents lblTituloReportes As Label
-    Friend WithEvents btnReportes As Button
+    Friend WithEvents btnTableros As Button
     Friend WithEvents panelLogo As Panel
     Friend WithEvents lblLogo As Label
     Friend WithEvents btnMenu As Button

@@ -98,7 +98,7 @@ Public Class FrmPrincipal
         lblUsuario.Text = "Usuario: " & Sesion.NombreCompleto & " (" & Sesion.Rol & ")"
 
         'junto los botones del menu en el orden en que se ven
-        botonesMenu = {btnMisOrdenes, btnRecepcion, btnOrdenes, btnHistorial, btnReportes, btnClientes, btnVehiculos,
+        botonesMenu = {btnMisOrdenes, btnRecepcion, btnOrdenes, btnHistorial, btnTableros, btnClientes, btnVehiculos,
                        btnMarcasModelos, btnServicios, btnCategorias, btnMecanicos, btnUsuarios}
 
         'cargo el icono de cada opcion, si alguno falta ese boton queda sin icono
@@ -106,7 +106,7 @@ Public Class FrmPrincipal
         btnRecepcion.Image = LeerIcono("recepcion.png")
         btnOrdenes.Image = LeerIcono("ordenes.png")
         btnHistorial.Image = LeerIcono("historial.png")
-        btnReportes.Image = LeerIcono("reportes.png")
+        btnTableros.Image = LeerIcono("reportes.png")
         btnClientes.Image = LeerIcono("clientes.png")
         btnVehiculos.Image = LeerIcono("vehiculos.png")
         btnMarcasModelos.Image = LeerIcono("marcas.png")
@@ -135,7 +135,7 @@ Public Class FrmPrincipal
             btnMecanicos.Visible = True
             btnUsuarios.Visible = True
             verReportes = True
-            btnReportes.Visible = True
+            btnTableros.Visible = True
         End If
 
         'el operador ve las operaciones y los datos de clientes y vehiculos
@@ -225,6 +225,10 @@ Public Class FrmPrincipal
 
     Private Sub btnHistorial_Click(sender As Object, e As EventArgs) Handles btnHistorial.Click
         AbrirFormulario(New FrmHistorial())
+    End Sub
+
+    Private Sub btnTableros_Click(sender As Object, e As EventArgs) Handles btnTableros.Click
+        AbrirFormulario(New FrmTableros())
     End Sub
 
     Private Sub btnClientes_Click(sender As Object, e As EventArgs) Handles btnClientes.Click
