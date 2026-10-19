@@ -2196,7 +2196,12 @@ Public Class FrmOrdenGestion
                             nroOrden = lector("nro_orden").ToString()
                             idEstado = CInt(lector("id_estado_ot"))
                             codigoActual = lector("codigo").ToString()
-                            total = CDec(lector("total_aprobado"))
+                            'el total puede venir NULL en datos migrados: el aviso sale igual, con 0
+                            If IsDBNull(lector("total_aprobado")) Then
+                                total = 0
+                            Else
+                                total = CDec(lector("total_aprobado"))
+                            End If
                             cliente = lector("cliente").ToString()
                             telefono = lector("telefono").ToString().Trim()
                             patente = lector("patente").ToString()

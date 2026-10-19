@@ -84,7 +84,10 @@ Module Exportar
 
     Function Campo(texto As String) As String
         'cada campo va entre comillas; una comilla adentro del texto se escribe doble, como pide el formato CSV
-        Return """" & texto.Replace("""", """""") & """"
+        'un texto que empieza con = + - o @ se antepone con un apostrofo: Excel lo tomaria como formula y lo ejecutaria
+        Dim seguro As String = texto
+        If seguro <> "" AndAlso "=+-@".Contains(seguro(0)) Then seguro = "'" & seguro
+        Return """" & seguro.Replace("""", """""") & """"
     End Function
 
 End Module
