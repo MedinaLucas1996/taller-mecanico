@@ -10,9 +10,9 @@ Aplicación de escritorio para gestionar los servicios de un taller mecánico (t
 
 ## Qué es
 
-Aplicación Windows Forms en VB.NET que administra el ciclo de atención de un taller mecánico sobre una base MariaDB: clientes, vehículos, recepción del vehículo con apertura de la orden de trabajo, consulta del estado de las órdenes, gestión de cada orden (presupuesto, aprobación del cliente, ejecución y entrega) y, a futuro, reportes. Cubre únicamente la actividad de **servicios**: queda fuera la facturación, los pagos, la venta de insumos y el control de stock.
+Aplicación Windows Forms en VB.NET que administra el ciclo de atención de un taller mecánico sobre una base MariaDB: clientes, vehículos, recepción del vehículo con apertura de la orden de trabajo, consulta del estado de las órdenes, gestión de cada orden (presupuesto, aprobación del cliente, ejecución y entrega), reportes impresos y un tablero de gestión con indicadores y gráficos. Cubre únicamente la actividad de **servicios**: queda fuera la facturación, los pagos, la venta de insumos y el control de stock.
 
-Estado actual: están terminadas las pantallas de **Clientes**, **Vehículos**, **Marcas y modelos**, **Servicios**, **Categorías**, **Mecánicos** y **Usuarios** (estas cuatro últimas solo visibles para el administrador), y las tres pantallas del flujo de la orden de trabajo: **Recepción**, **Órdenes de trabajo** y **Gestión de la orden** (ver [Recepción y órdenes de trabajo](#recepción-y-órdenes-de-trabajo)). El login muestra imagen de fondo y música y **valida usuario y contraseña** contra la tabla `usuario` (hash PBKDF2); el usuario que ingresó se muestra en la barra superior. El menú principal **se filtra por rol** (ver [Menú por rol](#menú-por-rol)). El resto de las opciones del menú no tiene pantalla (ver [Estado](#estado)).
+Estado actual: están terminadas las pantallas de **Clientes**, **Vehículos**, **Marcas y modelos**, **Servicios**, **Categorías**, **Mecánicos** y **Usuarios** (estas cuatro últimas solo visibles para el administrador), y las tres pantallas del flujo de la orden de trabajo: **Recepción**, **Órdenes de trabajo** y **Gestión de la orden** (ver [Recepción y órdenes de trabajo](#recepción-y-órdenes-de-trabajo)), el **Historial por patente**, los **reportes impresos** y los **Tableros** del administrador (ver [Tableros](#tableros)). El login muestra imagen de fondo y música y **valida usuario y contraseña** contra la tabla `usuario` (hash PBKDF2); el usuario que ingresó se muestra en la barra superior. El menú principal **se filtra por rol** (ver [Menú por rol](#menú-por-rol)). El resto de las opciones del menú no tiene pantalla (ver [Estado](#estado)).
 
 El código sigue de forma deliberada el estilo de la cátedra de programación orientada a eventos (SQL dentro de los formularios, sin capa de acceso a datos). No es una arquitectura por capas.
 
@@ -20,7 +20,7 @@ El código sigue de forma deliberada el estilo de la cátedra de programación o
 
 El menú principal muestra a cada usuario solo las opciones de su rol. Los botones están ocultos por defecto en el diseñador y `FrmPrincipal_Load` muestra los que corresponden según `Sesion.Rol`; un rol desconocido no ve ninguna opción.
 
-El menú lateral se lee de arriba hacia abajo: primero **Operaciones** (Mis órdenes, Recepción, Órdenes de trabajo, Historial), después **Reportes** y, al pie del menú, **Datos maestros** (Clientes, Vehículos, Marcas y modelos, Servicios, Categorías, Mecánicos, Usuarios). Cada opción lleva un icono. El botón que está junto al nombre del sistema contrae el menú a una columna de iconos y lo vuelve a expandir; contraído, el nombre de cada opción aparece al pasar el mouse y el panel de contenido ocupa el ancho liberado. El menú siempre arranca expandido.
+El menú lateral se lee de arriba hacia abajo: primero **Operaciones** (Mis órdenes, Recepción, Órdenes de trabajo, Historial), después **Reportes** (la opción **Tableros**) y, al pie del menú, **Datos maestros** (Clientes, Vehículos, Marcas y modelos, Servicios, Categorías, Mecánicos, Usuarios). Cada opción lleva un icono. El botón que está junto al nombre del sistema contrae el menú a una columna de iconos y lo vuelve a expandir; contraído, el nombre de cada opción aparece al pasar el mouse y el panel de contenido ocupa el ancho liberado. El menú siempre arranca expandido.
 
 Los iconos son archivos PNG de [Lucide](https://lucide.dev) (licencia ISC, en `WinFormsApp1/Recursos/iconos/LICENCIA-lucide.txt`). Se copian a la carpeta de salida y se leen al abrir el menú; si falta alguno, esa opción queda sin icono y la aplicación sigue funcionando.
 
@@ -37,7 +37,7 @@ Los iconos son archivos PNG de [Lucide](https://lucide.dev) (licencia ISC, en `W
 | Categorías | Sí | No | No |
 | Mecánicos | Sí | No | No |
 | Usuarios | Sí | No | No |
-| Reportes | Sí | No | No |
+| Tableros (sección Reportes) | Sí | No | No |
 
 Los títulos de sección siguen la misma regla: "OPERACIONES" se muestra a todos los roles, "DATOS MAESTROS" al administrador y al operador, y "REPORTES" solo al administrador.
 
@@ -148,6 +148,28 @@ Cuatro reportes con vista previa, hechos como en clase: cada uno es un `PrintDoc
 
 Para el mecánico el menú "Imprimir" muestra solo "Orden de trabajo", y ese reporte sale sin precios, subtotales ni totales: sus consultas no traen esas columnas.
 
+### Tableros
+
+**Tableros** (`FrmTableros`, menú Reportes → Tableros, solo el administrador) es un tablero de gestión de solo lectura. Arriba se elige el período ("Desde" y "Hasta", por defecto del día 1 del mes actual a hoy) y "Actualizar" recalcula todo; "Hasta" incluye ese día completo. Los gráficos se dibujan con [ScottPlot](https://scottplot.net) 5 (`ScottPlot.WinForms` 5.1.59), como en la clase del tablero de Biblioteca2026.
+
+| Indicador | Qué cuenta |
+|---|---|
+| Órdenes ingresadas | Órdenes recepcionadas en el período (por `fecha_recepcion`). |
+| Vehículos en el taller | Órdenes que hoy no están entregadas, rechazadas ni anuladas. No depende del período. |
+| Facturado | Suma del total aprobado de las órdenes entregadas en el período (por `fecha_entrega`). |
+| Ticket promedio | Facturado dividido por la cantidad de órdenes entregadas en el período. |
+| Presupuestos aprobados | De las órdenes que pasaron a presupuestada en el período, el porcentaje que el cliente aprobó (según el historial de estados). |
+| Órdenes demoradas | Órdenes que hoy tienen la fecha prometida vencida y no están finalizadas, entregadas, rechazadas ni anuladas (en rojo si hay alguna). No depende del período. |
+
+| Gráfico | Qué muestra |
+|---|---|
+| Facturación por mes | Barras con lo facturado en cada uno de los últimos 6 meses, terminando en el mes de "Hasta". |
+| Servicios más pedidos | Barras horizontales con los 8 servicios con más cantidad en líneas aprobadas de las órdenes recibidas en el período. |
+| Horas por mecánico | Barras agrupadas con las horas estimadas (tiempo estimado del servicio por cantidad) y las horas reales cargadas, en las líneas aprobadas de las órdenes finalizadas en el período. |
+| Órdenes por estado | Torta con las órdenes recibidas en el período según su estado actual, con los mismos colores del tablero de órdenes. |
+
+Si un gráfico no tiene datos para el período muestra "Sin datos para el período" y los indicadores quedan en cero. Para la presentación, `database/08_datos_demo.sql` carga datos de demostración (ver [Run](#run)).
+
 ---
 
 <!-- @tsg-docs:auto-start -->
@@ -157,7 +179,7 @@ Para el mecánico el menú "Imprimir" muestra solo "Orden de trabajo", y ese rep
 - **Lenguaje:** VB.NET
 - **Plataforma:** .NET 10 (`net10.0-windows`), Windows Forms, `OutputType` WinExe
 - **Patrones:** programación orientada a eventos; un único proyecto; formularios creados con el diseñador de Visual Studio y manejadores con `Handles`; SQL escrito dentro de los eventos del formulario (`Using cn` / `Using cmd`); sin clases DAO ni separación en capas
-- **Infraestructura:** cliente de escritorio de dos capas contra MariaDB (desarrollado con MariaDB 12.2, base `taller_mecanico`) mediante el paquete MySqlConnector 2.6.2
+- **Infraestructura:** cliente de escritorio de dos capas contra MariaDB (desarrollado con MariaDB 12.2, base `taller_mecanico`) mediante el paquete MySqlConnector 2.6.2; gráficos del tablero con ScottPlot.WinForms 5.1.59
 
 ### Diagrama
 
@@ -174,6 +196,7 @@ graph TD
             Recepcion["FrmRecepcion<br/>(asistente de recepción)"]
             Ordenes["FrmOrdenes<br/>(tablero de órdenes)"]
             Historial["FrmHistorial<br/>(historial por patente)"]
+            Tableros["FrmTableros<br/>(tablero de gestión, ScottPlot)"]
         end
         Conexion["Module ConexionBD<br/>(Const CADENA)"]
         Seguridad["Module Seguridad<br/>(hash PBKDF2)"]
@@ -205,6 +228,9 @@ graph TD
     Principal -->|"abre en panel (los tres roles)"| Historial
     Historial -->|"usa CADENA"| Conexion
     Historial -.->|"lee rol"| Sesion
+    Principal -->|"abre en panel (rol ADMINISTRADOR)"| Tableros
+    Tableros -->|"usa CADENA"| Conexion
+    Tableros -.->|"lee rol"| Sesion
     Clientes -->|"usa CADENA"| Conexion
     Clientes -->|"dibuja la ficha"| Impresion
     Vehiculos -->|"usa CADENA"| Conexion
@@ -241,6 +267,7 @@ graph TD
    | `05_consultas_basicas.sql` | Consultas de práctica de solo lectura. Opcional. |
    | `06_migracion_hash_pbkdf2.sql` | Migración para bases ya cargadas con una versión anterior de 01 a 03: agrega la columna `salt` y reemplaza los hashes de los usuarios semilla. **Una instalación nueva con 01 a 03 no la necesita.** |
    | `07_recepcion_fotos.sql` | Migración para bases ya creadas con una versión anterior de 01 (12 tablas): agrega la columna `orden_trabajo.fecha_prometida` y la tabla `ot_foto`. No modifica ni elimina datos y se puede ejecutar más de una vez. **Sin esta migración las pantallas de Recepción y Órdenes de trabajo no funcionan. Una instalación nueva con 01 a 03 no la necesita.** |
+   | `08_datos_demo.sql` | **Opcional, para la presentación.** Carga unas 40 órdenes de trabajo de los últimos siete meses (fechas relativas al día en que se ejecuta), con clientes, vehículos y un mecánico nuevos, para que los Tableros muestren datos. Requiere 01, 02 y 03. Se puede ejecutar más de una vez: borra antes las órdenes marcadas con `[demo]` en las observaciones de recepción. Para quitarlas: `DELETE FROM orden_trabajo WHERE observaciones_recepcion LIKE '%[demo]';` |
 
 2. Ajustar la cadena de conexión: editar `Server`, `Port`, `User ID` y `Password=` en `WinFormsApp1/ConexionBD.vb` según la instalación local de MariaDB.
 3. Abrir `WinFormsApp1.slnx` en Visual Studio y ejecutar, o desde una terminal:
@@ -302,7 +329,7 @@ Esto evita confirmar cambios locales, pero no retira del historial el valor ya p
 
 ### Migrations / inicialización
 
-No hay herramienta de migraciones. La base se crea y se inicializa ejecutando manualmente los scripts de `database/` (ver [Quick start](#quick-start-local)). El script `01_ddl_estructura.sql` recrea la base desde cero. Las bases ya cargadas se actualizan con los scripts de migración: `06_migracion_hash_pbkdf2.sql` (hash de contraseñas) y `07_recepcion_fotos.sql` (fecha prometida y fotos de recepción).
+No hay herramienta de migraciones. La base se crea y se inicializa ejecutando manualmente los scripts de `database/` (ver [Quick start](#quick-start-local)). El script `01_ddl_estructura.sql` recrea la base desde cero. Las bases ya cargadas se actualizan con los scripts de migración: `06_migracion_hash_pbkdf2.sql` (hash de contraseñas) y `07_recepcion_fotos.sql` (fecha prometida y fotos de recepción). `08_datos_demo.sql` es opcional: carga datos de demostración para los Tableros.
 
 ### CI/CD
 
@@ -323,7 +350,7 @@ No aplica: aplicación de escritorio WinForms. No expone endpoints.
   - Terminado: Clientes (ABM, baja lógica, búsqueda en vivo), Vehículos (ABM con combos de titular y marca/modelo en cascada, baja lógica), Marcas y modelos (maestro-detalle), Usuarios (ABM con baja lógica; contraseña guardada con PBKDF2 al crear o modificar; el rol MECANICO exige elegir un mecánico; el administrador no puede darse de baja ni cambiar su propio rol; el botón del menú solo se muestra para el rol ADMINISTRADOR).
   - Terminado: reactivación en Clientes, Vehículos y Usuarios. La casilla "Mostrar dados de baja" lista también los registros inactivos, al final y en gris; al elegir uno, el botón de baja dice "Reactivar". Reglas: un cliente con vehículos activos no se da de baja; un vehículo con una orden de trabajo sin cerrar no se da de baja y no se reactiva si su titular está dado de baja; no se da de baja al único administrador activo; un usuario mecánico no se reactiva si su mecánico está dado de baja.
   - Terminado: Login (imagen y música; valida usuario activo y contraseña contra `usuario`, con un mensaje único para usuario inexistente o clave incorrecta; guarda el usuario en `Sesion` y la barra superior de `FrmPrincipal` muestra nombre y rol; el botón "Cerrar sesión" de esa barra vuelve al login vacío para que ingrese otro usuario).
-  - Terminado: Menú por rol (`FrmPrincipal` está armado en el diseñador y muestra en `FrmPrincipal_Load` solo las opciones del rol que ingresó; ver [Menú por rol](#menú-por-rol)). Aún no se aplican permisos por rol dentro de cada pantalla, salvo en Usuarios, Mecánicos, Servicios, Categorías, Recepción, Órdenes de trabajo y Gestión de la orden, que comprueban el rol al abrirse; en Gestión de la orden, además, solo el administrador ve el botón "Anular".
+  - Terminado: Menú por rol (`FrmPrincipal` está armado en el diseñador y muestra en `FrmPrincipal_Load` solo las opciones del rol que ingresó; ver [Menú por rol](#menú-por-rol)). Aún no se aplican permisos por rol dentro de cada pantalla, salvo en Usuarios, Mecánicos, Servicios, Categorías, Recepción, Órdenes de trabajo, Gestión de la orden y Tableros, que comprueban el rol al abrirse; en Gestión de la orden, además, solo el administrador ve el botón "Anular".
   - Terminado: Recepción (asistente de cuatro pasos: vehículo por patente, datos de ingreso, fotos por ángulo y confirmación; guarda en una transacción la orden en estado `RECEPCIONADA`, su primera fila de historial y sus fotos) y Órdenes de trabajo (tablero a todo el ancho: tarjetas con la cantidad de órdenes por estado, que también filtran la lista; filtros por texto y demoradas; grilla con el estado en color; y tarjeta de detalle de la orden seleccionada con sus fotos en miniatura, ampliables, y el botón "Gestionar orden"). Ver [Recepción y órdenes de trabajo](#recepción-y-órdenes-de-trabajo).
   - Terminado: Gestión de la orden (líneas de presupuesto con sus totales, mecánico, aprobación del cliente por línea o rechazo, inicio del trabajo, horas trabajadas por línea, cierre técnico, entrega con actualización del kilometraje y anulación con motivo, solo para el administrador; cada cambio de estado se guarda en una transacción con su fila de historial). Ver [Recepción y órdenes de trabajo](#recepción-y-órdenes-de-trabajo).
   - Terminado: Mis órdenes (pantalla del mecánico: sus órdenes en tres grupos, resumen de trabajo con fotos y un botón que abre la gestión de la orden en modo mecánico, sin importes; ver [Mis órdenes](#mis-órdenes-pantalla-del-mecánico)).
@@ -333,7 +360,8 @@ No aplica: aplicación de escritorio WinForms. No expone endpoints.
   - Terminado: Mecánicos (ABM solo para el administrador: nombre completo obligatorio, especialidad y teléfono; búsqueda por nombre o especialidad; baja lógica, rechazada si el mecánico tiene órdenes de trabajo sin cerrar; un mecánico dado de baja se reactiva con el mismo botón; no admite dos mecánicos activos con el mismo nombre).
   - Terminado: Servicios (ABM solo para el administrador: código único, descripción, categoría y precio obligatorios, tiempo estimado en horas opcional; búsqueda por código, descripción o categoría; baja lógica y reactivación con el mismo botón, rechazada si la categoría del servicio está dada de baja; cambiar el precio no altera los presupuestos ya cargados).
   - Terminado: Categorías (ABM solo para el administrador: descripción única y obligatoria; la grilla muestra la cantidad de servicios activos de cada una, con búsqueda por descripción; baja lógica, rechazada si la categoría tiene servicios activos; una categoría dada de baja se reactiva con el mismo botón).
-  - Sin pantalla todavía (botón del menú sin evento): Reportes, pensado para los reportes de gestión; los reportes impresos se abren desde Gestión de la orden y Clientes.
+  - Terminado: Tableros (`FrmTableros`, solo para el administrador; el botón del menú "Reportes" pasó a llamarse "Tableros"): período desde/hasta, seis indicadores (órdenes ingresadas, vehículos en el taller, facturado, ticket promedio, presupuestos aprobados y órdenes demoradas) y cuatro gráficos con ScottPlot (facturación de los últimos 6 meses, servicios más pedidos, horas estimadas contra reales por mecánico y órdenes por estado). De solo lectura. Datos de demostración opcionales en `database/08_datos_demo.sql`. Ver [Tableros](#tableros).
+  - Pendiente: tiempo por etapa (reporte 7 de la especificación).
   - Decisión cerrada: hash de contraseñas con PBKDF2 + SHA256, igual que la referencia de la cátedra (reemplaza la mención de BCrypt de la especificación). Las bases ya cargadas deben ejecutar `database/06_migracion_hash_pbkdf2.sql`.
   - Base de datos: 13 tablas. A las 12 del modelo original se suma `ot_foto` (fotos de recepción) y `orden_trabajo` tiene la columna `fecha_prometida`. Las bases ya creadas deben ejecutar `database/07_recepcion_fotos.sql`.
 

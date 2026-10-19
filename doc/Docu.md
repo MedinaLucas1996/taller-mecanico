@@ -18,7 +18,7 @@ Repositorio: https://github.com/MedinaLucas1996/taller-mecanico (público).
 - El menú se filtra por rol. Los botones del menú y los tres títulos de sección tienen `Visible = False` en el diseñador, y `FrmPrincipal_Load` muestra los que corresponden con un bloque `If Sesion.Rol = "..." Then` por rol (ver [Menú por rol](#menú-por-rol)). Un rol desconocido no ve ninguna opción del menú.
 - Menú lateral (`panelMenu`, acoplado a la izquierda): tiene tres paneles declarados en el diseñador.
   - `panelLogo` (arriba): el botón `btnMenu`, que contrae y expande el menú, y el nombre del sistema.
-  - `panelMenuArriba` (arriba): Operaciones (Recepción, Órdenes de trabajo, Historial) y Reportes, cada título sobre sus botones.
+  - `panelMenuArriba` (arriba): Operaciones (Recepción, Órdenes de trabajo, Historial) y Reportes (Tableros), cada título sobre sus botones.
   - `panelMenuAbajo` (acoplado al borde inferior): Datos maestros (Clientes, Vehículos, Marcas y modelos, Servicios, Categorías, Mecánicos, Usuarios). Sus botones se acoplan hacia abajo, de modo que las opciones ocultas por rol no dejan huecos y el espacio libre queda entre Reportes y Datos maestros.
   - Iconos: `LeerIcono` lee en `FrmPrincipal_Load` cada PNG de `Recursos\iconos` junto al ejecutable (el proyecto los copia a la carpeta de salida con `Recursos\iconos\*`). Si un archivo falta o no se puede leer, el botón queda sin icono. Los iconos provienen de Lucide (licencia ISC, texto en `Recursos/iconos/LICENCIA-lucide.txt`).
   - Contraer y expandir: `AplicarMenu` cambia el ancho del menú entre 230 y 56. Contraído oculta los títulos de sección y el nombre del sistema, deja en cada botón solo el icono centrado y le asigna su nombre como tooltip (`tipMenu`); un botón sin icono muestra su inicial. El nombre de cada opción se guarda una sola vez, en el `Tag` del botón. Como el panel de contenido está acoplado con `Fill`, ocupa el ancho que el menú libera. El estado no se guarda: el menú arranca siempre expandido.
@@ -125,9 +125,16 @@ Repositorio: https://github.com/MedinaLucas1996/taller-mecanico (público).
     - Mecánico: `btnImprimir_Click` oculta "Presupuesto" y "Acta de recepción", y los dos clics vuelven a comprobar el rol. La orden de trabajo del mecánico usa su propia lista de columnas, sin `total_presupuestado`, `total_aprobado`, `precio_unitario` ni `subtotal`, y se dibuja sin importes.
     - Ficha del cliente (`FrmClientes`, botón "Imprimir ficha" en la cabecera, a la izquierda de "Nuevo cliente"; habilitado solo con un cliente guardado elegido): datos del cliente, cada vehículo a su nombre (`vehiculo.id_cliente`; los dados de baja marcados "Baja") con la tabla de sus órdenes de ese cliente (N.º, ingreso, estado, mecánico, total aprobado o, si no hubo, presupuestado), el grupo "Vehículos que ya no son del cliente" con las órdenes que trajo con vehículos que hoy tienen otro titular, y un resumen (vehículos a su nombre, órdenes, total facturado de las órdenes `ENTREGADA`). La vista previa se abre sobre la ventana principal (`ShowDialog(Me.TopLevelControl)`), porque Clientes va dentro de su panel. La pantalla solo está en el menú del administrador y del operador, así que la ficha lleva importes.
     - La vista previa y los documentos no están en `components`: cada formulario los libera en su `FormClosed`.
+  - **Tableros** (`FrmTableros`, solo el administrador): el botón del menú se llamaba `btnReportes` y pasó a ser `btnTableros` (texto "Tableros", mismo icono `reportes.png`, bajo el título "REPORTES"); `btnTableros_Click` abre la pantalla con `AbrirFormulario`. `Load` vuelve a comprobar el rol: si no es `ADMINISTRADOR` avisa, deshabilita el filtro y no consulta nada. Es de solo lectura: no tiene ninguna sentencia de escritura.
+    - Disposición: título y subtítulo (el período elegido), filtro arriba a la derecha (`pnlFiltros`: `dtpDesde`, `dtpHasta` y `btnActualizar`), una fila de seis tarjetas blancas (`tlpIndicadores`, número grande y leyenda, como las tarjetas de estado del tablero de órdenes) y un `TableLayoutPanel` de 2 x 2 (`tlpGraficos`, filas y columnas al 50 %) con cuatro controles `ScottPlot.WinForms.FormsPlot` declarados en el diseñador (`fpFacturacion`, `fpServicios`, `fpHoras`, `fpEstados`). Las tarjetas y los gráficos se estiran con la ventana.
+    - Período: al abrir, del día 1 del mes actual a hoy. Se recalcula con "Actualizar" (no al cambiar cada fecha, para no consultar dos veces al mover las dos fechas); si "Desde" es posterior a "Hasta" se avisa y no se consulta. Las consultas reciben `@desde` (inicio del día) y `@hasta` (el día siguiente a "Hasta", comparado con `<`), así el último día entra completo.
+    - Indicadores (`CargarIndicadores`): ingresadas por `fecha_recepcion` en el período; vehículos en el taller = órdenes que no están `ENTREGADA`, `RECHAZADA` ni `ANULADA` (hoy); facturado = suma de `total_aprobado` de las órdenes `ENTREGADA` con `fecha_entrega` en el período; ticket promedio = facturado / entregadas; presupuestos aprobados = órdenes con fila `APROBADA` en el historial sobre órdenes con fila `PRESUPUESTADA` en el período; demoradas = `fecha_prometida` anterior a hoy y estado distinto de `FINALIZADA`, `ENTREGADA`, `RECHAZADA` y `ANULADA` (hoy). Importes con formato `$ #,##0`.
+    - Gráficos, cada uno en su rutina con su `Try` y su `MessageBox`, como `FormTablero` de la cátedra (listas que se pasan a arreglos, `Plot.Add.Bars`, `Plot.Add.Pie` con `PieSlice`, `Title`, `HideGrid` / `HideAxesAndGrid`, `Refresh`): `GraficoFacturacion` (barras de los últimos 6 meses terminando en el mes de "Hasta", con el mes abreviado como etiqueta, por ejemplo "may 26"; no depende de "Desde"), `GraficoServicios` (barras horizontales, los 8 servicios con más cantidad en líneas aprobadas de las órdenes recibidas en el período, el más pedido arriba), `GraficoHoras` (barras agrupadas por mecánico: horas estimadas = `tiempo_estimado_horas * cantidad` y horas reales = `horas_reales`, de las líneas aprobadas de las órdenes con `fecha_finalizacion` en el período, con leyenda) y `GraficoEstados` (torta de las órdenes recibidas en el período por estado actual, con los colores de `ColorEstado` del tablero de órdenes un 15 % más oscuros, y leyenda).
+    - Antes de dibujar, `PrepararGrafico` llama a `FormsPlot.Reset()` en lugar de `Plot.Clear()`: además de los datos borra las etiquetas manuales de los ejes, la leyenda y los ejes ocultos del dibujo anterior. También fija la fuente Segoe UI y el fondo blanco, y desactiva el zoom y el arrastre con el mouse. Sin datos, `MostrarSinDatos` deja solo el título y el aviso "Sin datos para el período". El título se pone después de `HideAxesAndGrid`, porque ocultar los ejes también oculta el título.
+    - El formulario no importa el espacio de nombres `ScottPlot` (a diferencia del ejemplo de clase) porque su `Color` se confundiría con `System.Drawing.Color`; los tipos se escriben completos (`ScottPlot.Bar`, `ScottPlot.PieSlice`).
 
 - Pendiente en el flujo de la orden de trabajo: diagnóstico escrito por el mecánico antes del presupuesto y fotos cargadas por el mecánico (necesitan cambios en la base).
-- Opción de menú sin pantalla (el botón existe pero no tiene evento): Reportes, pensado para los reportes de gestión; los reportes impresos se abren desde la gestión de la orden y desde Clientes.
+- Pendiente en los reportes de gestión: tiempo por etapa (reporte 7 de la especificación).
 
 ### Menú por rol
 
@@ -146,7 +153,7 @@ Opciones del menú principal que ve cada rol (`FrmPrincipal_Load`):
 | Categorías | Sí | No | No |
 | Mecánicos | Sí | No | No |
 | Usuarios | Sí | No | No |
-| Reportes | Sí | No | No |
+| Tableros (sección Reportes) | Sí | No | No |
 
 Los títulos de sección siguen la misma regla: "OPERACIONES" se muestra a todos los roles, "DATOS MAESTROS" al administrador y al operador, y "REPORTES" solo al administrador. Como las opciones ocultas no ocupan lugar, el menú de cada rol queda sin huecos.
 
@@ -182,20 +189,22 @@ graph TD
                 Recepcion["FrmRecepcion<br/>(asistente de recepción)"]
                 Ordenes["FrmOrdenes<br/>(tablero de órdenes)"]
                 Historial["FrmHistorial<br/>(historial por patente)"]
+                Tableros["FrmTableros<br/>(tablero de gestión)"]
             end
             subgraph Pendientes["Opciones de menú sin pantalla"]
-                Pend["Servicios, Categorías,<br/>Mecánicos, Reportes"]
+                Pend["Servicios, Categorías,<br/>Mecánicos"]
             end
             Conexion["Module ConexionBD<br/>(Public Const CADENA)"]
             Impresion["Module Impresion<br/>(dibujo de reportes, sin SQL)"]
             Recursos["Recursos/<br/>fondo-login-underground.png<br/>musica-login.mp3"]
         end
         Driver["MySqlConnector 2.6.2"]
+        Graficos["ScottPlot.WinForms 5.1.59"]
     end
 
     subgraph Datos["Base de datos"]
         DB[("MariaDB: taller_mecanico<br/>13 tablas")]
-        Scripts["database/<br/>scripts 01 a 07"]
+        Scripts["database/<br/>scripts 01 a 08"]
     end
 
     Login --> Principal
@@ -218,6 +227,10 @@ graph TD
     Principal -->|"los tres roles"| Historial
     Historial --> Conexion
     Historial -.-> Sesion
+    Principal -->|"rol ADMINISTRADOR"| Tableros
+    Tableros --> Conexion
+    Tableros -.-> Sesion
+    Tableros --> Graficos
     Clientes --> Conexion
     Clientes -->|"ficha impresa"| Impresion
     Vehiculos --> Conexion
@@ -238,6 +251,7 @@ graph TD
 | Plataforma | .NET 10 (`net10.0-windows`), Windows Forms, `OutputType` WinExe |
 | Patrones | Programación orientada a eventos con SQL dentro de los formularios; un único proyecto; sin DAO ni capas (ver [Decisiones técnicas](#decisiones-técnicas)) |
 | Infraestructura | Cliente de escritorio de dos capas contra MariaDB (desarrollado con 12.2; el DDL indica 10.6 o superior), driver MySqlConnector 2.6.2 |
+| Gráficos | ScottPlot.WinForms 5.1.59 (la misma versión que el ejemplo de clase), solo en `FrmTableros` |
 
 <!-- @tsg-docs:auto-end -->
 
@@ -374,6 +388,8 @@ sequenceDiagram
 | Cada cambio del presupuesto y cada cambio de estado en una transacción que vuelve a leer el estado de la orden con `SELECT ... FOR UPDATE` | Otro puesto puede haber cambiado la orden después de cargarla en pantalla; la lectura con bloqueo evita guardar sobre un estado que ya no es el esperado. La línea, los totales, el estado y la fila de historial se guardan todos o ninguno. | `FrmOrdenGestion.vb` |
 | Rutinas del formulario que reciben la conexión y la transacción (`LeerCodigoEstado`, `PermiteEditarDetalle`, `EstadoEsFinal`, `RecalcularTotales`, `CambiarEstado`, `GuardarEjecucion`) | Evitan repetir en cada botón la lectura del estado, el recálculo de totales y el cambio de estado con su fila de historial. Son rutinas del propio formulario, no clases de acceso a datos. | `FrmOrdenGestion.vb` |
 | Música del login con `winmm.dll` (`mciSendStringW`) | Permite reproducir un MP3 sin dependencias adicionales. | `FrmLogin.vb` |
+| Gráficos del tablero con ScottPlot (`FormsPlot` del diseñador) | Es la librería y la forma de uso que se enseñó en clase (`FormTablero` de Biblioteca2026). Sus dependencias OpenTK, OpenTK.GLControl y SkiaSharp.Views.WindowsForms solo traen compilaciones para .NET Framework y generan la advertencia NU1701 al compilar. | `WinFormsApp1.vbproj`, `FrmTableros.vb` |
+| Datos de demostración en un script aparte y opcional (`database/08_datos_demo.sql`), con fechas relativas al día en que se ejecuta y marcados con `[demo]` | Los tableros necesitan varios meses de órdenes para mostrar algo; el script respeta las mismas reglas que la aplicación (líneas copiadas del catálogo, totales calculados con las líneas, una fila de historial por estado) y se puede volver a ejecutar sin duplicar. | `database/08_datos_demo.sql` |
 | Recursos del login copiados al directorio de salida (`CopyToOutputDirectory`) | La imagen y la música se leen desde `AppContext.BaseDirectory\Recursos`. | `WinFormsApp1.vbproj`, `FrmLogin.vb` |
 
 **Decisión cerrada: hash de contraseñas.** Se adopta PBKDF2 + SHA256 como la referencia de la cátedra (100000 iteraciones, hash de 32 bytes, salt de 16 bytes, ambos en Base64, salt en su propia columna `usuario.salt`), con las clases del propio .NET (`Rfc2898DeriveBytes`), sin paquetes adicionales. La sección 11.4 de `taller-mecanico-especificacion.md` todavía menciona BCrypt (`BCrypt.Net-Next`) y queda reemplazada por esta decisión (el archivo de la especificación no se modificó). Las bases ya cargadas con hashes BCrypt se migran con `database/06_migracion_hash_pbkdf2.sql`; una instalación nueva con los scripts 01 a 03 no la necesita.
@@ -434,7 +450,7 @@ Casos manejados en el código:
 
 Riesgos conocidos no cubiertos:
 
-- Los permisos por rol se aplican solo en el menú, ocultando opciones (ver [Menú por rol](#menú-por-rol)). Las pantallas no vuelven a comprobar el rol al abrirse, salvo `FrmUsuarios`, `FrmMecanicos`, `FrmServicios`, `FrmCategorias`, `FrmRecepcion`, `FrmOrdenes`, `FrmMisOrdenes` y `FrmOrdenGestion`, y dentro de cada pantalla no hay permisos por botón, salvo en `FrmOrdenGestion`: "Anular" es solo del administrador, y el mecánico solo puede iniciar, cargar horas y finalizar sus propias órdenes, y de los reportes solo imprime la orden de trabajo, sin importes.
+- Los permisos por rol se aplican solo en el menú, ocultando opciones (ver [Menú por rol](#menú-por-rol)). Las pantallas no vuelven a comprobar el rol al abrirse, salvo `FrmUsuarios`, `FrmMecanicos`, `FrmServicios`, `FrmCategorias`, `FrmRecepcion`, `FrmOrdenes`, `FrmMisOrdenes`, `FrmOrdenGestion` y `FrmTableros`, y dentro de cada pantalla no hay permisos por botón, salvo en `FrmOrdenGestion`: "Anular" es solo del administrador, y el mecánico solo puede iniciar, cargar horas y finalizar sus propias órdenes, y de los reportes solo imprime la orden de trabajo, sin importes.
 - En la gestión de la orden, las tildes de aprobación viven en pantalla hasta presionar "Registrar aprobación": se conservan al recargar la orden dentro de la ventana, pero se pierden si se cierra la ventana.
 - Una base creada con la versión anterior de los scripts y sin `database/07_recepcion_fotos.sql` no tiene `orden_trabajo.fecha_prometida` ni `ot_foto`: Recepción y Órdenes de trabajo muestran el error de MariaDB y no funcionan hasta ejecutar la migración.
 - Las fotos se guardan dentro de la base, por lo que su tamaño y el de sus copias de respaldo crecen con cada recepción (hasta cinco imágenes por orden).
@@ -443,12 +459,15 @@ Riesgos conocidos no cubiertos:
 - Si la base no responde durante el login se muestra el error de MariaDB en un `MessageBox` y se permanece en el login.
 - Si la base no está disponible, cada pantalla muestra el mensaje de la excepción en un `MessageBox`; no hay reintentos ni registro de errores.
 - La búsqueda en vivo ejecuta una consulta por cada cambio de texto.
+- En Tableros, "Órdenes demoradas" no cuenta las órdenes `FINALIZADA` (el trabajo está hecho y solo falta entregar), mientras que el filtro de demoradas del tablero de órdenes sí las cuenta (usa "estado no final"); los dos números pueden diferir.
+- En Tableros, una orden anulada después de aprobada sigue contando como aprobada en "Presupuestos aprobados", porque el indicador se calcula con el historial de estados.
+- `database/08_datos_demo.sql` borra al empezar todas las órdenes cuyas observaciones de recepción terminan en `[demo]`; una orden real que termine con ese texto también se borraría.
 
 ---
 
 ## Tests / Cobertura
 
-No hay pruebas automatizadas: no existe proyecto de pruebas ni framework de testing en la solución. La verificación es manual, ejecutando la aplicación contra la base cargada con `database/03_dml_prueba.sql`. Los scripts `database/04_consultas_verificacion.sql` y `database/05_consultas_basicas.sql` sirven para comprobar el estado de la base, no para probar la aplicación.
+No hay pruebas automatizadas: no existe proyecto de pruebas ni framework de testing en la solución. La verificación es manual, ejecutando la aplicación contra la base cargada con `database/03_dml_prueba.sql`. Los scripts `database/04_consultas_verificacion.sql` y `database/05_consultas_basicas.sql` sirven para comprobar el estado de la base, no para probar la aplicación. `database/08_datos_demo.sql` carga datos de demostración para revisar los Tableros.
 
 Cobertura: no medida.
 
@@ -481,9 +500,9 @@ Cobertura: no medida.
 
 Pendiente según el estado actual del código y `taller-mecanico-especificacion.md` (sección 13):
 
-1. **Permisos por rol**: el login ya valida usuario y contraseña y deja el rol en `Sesion.Rol`, y el menú principal ya se filtra por rol; falta aplicar permisos por rol (administrador, operador, mecánico) dentro de cada pantalla (hoy solo Usuarios, Mecánicos, Servicios, Categorías, Recepción, Órdenes de trabajo y Gestión de la orden comprueban el rol al abrirse).
+1. **Permisos por rol**: el login ya valida usuario y contraseña y deja el rol en `Sesion.Rol`, y el menú principal ya se filtra por rol; falta aplicar permisos por rol (administrador, operador, mecánico) dentro de cada pantalla (hoy solo Usuarios, Mecánicos, Servicios, Categorías, Recepción, Órdenes de trabajo, Gestión de la orden y Tableros comprueban el rol al abrirse).
 2. **ABM**: todos terminados (Clientes, Vehículos, Marcas y modelos, Servicios, Categorías, Mecánicos y Usuarios).
 3. **Flujo de orden de trabajo**: la recepción (asistente con fotos, que crea la orden y su primera fila de historial en una transacción), el tablero de estado de las órdenes y la gestión de la orden (líneas de presupuesto, aprobación del cliente total o parcial por línea, y cambios de estado con su fila de historial en una transacción) y la pantalla del mecánico (`FrmMisOrdenes`, con la gestión de la orden en modo mecánico) y la consulta de historial por patente (`FrmHistorial`) ya están terminados, igual que la impresión de la orden de trabajo, el presupuesto y el acta de recepción.
-4. **Reportes**: terminados los cuatro reportes impresos (orden de trabajo, presupuesto, acta de recepción y ficha del cliente, con `PrintDocument` y `PrintPreviewDialog`). Faltan los reportes de gestión (servicios más solicitados, productividad por mecánico, órdenes abiertas, tiempos por etapa).
+4. **Reportes**: terminados los cuatro reportes impresos (orden de trabajo, presupuesto, acta de recepción y ficha del cliente, con `PrintDocument` y `PrintPreviewDialog`). Terminada la pantalla Tableros (indicadores y gráficos de gestión con ScottPlot: facturación, servicios más pedidos, horas por mecánico, órdenes por estado, vehículos en el taller y demoradas). Falta el reporte de tiempo por etapa.
 5. **Credenciales fuera del repositorio**: cambiar la contraseña de la base de desarrollo y mover la cadena de conexión a configuración local no versionada.
 6. **Pruebas automatizadas**: no hay plan definido. _TODO: completar manualmente_
