@@ -105,6 +105,7 @@ Public Class FrmOrdenGestion
         btnGuardarMecanico.Image = LeerIcono("guardar-oscuro.png")
         btnAnular.Image = LeerIcono("anular-rojo.png")
         btnImprimir.Image = LeerIcono("reportes.png")
+        btnAvisar.Image = LeerIcono("cliente-oscuro.png")
 
         picMecanico.Image = iconoMecanico
         picKm.Image = LeerIcono("km-oscuro.png")
@@ -435,6 +436,18 @@ Public Class FrmOrdenGestion
         'la anulacion es solo del administrador y vale en cualquier estado que no sea final
         btnAnular.Visible = (Sesion.Rol = ROL_ADMINISTRADOR AndAlso Not esEstadoFinal)
 
+        'el aviso al cliente sale cuando el trabajo esta finalizado; lo dan el administrador y el operador
+        btnAvisar.Visible = (codigoEstado = "FINALIZADA" AndAlso
+                             (Sesion.Rol = ROL_ADMINISTRADOR OrElse Sesion.Rol = ROL_OPERADOR))
+
+        '"Anular" va pegado a "Imprimir" salvo cuando el aviso al cliente ocupa ese lugar: asi en el ancho minimo
+        'de la ventana no se pisa con el texto del proximo paso, que esta anclado a la derecha
+        If btnAvisar.Visible Then
+            btnAnular.Left = btnAvisar.Right + 8
+        Else
+            btnAnular.Left = btnAvisar.Left
+        End If
+
         'el mecanico ve la misma pantalla con menos cosas: lo ajusto al final, sobre lo ya armado
         If modoMecanico Then MostrarEtapaMecanico()
 
@@ -459,6 +472,8 @@ Public Class FrmOrdenGestion
         btnGuardarMecanico.Visible = False
         lblMecanico.Visible = True
         btnAnular.Visible = False
+        'al cliente le avisa la recepcion, no el mecanico
+        btnAvisar.Visible = False
 
         If codigoEstado = "RECEPCIONADA" Then
             lblEtapaTitulo.Text = "Esperando el presupuesto"
@@ -2142,12 +2157,131 @@ Public Class FrmOrdenGestion
         CargarOrden()
     End Sub
 
+    Private Sub btnAvisar_Click(sender As Object, e As EventArgs) Handles btnAvisar.Click
+        'armo el aviso de vehiculo listo, lo copio al portapapeles y dejo constancia en el historial
+        'el estado de la orden no cambia: la entrega se registra con su propio boton
+        'el mecanico no avisa a los clientes: el boton ya se le oculta, igual lo compruebo
+        If Sesion.Rol <> ROL_ADMINISTRADOR AndAlso Sesion.Rol <> ROL_OPERADOR Then Exit Sub
+
+        Dim nroOrden As String = ""
+        Dim codigoActual As String = ""
+        Dim idEstado As Integer = 0
+        Dim cliente As String = ""
+        Dim telefono As String = ""
+        Dim vehiculo As String = ""
+        Dim patente As String = ""
+        Dim total As Decimal = 0D
+        Dim servicios As New List(Of String)
+
+        Try
+            Using cn As New MySqlConnection(CADENA)
+                cn.Open()
+                'leo la orden de la base: otro puesto pudo cambiarla desde que se abrio esta pantalla
+                'el total es el aprobado que guarda la orden, el mismo que muestra el pie de las lineas
+                Dim consulta As String =
+                    "SELECT ot.nro_orden, ot.id_estado_ot, ot.total_aprobado, e.codigo, " &
+                    "c.razon_social AS cliente, c.telefono, v.patente, " &
+                    "CONCAT(ma.descripcion, ' ', mo.descripcion) AS vehiculo " &
+                    "FROM orden_trabajo AS ot " &
+                    "JOIN vehiculo AS v ON v.id_vehiculo = ot.id_vehiculo " &
+                    "JOIN modelo AS mo ON mo.id_modelo = v.id_modelo " &
+                    "JOIN marca AS ma ON ma.id_marca = mo.id_marca " &
+                    "JOIN cliente AS c ON c.id_cliente = ot.id_cliente " &
+                    "JOIN estado_ot AS e ON e.id_estado_ot = ot.id_estado_ot " &
+                    "WHERE ot.id_orden_trabajo = @id_orden_trabajo;"
+                Using cmd As New MySqlCommand(consulta, cn)
+                    cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
+                    Using lector As MySqlDataReader = cmd.ExecuteReader
+                        If lector.Read() Then
+                            nroOrden = lector("nro_orden").ToString()
+                            idEstado = CInt(lector("id_estado_ot"))
+                            codigoActual = lector("codigo").ToString()
+                            total = CDec(lector("total_aprobado"))
+                            cliente = lector("cliente").ToString()
+                            telefono = lector("telefono").ToString().Trim()
+                            patente = lector("patente").ToString()
+                            vehiculo = lector("vehiculo").ToString()
+                        End If
+                    End Using
+                End Using
+
+                'los servicios realizados son las lineas aprobadas, en el orden en que se cargaron
+                consulta =
+                    "SELECT descripcion FROM ot_detalle " &
+                    "WHERE id_orden_trabajo = @id_orden_trabajo AND aprobado = 1 " &
+                    "ORDER BY id_ot_detalle;"
+                Using cmd As New MySqlCommand(consulta, cn)
+                    cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
+                    Using lector As MySqlDataReader = cmd.ExecuteReader
+                        Do While lector.Read()
+                            servicios.Add(lector("descripcion").ToString())
+                        Loop
+                    End Using
+                End Using
+            End Using
+        Catch ex As Exception
+            MessageBox.Show("Error al leer los datos de la orden para el aviso: " & ex.Message)
+            Exit Sub
+        End Try
+
+        'el aviso es solo de una orden finalizada
+        If codigoActual <> "FINALIZADA" Then
+            MessageBox.Show("La orden ya no está finalizada: el aviso al cliente no corresponde.")
+            CargarOrden()
+            Exit Sub
+        End If
+
+        Dim lista As String = String.Join(", ", servicios)
+        If lista = "" Then lista = "-"
+        Dim aviso As String =
+            "Hola " & cliente & ", su vehículo " & vehiculo & " patente " & patente &
+            " ya está listo para retirar. Orden de trabajo N.º " & nroOrden &
+            ". Servicios realizados: " & lista & ". Total: $ " & total.ToString("N2") &
+            ". ¡Gracias por confiar en nosotros!"
+
+        'el portapapeles es el canal: desde ahi se pega en WhatsApp
+        Try
+            Clipboard.SetText(aviso)
+        Catch ex As Exception
+            MessageBox.Show("No se pudo copiar el aviso al portapapeles: " & ex.Message)
+            Exit Sub
+        End Try
+
+        'dejo la fila en el historial con el estado actual de la orden, como las demas filas
+        Try
+            Using cn As New MySqlConnection(CADENA)
+                cn.Open()
+                Dim consulta As String =
+                    "INSERT INTO ot_historial_estado (id_orden_trabajo, id_estado_ot, id_usuario, observacion) " &
+                    "VALUES (@id_orden_trabajo, @id_estado_ot, @id_usuario, @observacion);"
+                Using cmd As New MySqlCommand(consulta, cn)
+                    cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
+                    cmd.Parameters.AddWithValue("@id_estado_ot", idEstado)
+                    cmd.Parameters.AddWithValue("@id_usuario", Sesion.IdUsuario)
+                    cmd.Parameters.AddWithValue("@observacion", "Cliente avisado (texto copiado para WhatsApp)")
+                    cmd.ExecuteNonQuery()
+                End Using
+            End Using
+        Catch ex As Exception
+            MessageBox.Show("El aviso quedó copiado, pero no se pudo anotar en el historial: " & ex.Message)
+        End Try
+
+        CargarHistorial()
+
+        'si el cliente no tiene telefono cargado, el aviso se le lee igual
+        Dim destino As String = telefono
+        If destino = "" Then destino = "cliente"
+        MessageBox.Show("El aviso quedó copiado. Péguelo en WhatsApp o léalo por teléfono al " & destino & ".",
+                        "Aviso al cliente", MessageBoxButtons.OK, MessageBoxIcon.Information)
+    End Sub
+
     '----- reportes impresos -----
 
     'reportes que se imprimen desde esta ventana
     Const REPORTE_ORDEN As Integer = 1
     Const REPORTE_PRESUPUESTO As Integer = 2
     Const REPORTE_ACTA As Integer = 3
+    Const REPORTE_COLGANTE As Integer = 4
 
     'secciones de los reportes; cada reporte usa algunas, en el orden de SeccionesReporte
     Const SECCION_DATOS As Integer = 0
@@ -2182,6 +2316,7 @@ Public Class FrmOrdenGestion
         'titulo de la banda de cabecera de cada reporte
         If reporte = REPORTE_PRESUPUESTO Then Return "Presupuesto"
         If reporte = REPORTE_ACTA Then Return "Acta de recepción"
+        If reporte = REPORTE_COLGANTE Then Return "Colgante de llaves"
         Return "Orden de trabajo"
     End Function
 
@@ -2240,6 +2375,12 @@ Public Class FrmOrdenGestion
         MostrarVistaPrevia(prdActa)
     End Sub
 
+    Private Sub mnuColgante_Click(sender As Object, e As EventArgs) Handles mnuColgante.Click
+        'el colgante no lleva importes ni avance del trabajo: lo imprime cualquier rol, en cualquier estado
+        If Not CargarDatosImpresion() Then Exit Sub
+        MostrarVistaPrevia(prdColgante)
+    End Sub
+
     Function CargarFotosImpresion() As Boolean
         'leo las fotos de la recepcion; las anteriores se liberan antes de leer las nuevas
         LiberarFotosImpresion()
@@ -2296,6 +2437,7 @@ Public Class FrmOrdenGestion
         prdOrdenTrabajo.Dispose()
         prdPresupuesto.Dispose()
         prdActa.Dispose()
+        prdColgante.Dispose()
     End Sub
 
     Sub MostrarVistaPrevia(documento As Printing.PrintDocument)
@@ -2454,6 +2596,10 @@ Public Class FrmOrdenGestion
         EmpezarReporte(REPORTE_ACTA)
     End Sub
 
+    Private Sub prdColgante_BeginPrint(sender As Object, e As Printing.PrintEventArgs) Handles prdColgante.BeginPrint
+        EmpezarReporte(REPORTE_COLGANTE)
+    End Sub
+
     Private Sub prdOrdenTrabajo_PrintPage(sender As Object, e As Printing.PrintPageEventArgs) Handles prdOrdenTrabajo.PrintPage
         ImprimirHoja(e)
     End Sub
@@ -2466,10 +2612,18 @@ Public Class FrmOrdenGestion
         ImprimirHoja(e)
     End Sub
 
+    Private Sub prdColgante_PrintPage(sender As Object, e As Printing.PrintPageEventArgs) Handles prdColgante.PrintPage
+        ImprimirHoja(e)
+    End Sub
+
     Sub ImprimirHoja(e As Printing.PrintPageEventArgs)
         'dibujo una hoja del reporte en curso; un error corta el reporte con un aviso, sin cerrar el sistema
         Try
-            DibujarHoja(e)
+            If reporteImpreso = REPORTE_COLGANTE Then
+                DibujarHojaColgantes(e)
+            Else
+                DibujarHoja(e)
+            End If
         Catch ex As Exception
             e.HasMorePages = False
             If Not errorImpresion Then
@@ -2477,6 +2631,30 @@ Public Class FrmOrdenGestion
                 MessageBox.Show("No se pudo dibujar el reporte: " & ex.Message)
             End If
         End Try
+    End Sub
+
+    Sub DibujarHojaColgantes(e As Printing.PrintPageEventArgs)
+        'dos colgantes iguales en una sola hoja, arriba a la izquierda: uno para el llavero y otro para el tablero
+        'medidas en centesimos de pulgada: cada colgante es de 90 x 50 mm
+        Const ANCHO_COLGANTE As Integer = 354
+        Const ALTO_COLGANTE As Integer = 197
+        Const SEPARACION As Integer = 40
+
+        Dim fila As DataRow = datosImpresion
+        Dim prometida As String = TextoFecha(fila("fecha_prometida"), "dd/MM/yyyy")
+        If prometida = "-" Then prometida = "sin fecha"
+
+        hojaImpresa += 1
+
+        For i As Integer = 0 To 1
+            Dim caja As New Rectangle(e.MarginBounds.Left, e.MarginBounds.Top + i * (ALTO_COLGANTE + SEPARACION),
+                                      ANCHO_COLGANTE, ALTO_COLGANTE)
+            DibujarColgante(e.Graphics, caja, fila("patente").ToString(), "OT N.º " & fila("nro_orden").ToString(),
+                            fila("vehiculo").ToString(), fila("cliente").ToString(),
+                            TextoFecha(fila("fecha_recepcion"), "dd/MM/yyyy"), prometida)
+        Next
+
+        e.HasMorePages = False
     End Sub
 
     Sub DibujarHoja(e As Printing.PrintPageEventArgs)
