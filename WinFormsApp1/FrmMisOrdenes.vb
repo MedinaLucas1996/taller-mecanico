@@ -466,6 +466,7 @@ Public Class FrmMisOrdenes
         iconoAbrir = LeerIcono("abrir.png")
         picVehiculo.Image = LeerIcono("vehiculo-oscuro.png")
         picSintoma.Image = LeerIcono("sintoma-oscuro.png")
+        btnExportar.Image = LeerIcono("exportar.png")
 
         'el encabezado de la lista lleva solo una linea clara debajo, como las filas
         dgvOrdenes.AdvancedColumnHeadersBorderStyle.Bottom = DataGridViewAdvancedCellBorderStyle.Single
@@ -476,6 +477,7 @@ Public Class FrmMisOrdenes
             tlpGrupos.Enabled = False
             pnlLista.Enabled = False
             pnlResumen.Enabled = False
+            btnExportar.Enabled = False
             Exit Sub
         End If
 
@@ -485,6 +487,7 @@ Public Class FrmMisOrdenes
             tlpGrupos.Enabled = False
             pnlLista.Enabled = False
             pnlResumen.Enabled = False
+            btnExportar.Enabled = False
             Exit Sub
         End If
 
@@ -643,6 +646,11 @@ Public Class FrmMisOrdenes
             formulario.PermiteCambios = False
             formulario.ShowDialog()
         End Using
+    End Sub
+
+    Private Sub btnExportar_Click(sender As Object, e As EventArgs) Handles btnExportar.Click
+        'guardo en un CSV las ordenes del grupo que se ve en la lista
+        ExportarGrilla(dgvOrdenes, "mis-ordenes")
     End Sub
 
     Private Sub btnAbrir_Click(sender As Object, e As EventArgs) Handles btnAbrir.Click
