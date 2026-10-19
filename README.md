@@ -4,7 +4,7 @@
 
 Aplicación de escritorio para gestionar los servicios de un taller mecánico (trabajo práctico universitario).
 
-> **Importante:** el proyecto se abre desde `WinFormsApp1.slnx` en Visual Studio. Si se abre en modo *Folder View* el diseñador de formularios queda deshabilitado. La cadena de conexión a la base de datos se configura a mano en `WinFormsApp1/ConexionBD.vb` (ver [Secrets](#secrets)).
+> **Importante:** el proyecto se abre desde `WinFormsApp1.slnx` en Visual Studio. Si se abre en modo *Folder View* el diseñador de formularios queda deshabilitado. La cadena de conexión a la base de datos se configura en un archivo `conexion.txt` que no se sube al repositorio (ver [Secrets](#secrets)).
 
 ---
 
@@ -198,7 +198,7 @@ graph TD
             Historial["FrmHistorial<br/>(historial por patente)"]
             Tableros["FrmTableros<br/>(tablero de gestión, ScottPlot)"]
         end
-        Conexion["Module ConexionBD<br/>(Const CADENA)"]
+        Conexion["Module ConexionBD<br/>(CADENA, de conexion.txt o por defecto)"]
         Seguridad["Module Seguridad<br/>(hash PBKDF2)"]
         Sesion["Module Sesion<br/>(usuario logueado)"]
         Impresion["Module Impresion<br/>(dibujo de reportes)"]
@@ -269,7 +269,7 @@ graph TD
    | `07_recepcion_fotos.sql` | Migración para bases ya creadas con una versión anterior de 01 (12 tablas): agrega la columna `orden_trabajo.fecha_prometida` y la tabla `ot_foto`. No modifica ni elimina datos y se puede ejecutar más de una vez. **Sin esta migración las pantallas de Recepción y Órdenes de trabajo no funcionan. Una instalación nueva con 01 a 03 no la necesita.** |
    | `08_datos_demo.sql` | **Opcional, para la presentación.** Carga unas 40 órdenes de trabajo de los últimos siete meses (fechas relativas al día en que se ejecuta), con clientes, vehículos y un mecánico nuevos, para que los Tableros muestren datos. Requiere 01, 02 y 03. Se puede ejecutar más de una vez: borra antes las órdenes marcadas con `[demo]` en las observaciones de recepción. Para quitarlas: `DELETE FROM orden_trabajo WHERE observaciones_recepcion LIKE '%[demo]';` |
 
-2. Ajustar la cadena de conexión: editar `Server`, `Port`, `User ID` y `Password=` en `WinFormsApp1/ConexionBD.vb` según la instalación local de MariaDB.
+2. Ajustar la cadena de conexión, solo si la instalación local de MariaDB no es `localhost`, usuario `root` sin contraseña: copiar `WinFormsApp1/conexion.ejemplo.txt` como `WinFormsApp1/conexion.txt` y editar `Server`, `Port`, `User ID` y `Password=`. El archivo está ignorado por git y se copia a la carpeta de salida al compilar.
 3. Abrir `WinFormsApp1.slnx` en Visual Studio y ejecutar, o desde una terminal:
 
 ```bash
@@ -290,7 +290,9 @@ dotnet run --project WinFormsApp1
 |---|---|---|---|
 | _Sin entradas detectadas — completar manualmente_ | La aplicación no lee variables de entorno (no hay usos de `GetEnvironmentVariable` en el código). | — | — |
 
-La única configuración es la constante `CADENA` de `WinFormsApp1/ConexionBD.vb` (servidor, puerto, base, usuario y contraseña).
+La única configuración es la cadena de conexión (servidor, puerto, base, usuario y contraseña). `Module ConexionBD` la lee de `conexion.txt`, junto al ejecutable, si el archivo existe; si no, usa la cadena por defecto (`localhost`, `root`, sin contraseña). El formato está en `WinFormsApp1/conexion.ejemplo.txt`.
+
+Los errores que ninguna pantalla atrapa, y los que se muestran con `Errores.MostrarError` (por ejemplo el del login), quedan registrados con fecha, usuario y detalle en `%LocalAppData%\TallerMecanico\errores.log`. Cuando la base de datos no responde, el mensaje dice "No se pudo conectar con la base de datos." en lugar del detalle del driver.
 
 ### appsettings por entorno
 
@@ -319,13 +321,7 @@ No aplica: aplicación de escritorio WinForms. No hay `Dockerfile` ni `docker-co
 
 ### Secrets
 
-La cadena de conexión, incluida la contraseña de la base, está escrita directamente en `WinFormsApp1/ConexionBD.vb` y la versión confirmada en git la contiene, en un repositorio público. No se usa gestor de secretos ni variables de entorno. Cada desarrollador mantiene su valor local con:
-
-```bash
-git update-index --skip-worktree WinFormsApp1/ConexionBD.vb
-```
-
-Esto evita confirmar cambios locales, pero no retira del historial el valor ya publicado. Recomendación pendiente: cambiar la contraseña de la base de desarrollo y mover la cadena a un archivo de configuración fuera del repositorio.
+La cadena de conexión de cada puesto va en `WinFormsApp1/conexion.txt`, que está en `.gitignore`: la contraseña local no se confirma en git. `ConexionBD.vb` solo contiene la cadena por defecto sin contraseña. No se usa gestor de secretos ni variables de entorno. Quien había marcado el archivo con `git update-index --skip-worktree WinFormsApp1/ConexionBD.vb` puede revertirlo con `--no-skip-worktree` y pasar su cadena a `conexion.txt`. El historial de git conserva una contraseña de desarrollo publicada en una versión anterior: la recomendación pendiente es cambiarla en esa base.
 
 ### Migrations / inicialización
 

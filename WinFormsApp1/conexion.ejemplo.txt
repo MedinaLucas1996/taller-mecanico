@@ -1,0 +1,5 @@
+# Cadena de conexion local del Taller Mecanico.
+# Copiar este archivo como "conexion.txt" en esta misma carpeta (WinFormsApp1) y ajustar los valores.
+# conexion.txt no se sube al repositorio y se copia solo a la carpeta de salida al compilar.
+# Si el archivo no existe, la aplicacion usa localhost / root / sin contrasena.
+Server=localhost;Port=3306;Database=taller_mecanico;User ID=root;Password=;

@@ -25,5 +25,12 @@ Namespace My
 
     Partial Friend Class MyApplication
 
+        Private Sub MyApplication_UnhandledException(sender As Object, e As UnhandledExceptionEventArgs) Handles Me.UnhandledException
+            'un error que ninguna pantalla atrapo: lo registro, aviso y dejo el sistema abierto
+            MostrarError("Ocurrió un error inesperado y la operación no se completó." & vbCrLf &
+                         "El detalle quedó registrado en: " & RutaRegistro, e.Exception)
+            e.ExitApplication = False
+        End Sub
+
     End Class
 End Namespace

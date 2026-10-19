@@ -26,6 +26,10 @@ Public Class FrmLogin
             Exit Sub
         End If
 
+        'mientras se verifica la clave muestro el reloj y evito un segundo click
+        Me.UseWaitCursor = True
+        btnIngresar.Enabled = False
+
         Try
             Using cn As New MySqlConnection(CADENA)
                 cn.Open()
@@ -75,9 +79,14 @@ Public Class FrmLogin
                     End If
                 End Using
             End Using
-        Catch ex As MySqlException
-            MessageBox.Show("Error al iniciar sesión: " & ex.Message)
+        Catch ex As Exception
+            'cualquier falla (base apagada, datos ilegibles) se avisa con un mensaje claro y queda registrada
+            MostrarError("No se pudo iniciar sesión.", ex)
             Exit Sub
+        Finally
+            'pase lo que pase, el boton y el cursor vuelven a la normalidad
+            Me.UseWaitCursor = False
+            btnIngresar.Enabled = True
         End Try
 
         Dim principal As New FrmPrincipal()
@@ -88,9 +97,6 @@ Public Class FrmLogin
 
     End Sub
 
-    Private Sub FrmLogin_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-
-    End Sub
     Private Sub FrmLogin_Shown(sender As Object, e As EventArgs) Handles MyBase.Shown
         'cargo el fondo y mantengo legibles los textos
         Try

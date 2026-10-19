@@ -36,6 +36,14 @@
     </None>
   </ItemGroup>
 
+  <!-- conexion.txt es la cadena de conexion de cada puesto; no esta en el repositorio y se copia solo si existe -->
+  <ItemGroup Condition="Exists('conexion.txt')">
+    <None Update="conexion.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Never</CopyToPublishDirectory>
+    </None>
+  </ItemGroup>
+
   <ItemGroup>
     <None Update="Recursos\fondo-login-underground.png;Recursos\musica-login.mp3">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

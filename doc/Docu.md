@@ -194,7 +194,7 @@ graph TD
             subgraph Pendientes["Opciones de menú sin pantalla"]
                 Pend["Servicios, Categorías,<br/>Mecánicos"]
             end
-            Conexion["Module ConexionBD<br/>(Public Const CADENA)"]
+            Conexion["Module ConexionBD<br/>(CADENA, de conexion.txt o por defecto)"]
             Impresion["Module Impresion<br/>(dibujo de reportes, sin SQL)"]
             Recursos["Recursos/<br/>fondo-login-underground.png<br/>musica-login.mp3"]
         end
@@ -376,7 +376,7 @@ sequenceDiagram
 | Decisión | Motivo | Fuente |
 |---|---|---|
 | Stack fijo: .NET 10 + VB.NET + MariaDB | Decisión del 2026-09-21. Descarta RDLC/ReportViewer, que solo funciona con .NET Framework. | `openspec/config.yaml` |
-| Estilo de programación orientada a eventos de la cátedra, aplicado a propósito: `Module ConexionBD` con `Public Const CADENA`; formularios del diseñador con `Handles`; SQL dentro de los eventos con `Using cn` / `Using cmd`; grillas con `DataTable.Load`; parámetros con `AddWithValue`; validaciones que terminan en `Exit Sub`; comentarios cortos en español. | Es la convención obligatoria del curso. **No es** una arquitectura Hexagonal, MVC ni por capas. | `openspec/config.yaml` |
+| Estilo de programación orientada a eventos de la cátedra, aplicado a propósito: `Module ConexionBD` con `CADENA` (leída de `conexion.txt` si existe); formularios del diseñador con `Handles`; SQL dentro de los eventos con `Using cn` / `Using cmd`; grillas con `DataTable.Load`; parámetros con `AddWithValue`; validaciones que terminan en `Exit Sub`; comentarios cortos en español. | Es la convención obligatoria del curso. **No es** una arquitectura Hexagonal, MVC ni por capas. | `openspec/config.yaml` |
 | Sin clases DAO ni proyecto de datos separado | La regla del estilo de cátedra reemplaza el apartado 3.2 de la especificación, que proponía `TallerMecanico.UI` y `TallerMecanico.Datos`. | `openspec/config.yaml`, `taller-mecanico-especificacion.md` |
 | Driver MySqlConnector (no `MySql.Data`) | Mejor soporte asincrónico y compatibilidad con MariaDB. | `taller-mecanico-especificacion.md` (11.3), `WinFormsApp1.vbproj` |
 | Baja lógica en clientes y vehículos (`activo = 0`) | Pueden tener órdenes de trabajo asociadas; no se borran. La baja se puede deshacer desde la misma pantalla ("Mostrar dados de baja" y "Reactivar"), porque el documento y la patente son únicos y el registro no se podría cargar de nuevo. | `FrmClientes.vb`, `FrmVehiculos.vb` |
@@ -405,7 +405,7 @@ sequenceDiagram
 | SQL dentro de los formularios (estilo de cátedra) | Código directo, fácil de seguir en el contexto del curso; coincide con la referencia de la cátedra. | Acopla interfaz y acceso a datos, repite consultas y manejo de errores entre formularios, y dificulta las pruebas automatizadas. | Adoptado, por requisito del curso. |
 | Capa de acceso a datos con clases DAO (propuesta original de la especificación 3.2) | Separa responsabilidades y facilita probar. | Contradice el estilo exigido por la cátedra. | Descartado. |
 | RDLC / ReportViewer | Diseñador visual integrado. | Requiere .NET Framework 4.8. | Descartado al fijar .NET 10. |
-| Cadena de conexión como constante en código | Simple, idéntica a la referencia del curso. | Mezcla credenciales con el código y obliga a ajustes locales por desarrollador. | Adoptado; riesgo registrado en el checklist. |
+| Cadena de conexión como constante en código | Simple, idéntica a la referencia del curso. | Mezcla credenciales con el código y obliga a ajustes locales por desarrollador. | Reemplazado: `CADENA` sigue en `Module ConexionBD`, pero se lee de `conexion.txt` (no versionado) si existe, y cae a la constante por defecto si no. |
 
 ---
 
@@ -486,8 +486,9 @@ Cobertura: no medida.
 | Tracing distribuido (OpenTelemetry) | ❌ | No aplica: aplicación de escritorio WinForms. |
 | Métricas | ❌ | No aplica: aplicación de escritorio WinForms. |
 | Tests E2E (Testcontainers/Playwright) | ❌ | No implementado. No hay pruebas automatizadas de ningún tipo. |
-| Configuración por entorno | ❌ | No implementado. Hay una única cadena de conexión constante en `ConexionBD.vb`; no hay `appsettings` ni variables de entorno. |
-| Secrets fuera del repo | ❌ | La cadena de conexión, incluida la contraseña, está en `ConexionBD.vb` y la versión confirmada está en un repositorio público. Cada desarrollador usa `git update-index --skip-worktree WinFormsApp1/ConexionBD.vb` para su valor local, lo que no retira el valor ya publicado. |
+| Configuración por entorno | ⚠️ | Parcial. `ConexionBD` lee la cadena de conexión de `conexion.txt` junto al ejecutable si existe; si no, usa la cadena por defecto. No hay `appsettings` ni variables de entorno. |
+| Secrets fuera del repo | ✅ | La cadena de cada puesto está en `WinFormsApp1/conexion.txt`, ignorado por git (formato en `conexion.ejemplo.txt`). El código solo contiene la cadena por defecto sin contraseña. El historial conserva una contraseña publicada en una versión anterior. |
+| Registro de errores | ✅ | `Module Errores`: los errores no atrapados (`MyApplication.UnhandledException`) y los mostrados con `MostrarError` quedan en `%LocalAppData%\TallerMecanico\errores.log`; un fallo de conexión se informa con un mensaje claro. |
 | Documentación de API (si aplica) | ❌ | No aplica: la aplicación no expone API. |
 
 **Leyenda:** ✅ presente y configurado · ⚠️ presente pero incompleto · ❌ falta
@@ -504,5 +505,5 @@ Pendiente según el estado actual del código y `taller-mecanico-especificacion.
 2. **ABM**: todos terminados (Clientes, Vehículos, Marcas y modelos, Servicios, Categorías, Mecánicos y Usuarios).
 3. **Flujo de orden de trabajo**: la recepción (asistente con fotos, que crea la orden y su primera fila de historial en una transacción), el tablero de estado de las órdenes y la gestión de la orden (líneas de presupuesto, aprobación del cliente total o parcial por línea, y cambios de estado con su fila de historial en una transacción) y la pantalla del mecánico (`FrmMisOrdenes`, con la gestión de la orden en modo mecánico) y la consulta de historial por patente (`FrmHistorial`) ya están terminados, igual que la impresión de la orden de trabajo, el presupuesto y el acta de recepción.
 4. **Reportes**: terminados los cuatro reportes impresos (orden de trabajo, presupuesto, acta de recepción y ficha del cliente, con `PrintDocument` y `PrintPreviewDialog`). Terminada la pantalla Tableros (indicadores y gráficos de gestión con ScottPlot: facturación, servicios más pedidos, horas por mecánico, órdenes por estado, vehículos en el taller y demoradas). Falta el reporte de tiempo por etapa.
-5. **Credenciales fuera del repositorio**: cambiar la contraseña de la base de desarrollo y mover la cadena de conexión a configuración local no versionada.
+5. **Credenciales fuera del repositorio**: hecho, la cadena de conexión local va en `conexion.txt` (no versionado). Falta cambiar la contraseña de la base de desarrollo que quedó publicada en el historial.
 6. **Pruebas automatizadas**: no hay plan definido. _TODO: completar manualmente_
