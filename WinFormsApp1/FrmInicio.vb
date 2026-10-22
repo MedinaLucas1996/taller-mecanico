@@ -15,8 +15,10 @@ Public Class FrmInicio
         End If
     End Sub
 
-    Sub CargarTarjetas()
-        'cuento las ordenes de cada tarjeta; las tres reglas son las mismas que usa la columna situacion de la grilla
+    Function CargarTarjetas() As Boolean
+        'cuento las ordenes de cada tarjeta; devuelve False si la base no respondio
+        'las tarjetas cuentan cada regla por separado: una orden finalizada con la fecha prometida vencida
+        'suma en "Demoradas" y en "Listas para entregar", mientras que la grilla la muestra una sola vez
         Dim hoy As Integer = 0
         Dim demoradas As Integer = 0
         Dim listas As Integer = 0
@@ -56,13 +58,16 @@ Public Class FrmInicio
                 End Using
             End Using
         Catch ex As Exception
-            MessageBox.Show("Error al cargar el resumen de órdenes: " & ex.Message)
+            'un solo aviso, claro si la base no responde, y queda en el registro de errores
+            MostrarError("No se pudo cargar el resumen de órdenes.", ex)
+            Return False
         End Try
 
         PintarCantidad(lblCantHoy, hoy, Color.Black)
         PintarCantidad(lblCantDemoradas, demoradas, Color.Firebrick)
         PintarCantidad(lblCantListas, listas, Color.Black)
-    End Sub
+        Return True
+    End Function
 
     Sub CargarOrdenes()
         'listo las ordenes de las tres tarjetas: primero las demoradas, despues las de hoy y al final las listas
@@ -139,7 +144,7 @@ Public Class FrmInicio
                 End Using
             End Using
         Catch ex As Exception
-            MessageBox.Show("Error al cargar las órdenes que requieren atención: " & ex.Message)
+            MostrarError("No se pudieron cargar las órdenes que requieren atención.", ex)
         End Try
     End Sub
 
@@ -152,7 +157,11 @@ Public Class FrmInicio
 
     Private Sub FrmInicio_Shown(sender As Object, e As EventArgs) Handles MyBase.Shown
         'cargo las tarjetas y la grilla recien ahora, cuando la pantalla ya tiene su tamaño final dentro de la ventana
-        CargarTarjetas()
+        'si las tarjetas no cargaron la base no responde: no intento la grilla, asi el aviso sale una sola vez
+        If Not CargarTarjetas() Then
+            dgvOrdenes.Visible = False
+            Exit Sub
+        End If
         CargarOrdenes()
     End Sub
 

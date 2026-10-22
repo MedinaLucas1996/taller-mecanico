@@ -21,11 +21,20 @@ Module Exportar
             ruta = dialogo.FileName
         End Using
 
+        'escribo primero un archivo temporal al lado y recien al terminar lo paso al nombre elegido:
+        'si la escritura falla a mitad de camino, el archivo que ya existia no queda reemplazado por uno cortado
+        Dim temporal As String = ruta & ".tmp"
         Try
-            Dim filas As Integer = EscribirCsv(grilla, ruta)
+            Dim filas As Integer = EscribirCsv(grilla, temporal)
+            File.Move(temporal, ruta, True)
             MessageBox.Show("Se exportaron " & filas & " filas a " & ruta)
         Catch ex As Exception
             'disco lleno, carpeta sin permiso o archivo abierto en otro programa
+            Try
+                If File.Exists(temporal) Then File.Delete(temporal)
+            Catch
+                'si no se puede borrar el temporal, queda junto al archivo; no cambia nada para el usuario
+            End Try
             MessageBox.Show("No se pudo guardar el archivo: " & ex.Message)
         End Try
     End Sub
