@@ -124,7 +124,8 @@ Public Class FrmPrincipal
         lblUsuario.Text = "Usuario: " & Sesion.NombreCompleto & " (" & Sesion.Rol & ")"
 
         'junto los botones del menu en el orden en que se ven
-        botonesMenu = {btnInicio, btnMisOrdenes, btnRecepcion, btnOrdenes, btnHistorial, btnTableros, btnClientes, btnVehiculos,
+        botonesMenu = {btnInicio, btnMisOrdenes, btnRecepcion, btnOrdenes, btnHistorial, btnServicesPorVencer, btnTableros,
+                       btnClientes, btnVehiculos,
                        btnMarcasModelos, btnServicios, btnCategorias, btnMecanicos, btnUsuarios}
 
         'la fuente normal es la del diseñador; la de la opcion activa es la misma en negrita
@@ -137,6 +138,7 @@ Public Class FrmPrincipal
         btnRecepcion.Image = LeerIcono("recepcion.png")
         btnOrdenes.Image = LeerIcono("ordenes.png")
         btnHistorial.Image = LeerIcono("historial.png")
+        btnServicesPorVencer.Image = LeerIcono("avisos.png")
         btnTableros.Image = LeerIcono("reportes.png")
         btnClientes.Image = LeerIcono("clientes.png")
         btnVehiculos.Image = LeerIcono("vehiculos.png")
@@ -159,6 +161,7 @@ Public Class FrmPrincipal
             btnRecepcion.Visible = True
             btnOrdenes.Visible = True
             btnHistorial.Visible = True
+            btnServicesPorVencer.Visible = True
             verDatosMaestros = True
             btnClientes.Visible = True
             btnVehiculos.Visible = True
@@ -178,6 +181,7 @@ Public Class FrmPrincipal
             btnRecepcion.Visible = True
             btnOrdenes.Visible = True
             btnHistorial.Visible = True
+            btnServicesPorVencer.Visible = True
             verDatosMaestros = True
             btnClientes.Visible = True
             btnVehiculos.Visible = True
@@ -274,6 +278,10 @@ Public Class FrmPrincipal
 
     Private Sub btnHistorial_Click(sender As Object, e As EventArgs) Handles btnHistorial.Click
         AbrirFormulario(New FrmHistorial(), CType(sender, Button))
+    End Sub
+
+    Private Sub btnServicesPorVencer_Click(sender As Object, e As EventArgs) Handles btnServicesPorVencer.Click
+        AbrirFormulario(New FrmServicesPorVencer(), CType(sender, Button))
     End Sub
 
     Private Sub btnTableros_Click(sender As Object, e As EventArgs) Handles btnTableros.Click

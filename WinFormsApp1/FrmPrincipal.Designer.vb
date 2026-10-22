@@ -40,6 +40,7 @@ Partial Class FrmPrincipal
         btnRecepcion = New Button()
         btnOrdenes = New Button()
         btnHistorial = New Button()
+        btnServicesPorVencer = New Button()
         lblTituloReportes = New Label()
         btnTableros = New Button()
         panelLogo = New Panel()
@@ -295,12 +296,13 @@ Partial Class FrmPrincipal
         panelMenuArriba.Controls.Add(btnRecepcion, 0, 3)
         panelMenuArriba.Controls.Add(btnOrdenes, 0, 4)
         panelMenuArriba.Controls.Add(btnHistorial, 0, 5)
-        panelMenuArriba.Controls.Add(lblTituloReportes, 0, 6)
-        panelMenuArriba.Controls.Add(btnTableros, 0, 7)
+        panelMenuArriba.Controls.Add(btnServicesPorVencer, 0, 6)
+        panelMenuArriba.Controls.Add(lblTituloReportes, 0, 7)
+        panelMenuArriba.Controls.Add(btnTableros, 0, 8)
         panelMenuArriba.Dock = DockStyle.Top
         panelMenuArriba.Location = New Point(0, 76)
         panelMenuArriba.Name = "panelMenuArriba"
-        panelMenuArriba.RowCount = 8
+        panelMenuArriba.RowCount = 9
         panelMenuArriba.RowStyles.Add(New RowStyle())
         panelMenuArriba.RowStyles.Add(New RowStyle())
         panelMenuArriba.RowStyles.Add(New RowStyle())
@@ -309,7 +311,8 @@ Partial Class FrmPrincipal
         panelMenuArriba.RowStyles.Add(New RowStyle())
         panelMenuArriba.RowStyles.Add(New RowStyle())
         panelMenuArriba.RowStyles.Add(New RowStyle())
-        panelMenuArriba.Size = New Size(230, 272)
+        panelMenuArriba.RowStyles.Add(New RowStyle())
+        panelMenuArriba.Size = New Size(230, 312)
         panelMenuArriba.TabIndex = 1
         '
         ' lblTituloOperaciones
@@ -446,17 +449,41 @@ Partial Class FrmPrincipal
         btnHistorial.UseVisualStyleBackColor = False
         btnHistorial.Visible = False
         '
+        ' btnServicesPorVencer
+        '
+        btnServicesPorVencer.Anchor = AnchorStyles.Left Or AnchorStyles.Right
+        btnServicesPorVencer.BackColor = Color.FromArgb(CByte(30), CByte(39), CByte(46))
+        btnServicesPorVencer.Cursor = Cursors.Hand
+        btnServicesPorVencer.FlatAppearance.BorderSize = 0
+        btnServicesPorVencer.FlatAppearance.MouseOverBackColor = Color.FromArgb(CByte(52), CByte(73), CByte(94))
+        btnServicesPorVencer.FlatStyle = FlatStyle.Flat
+        btnServicesPorVencer.Font = New Font("Segoe UI", 10F)
+        btnServicesPorVencer.ForeColor = Color.White
+        btnServicesPorVencer.ImageAlign = ContentAlignment.MiddleLeft
+        btnServicesPorVencer.Location = New Point(0, 236)
+        btnServicesPorVencer.Margin = New Padding(0)
+        btnServicesPorVencer.Name = "btnServicesPorVencer"
+        btnServicesPorVencer.Padding = New Padding(16, 0, 0, 0)
+        btnServicesPorVencer.Size = New Size(230, 40)
+        btnServicesPorVencer.TabIndex = 4
+        btnServicesPorVencer.Tag = "Services por vencer"
+        btnServicesPorVencer.Text = "  Services por vencer"
+        btnServicesPorVencer.TextAlign = ContentAlignment.MiddleLeft
+        btnServicesPorVencer.TextImageRelation = TextImageRelation.ImageBeforeText
+        btnServicesPorVencer.UseVisualStyleBackColor = False
+        btnServicesPorVencer.Visible = False
+        '
         ' lblTituloReportes
         '
         lblTituloReportes.Anchor = AnchorStyles.Left Or AnchorStyles.Right
         lblTituloReportes.Font = New Font("Segoe UI", 9F, FontStyle.Bold)
         lblTituloReportes.ForeColor = Color.FromArgb(CByte(150), CByte(160), CByte(170))
-        lblTituloReportes.Location = New Point(0, 236)
+        lblTituloReportes.Location = New Point(0, 276)
         lblTituloReportes.Margin = New Padding(0)
         lblTituloReportes.Name = "lblTituloReportes"
         lblTituloReportes.Padding = New Padding(20, 13, 0, 0)
         lblTituloReportes.Size = New Size(230, 36)
-        lblTituloReportes.TabIndex = 4
+        lblTituloReportes.TabIndex = 5
         lblTituloReportes.Text = "REPORTES"
         lblTituloReportes.Visible = False
         '
@@ -471,12 +498,12 @@ Partial Class FrmPrincipal
         btnTableros.Font = New Font("Segoe UI", 10F)
         btnTableros.ForeColor = Color.White
         btnTableros.ImageAlign = ContentAlignment.MiddleLeft
-        btnTableros.Location = New Point(0, 272)
+        btnTableros.Location = New Point(0, 312)
         btnTableros.Margin = New Padding(0)
         btnTableros.Name = "btnTableros"
         btnTableros.Padding = New Padding(16, 0, 0, 0)
         btnTableros.Size = New Size(230, 40)
-        btnTableros.TabIndex = 5
+        btnTableros.TabIndex = 6
         btnTableros.Tag = "Tableros"
         btnTableros.Text = "  Tableros"
         btnTableros.TextAlign = ContentAlignment.MiddleLeft
@@ -666,6 +693,7 @@ Partial Class FrmPrincipal
     Friend WithEvents btnRecepcion As Button
     Friend WithEvents btnOrdenes As Button
     Friend WithEvents btnHistorial As Button
+    Friend WithEvents btnServicesPorVencer As Button
     Friend WithEvents lblTituloReportes As Label
     Friend WithEvents btnTableros As Button
     Friend WithEvents panelLogo As Panel
