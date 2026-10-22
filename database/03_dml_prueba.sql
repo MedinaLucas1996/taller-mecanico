@@ -106,3 +106,11 @@ VALUES
     (12, 'ELE-ESC-01', 'Diagnóstico por escáner',                 4, 30000.00,  0.75),
     (13, 'REF-RAD-01', 'Limpieza de radiador',                    5, 55000.00,  2.00),
     (14, 'REF-LIQ-01', 'Cambio de líquido refrigerante',          5, 28000.00,  0.75);
+
+-- Los servicios que se repiten llevan su intervalo: generan los avisos
+-- de service. Los km son solo una referencia para el mensaje.
+UPDATE servicio SET intervalo_meses = 6,  intervalo_km = 10000 WHERE id_servicio = 1;
+UPDATE servicio SET intervalo_meses = 48, intervalo_km = 60000 WHERE id_servicio = 2;
+UPDATE servicio SET intervalo_meses = 24, intervalo_km = NULL  WHERE id_servicio = 7;
+UPDATE servicio SET intervalo_meses = 12, intervalo_km = 10000 WHERE id_servicio = 9;
+UPDATE servicio SET intervalo_meses = 24, intervalo_km = NULL  WHERE id_servicio = 14;

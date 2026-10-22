@@ -34,6 +34,9 @@ Partial Class FrmInicio
         pnlListas = New Panel()
         lblNomListas = New Label()
         lblCantListas = New Label()
+        pnlServices = New Panel()
+        lblNomServices = New Label()
+        lblCantServices = New Label()
         dgvOrdenes = New DataGridView()
         lblVacio = New Label()
         btnIrOrdenes = New Button()
@@ -41,6 +44,7 @@ Partial Class FrmInicio
         pnlHoy.SuspendLayout()
         pnlDemoradas.SuspendLayout()
         pnlListas.SuspendLayout()
+        pnlServices.SuspendLayout()
         CType(dgvOrdenes, ComponentModel.ISupportInitialize).BeginInit()
         SuspendLayout()
         '
@@ -68,13 +72,15 @@ Partial Class FrmInicio
         ' tlpTarjetas
         '
         tlpTarjetas.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
-        tlpTarjetas.ColumnCount = 3
-        tlpTarjetas.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 33.33F))
-        tlpTarjetas.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 33.33F))
-        tlpTarjetas.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 33.34F))
+        tlpTarjetas.ColumnCount = 4
+        tlpTarjetas.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 25F))
+        tlpTarjetas.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 25F))
+        tlpTarjetas.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 25F))
+        tlpTarjetas.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 25F))
         tlpTarjetas.Controls.Add(pnlHoy, 0, 0)
         tlpTarjetas.Controls.Add(pnlDemoradas, 1, 0)
         tlpTarjetas.Controls.Add(pnlListas, 2, 0)
+        tlpTarjetas.Controls.Add(pnlServices, 3, 0)
         tlpTarjetas.Location = New Point(30, 100)
         tlpTarjetas.Name = "tlpTarjetas"
         tlpTarjetas.RowCount = 1
@@ -159,7 +165,7 @@ Partial Class FrmInicio
         pnlListas.Controls.Add(lblCantListas)
         pnlListas.Dock = DockStyle.Fill
         pnlListas.Location = New Point(538, 0)
-        pnlListas.Margin = New Padding(0, 0, 0, 0)
+        pnlListas.Margin = New Padding(0, 0, 8, 0)
         pnlListas.Name = "pnlListas"
         pnlListas.Size = New Size(272, 90)
         pnlListas.TabIndex = 2
@@ -186,6 +192,44 @@ Partial Class FrmInicio
         lblCantListas.TabIndex = 0
         lblCantListas.Text = "0"
         lblCantListas.TextAlign = ContentAlignment.BottomCenter
+        '
+        ' pnlServices
+        '
+        pnlServices.BackColor = Color.White
+        pnlServices.Controls.Add(lblNomServices)
+        pnlServices.Controls.Add(lblCantServices)
+        pnlServices.Cursor = Cursors.Hand
+        pnlServices.Dock = DockStyle.Fill
+        pnlServices.Location = New Point(609, 0)
+        pnlServices.Margin = New Padding(0, 0, 0, 0)
+        pnlServices.Name = "pnlServices"
+        pnlServices.Size = New Size(201, 90)
+        pnlServices.TabIndex = 3
+        '
+        ' lblNomServices
+        '
+        lblNomServices.Cursor = Cursors.Hand
+        lblNomServices.Dock = DockStyle.Fill
+        lblNomServices.Font = New Font("Segoe UI", 9.5F)
+        lblNomServices.ForeColor = Color.DimGray
+        lblNomServices.Location = New Point(0, 56)
+        lblNomServices.Name = "lblNomServices"
+        lblNomServices.Size = New Size(201, 34)
+        lblNomServices.TabIndex = 1
+        lblNomServices.Text = "Services vencidos sin avisar"
+        lblNomServices.TextAlign = ContentAlignment.TopCenter
+        '
+        ' lblCantServices
+        '
+        lblCantServices.Cursor = Cursors.Hand
+        lblCantServices.Dock = DockStyle.Top
+        lblCantServices.Font = New Font("Segoe UI", 22F, FontStyle.Bold)
+        lblCantServices.Location = New Point(0, 0)
+        lblCantServices.Name = "lblCantServices"
+        lblCantServices.Size = New Size(201, 56)
+        lblCantServices.TabIndex = 0
+        lblCantServices.Text = "0"
+        lblCantServices.TextAlign = ContentAlignment.BottomCenter
         '
         ' dgvOrdenes
         '
@@ -257,6 +301,7 @@ Partial Class FrmInicio
         pnlHoy.ResumeLayout(False)
         pnlDemoradas.ResumeLayout(False)
         pnlListas.ResumeLayout(False)
+        pnlServices.ResumeLayout(False)
         CType(dgvOrdenes, ComponentModel.ISupportInitialize).EndInit()
         ResumeLayout(False)
         PerformLayout()
@@ -274,6 +319,9 @@ Partial Class FrmInicio
     Friend WithEvents pnlListas As Panel
     Friend WithEvents lblNomListas As Label
     Friend WithEvents lblCantListas As Label
+    Friend WithEvents pnlServices As Panel
+    Friend WithEvents lblNomServices As Label
+    Friend WithEvents lblCantServices As Label
     Friend WithEvents dgvOrdenes As DataGridView
     Friend WithEvents lblVacio As Label
     Friend WithEvents btnIrOrdenes As Button

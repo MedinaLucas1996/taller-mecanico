@@ -69,6 +69,34 @@ Public Class FrmInicio
         Return True
     End Function
 
+    Sub CargarServices()
+        'cuento los services vencidos que todavia no se avisaron en los ultimos dias, con la misma regla
+        'que la pantalla Services por vencer
+        'va aparte de las otras tarjetas: si la base todavia no tiene la migracion 10, el resto del inicio sigue igual
+        Dim cantidad As Integer = 0
+        Try
+            Using cn As New MySqlConnection(CADENA)
+                cn.Open()
+                Dim consulta As String =
+                    "SELECT COUNT(*) FROM (" & ConsultaServices() & ") AS x WHERE x.avisado_reciente = 0;"
+                Using cmd As New MySqlCommand(consulta, cn)
+                    cmd.Parameters.AddWithValue("@desde", New Date(1900, 1, 1))
+                    cmd.Parameters.AddWithValue("@hasta", Date.Today)
+                    cmd.Parameters.AddWithValue("@limite_aviso", Date.Now.AddDays(-DIAS_AVISO_RECIENTE))
+                    cantidad = Convert.ToInt32(cmd.ExecuteScalar())
+                End Using
+            End Using
+        Catch ex As Exception
+            'la tarjeta queda con un guion y el detalle va al registro de errores, sin otro mensaje
+            RegistrarError("No se pudieron contar los services vencidos.", ex)
+            lblCantServices.Text = "-"
+            lblCantServices.ForeColor = Color.Silver
+            Exit Sub
+        End Try
+
+        PintarCantidad(lblCantServices, cantidad, Color.Firebrick)
+    End Sub
+
     Sub CargarOrdenes()
         'listo las ordenes de las tres tarjetas: primero las demoradas, despues las de hoy y al final las listas
         Try
@@ -162,6 +190,7 @@ Public Class FrmInicio
             dgvOrdenes.Visible = False
             Exit Sub
         End If
+        CargarServices()
         CargarOrdenes()
     End Sub
 
@@ -188,6 +217,13 @@ Public Class FrmInicio
     Private Sub btnIrOrdenes_Click(sender As Object, e As EventArgs) Handles btnIrOrdenes.Click
         'abro las ordenes de trabajo a traves del menu principal, asi la opcion queda resaltada como si la hubieran elegido
         DirectCast(Me.ParentForm, FrmPrincipal).btnOrdenes.PerformClick()
+    End Sub
+
+    Private Sub TarjetaServices_Click(sender As Object, e As EventArgs) Handles _
+        pnlServices.Click, lblCantServices.Click, lblNomServices.Click
+
+        'la tarjeta de services abre su pantalla a traves del menu principal, igual que el boton de ordenes
+        DirectCast(Me.ParentForm, FrmPrincipal).btnServicesPorVencer.PerformClick()
     End Sub
 
     Private Sub FrmInicio_FormClosing(sender As Object, e As FormClosingEventArgs) Handles MyBase.FormClosing

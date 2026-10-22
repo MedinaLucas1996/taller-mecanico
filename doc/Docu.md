@@ -18,7 +18,7 @@ Repositorio: https://github.com/MedinaLucas1996/taller-mecanico (público).
 - El menú se filtra por rol. Los botones del menú y los tres títulos de sección tienen `Visible = False` en el diseñador, y `FrmPrincipal_Load` muestra los que corresponden con un bloque `If Sesion.Rol = "..." Then` por rol (ver [Menú por rol](#menú-por-rol)). Un rol desconocido no ve ninguna opción del menú.
 - Menú lateral (`panelMenu`, acoplado a la izquierda): tiene tres paneles declarados en el diseñador.
   - `panelLogo` (arriba): el botón `btnMenu`, que contrae y expande el menú, y el nombre del sistema.
-  - `panelMenuArriba` (arriba): Operaciones (Recepción, Órdenes de trabajo, Historial) y Reportes (Tableros), cada título sobre sus botones.
+  - `panelMenuArriba` (arriba): Operaciones (Inicio, Mis órdenes, Recepción, Órdenes de trabajo, Historial, Services por vencer) y Reportes (Tableros), cada título sobre sus botones.
   - `panelMenuAbajo` (acoplado al borde inferior): Datos maestros (Clientes, Vehículos, Marcas y modelos, Servicios, Categorías, Mecánicos, Usuarios). Sus botones se acoplan hacia abajo, de modo que las opciones ocultas por rol no dejan huecos y el espacio libre queda entre Reportes y Datos maestros.
   - Iconos: `LeerIcono` lee en `FrmPrincipal_Load` cada PNG de `Recursos\iconos` junto al ejecutable (el proyecto los copia a la carpeta de salida con `Recursos\iconos\*`). Si un archivo falta o no se puede leer, el botón queda sin icono. Los iconos provienen de Lucide (licencia ISC, texto en `Recursos/iconos/LICENCIA-lucide.txt`).
   - Contraer y expandir: `AplicarMenu` cambia el ancho del menú entre 230 y 56. Contraído oculta los títulos de sección y el nombre del sistema, deja en cada botón solo el icono centrado y le asigna su nombre como tooltip (`tipMenu`); un botón sin icono muestra su inicial. El nombre de cada opción se guarda una sola vez, en el `Tag` del botón. Como el panel de contenido está acoplado con `Fill`, ocupa el ancho que el menú libera. El estado no se guarda: el menú arranca siempre expandido.
@@ -37,7 +37,7 @@ Repositorio: https://github.com/MedinaLucas1996/taller-mecanico (público).
   - **Usuarios** (`FrmUsuarios`, solo administrador): alta, modificación, baja lógica (`activo = 0`) y reactivación, con confirmación; la grilla lista usuario, nombre completo, rol y mecánico asociado, y nunca lee `hash_contrasena` ni `salt`; búsqueda en vivo por usuario o nombre completo. Al crear, la contraseña es obligatoria y se guarda con `Seguridad.GenerarSalt` + `Seguridad.HashearClave`; al modificar, una contraseña vacía conserva la actual y una contraseña escrita genera un salt y un hash nuevos. El combo de rol (`ADMINISTRADOR`, `OPERADOR`, `MECANICO`) habilita el combo de mecánico solo para `MECANICO` y ese rol exige elegir un mecánico; para los demás roles `id_mecanico` se guarda como NULL (regla 8.6, respaldada por el CHECK `val_usuario_rol_mecanico`). El error 1062 se traduce al mensaje de nombre de usuario duplicado, que puede corresponder a un usuario dado de baja. Reglas de autoprotección: el usuario logueado no puede darse de baja ni cambiar su propio rol (la tarjeta lo avisa en una línea cuando se abre el propio usuario), y si modifica su propio usuario se actualizan `Sesion.NombreUsuario` y `Sesion.NombreCompleto`. Como respaldo del menú, al abrirse con un rol distinto de `ADMINISTRADOR` muestra un aviso y deshabilita el formulario.
   - Modelo común de Vehículos, Usuarios, Mecánicos, Servicios y Categorías: repiten la pantalla de Clientes con los mismos nombres. Cabecera con el botón "Nuevo …"; tarjeta de lista (búsqueda en vivo, casilla "Mostrar dados de baja" y grilla sin ID, con los dados de baja al final y en gris, sin columna "Activo"); tarjeta de registro con título, etiqueta de estado, campos en `tlpCampos`, línea de contexto y acciones al pie. Los tres modos (ayuda, edición, alta) reemplazan a los botones Guardar / Modificar / Limpiar. Rutinas: `Cargar…`, `MarcarFila`, `RefrescarRegistro`, `MostrarAyuda`, `CargarCampos`, `MostrarRegistro`, `NuevoRegistro`, `DescartarCambios`, `ElegirFila`, `ValidarCampos`; manejadores: `Load`, `Shown`, `FormClosing`, filtro, casilla, `DataBindingComplete`, `ColumnHeaderMouseClick` (orden programado con `cargando` en True), `Sorted`, `SelectionChanged`, `CellClick`, cambios de campos, nuevo, cancelar, guardar y baja. Un registro inactivo se puede abrir y modificar. La baja y la reactivación piden una sola confirmación, que avisa si hay cambios sin guardar, y usan en las seis pantallas la misma transacción (también en Mecánicos, que antes decidía con el estado de la pantalla): se vuelve a leer `activo` bloqueando solo esa fila, no se guarda nada si otro puesto ya cambió el estado, y `Commit` va después del bloque que hace el `Rollback`. En Usuarios, además, no se puede dar de baja el propio usuario ni al único administrador activo, y un usuario de rol `MECANICO` no se reactiva si su mecánico asociado está dado de baja.
   - **Servicios** (`FrmServicios`, solo administrador): alta, modificación, baja lógica y reactivación sobre la tabla `servicio`. Como respaldo del menú, al abrirse con un rol distinto de `ADMINISTRADOR` muestra un aviso y deshabilita el formulario.
-    - Campos: código (obligatorio, hasta 30 caracteres, se guarda sin espacios sobrantes y en mayúsculas), descripción (obligatoria, hasta 200), categoría (obligatoria), precio (obligatorio, dos decimales, puede ser cero) y tiempo estimado en horas (opcional, hasta 999,99; con la casilla sin marcar se guarda como NULL).
+    - Campos: código (obligatorio, hasta 30 caracteres, se guarda sin espacios sobrantes y en mayúsculas), descripción (obligatoria, hasta 200), categoría (obligatoria), precio (obligatorio, dos decimales, puede ser cero), tiempo estimado en horas (opcional, hasta 999,99; con la casilla sin marcar se guarda como NULL) e intervalo de repetición: "Repetir cada (meses)" (1 a 120) y "Repetir cada (km)" (1 a 500.000), cada uno con su casilla y NULL sin marcar. Los km sin los meses se rechazan, porque el aviso de service sale por fecha. La restricción `val_servicio_intervalos` repite esos rangos en la base.
     - Categoría: el combo lista las categorías activas por nombre. Si el servicio seleccionado tiene una categoría dada de baja, esa categoría se agrega al combo marcada como "(inactiva)".
     - Grilla: código, descripción, categoría, precio (moneda, a la derecha) y horas. Búsqueda en vivo por código, descripción o categoría. La tarjeta avisa en una línea cuando la categoría del servicio está dada de baja.
     - Código repetido: lo impide la restricción única `un_servicio_codigo`; el error 1062 se traduce a un mensaje, que aclara que el código puede ser de un servicio dado de baja.
@@ -136,6 +136,12 @@ Repositorio: https://github.com/MedinaLucas1996/taller-mecanico (público).
     - Gráficos, cada uno en su rutina con su `Try` y su `MessageBox`, como `FormTablero` de la cátedra (listas que se pasan a arreglos, `Plot.Add.Bars`, `Plot.Add.Pie` con `PieSlice`, `Title`, `HideGrid` / `HideAxesAndGrid`, `Refresh`): `GraficoFacturacion` (barras de los últimos 6 meses terminando en el mes de "Hasta", con el mes abreviado como etiqueta, por ejemplo "may 26"; no depende de "Desde"), `GraficoServicios` (barras horizontales, los 8 servicios con más cantidad en líneas aprobadas de las órdenes recibidas en el período, el más pedido arriba), `GraficoHoras` (barras agrupadas por mecánico: horas estimadas = `tiempo_estimado_horas * cantidad` y horas reales = `horas_reales`, de las líneas aprobadas de las órdenes con `fecha_finalizacion` en el período, con leyenda) y `GraficoEstados` (torta de las órdenes recibidas en el período por estado actual, con los colores de `ColorEstado` del tablero de órdenes un 15 % más oscuros, y leyenda).
     - Antes de dibujar, `PrepararGrafico` llama a `FormsPlot.Reset()` en lugar de `Plot.Clear()`: además de los datos borra las etiquetas manuales de los ejes, la leyenda y los ejes ocultos del dibujo anterior. También fija la fuente Segoe UI y el fondo blanco, y desactiva el zoom y el arrastre con el mouse. Sin datos, `MostrarSinDatos` deja solo el título y el aviso "Sin datos para el período". El título se pone después de `HideAxesAndGrid`, porque ocultar los ejes también oculta el título.
     - El formulario no importa el espacio de nombres `ScottPlot` (a diferencia del ejemplo de clase) porque su `Color` se confundiría con `System.Drawing.Color`; los tipos se escriben completos (`ScottPlot.Bar`, `ScottPlot.PieSlice`).
+  - **Services por vencer** (`FrmServicesPorVencer`, administrador y operador): avisos de service por WhatsApp. `Load` muestra un aviso y deshabilita la pantalla con otro rol; la grilla se carga en `Shown`.
+    - Regla (`Module Recordatorios`, `ConsultaServices`, compartida con la tarjeta de Inicio): por cada vehículo y servicio con `intervalo_meses`, la última orden `ENTREGADA` con una línea aprobada de ese servicio (`ROW_NUMBER` por vehículo y servicio, ordenado por `fecha_entrega`). Vence en `fecha_entrega` más el intervalo; el próximo km es `km_ingreso` más `intervalo_km`, solo como referencia. Quedan afuera los servicios, vehículos y clientes dados de baja y los vehículos con una orden en un estado no final. El cliente es el titular actual del vehículo. El aviso que se muestra es el último de `aviso_service` posterior a esa entrega.
+    - Filtro: "Vencidos" (vence hasta hoy) y "Vencen en los próximos 30 días" (`DIAS_PROXIMOS`, de mañana en adelante). El orden pone primero los no avisados en los últimos 15 días (`DIAS_AVISO_RECIENTE`) y después por vencimiento; los avisados hace poco van en gris. El subtítulo cuenta services, vehículos y avisados recientes.
+    - "Copiar mensaje" (o doble clic): junta todas las filas listadas del vehículo elegido y arma el mensaje (`ArmarMensaje`): saludo con el nombre del cliente y un emoji, el vehículo y la patente, el service con la fecha y los km del último (o una lista con viñetas si son varios), una línea sobre mantener el service al día con la oferta de un turno, y la despedida con `NOMBRE_TALLER`. Con la lista de próximos dice "se acerca" y la fecha de vencimiento. Si alguno de esos services ya tiene un aviso, pregunta antes. Copia con `Clipboard.SetText` y después inserta una fila de `aviso_service` por service, en una transacción; si la base falla avisa que el mensaje quedó copiado sin registrar. Vuelve a cargar la lista.
+    - "Exportar" usa `ExportarGrilla` del `Module Exportar`.
+  - **Tarjeta de Inicio**: `FrmInicio.CargarServices` cuenta con la misma consulta los services vencidos sin aviso en los últimos 15 días. Va en su propio `Try`: con una base sin la migración 10 la tarjeta muestra un guion, el error queda en el registro y el resto de Inicio carga igual. Un clic en la tarjeta abre la pantalla a través de `btnServicesPorVencer` del menú.
 
 - Pendiente en el flujo de la orden de trabajo: diagnóstico escrito por el mecánico antes del presupuesto y fotos cargadas por el mecánico (necesitan cambios en la base).
 - Pendiente en los reportes de gestión: tiempo por etapa (reporte 7 de la especificación).
@@ -150,6 +156,7 @@ Opciones del menú principal que ve cada rol (`FrmPrincipal_Load`):
 | Recepción | Sí | Sí | No |
 | Órdenes de trabajo | Sí | Sí | No |
 | Historial | Sí | Sí | Sí |
+| Services por vencer | Sí | Sí | No |
 | Clientes | Sí | Sí | No |
 | Vehículos | Sí | Sí | No |
 | Marcas y modelos | Sí | Sí | No |
@@ -194,12 +201,14 @@ graph TD
                 Ordenes["FrmOrdenes<br/>(tablero de órdenes)"]
                 Historial["FrmHistorial<br/>(historial por patente)"]
                 Tableros["FrmTableros<br/>(tablero de gestión)"]
+                Avisos["FrmServicesPorVencer<br/>(avisos de service)"]
             end
             subgraph Pendientes["Opciones de menú sin pantalla"]
                 Pend["Servicios, Categorías,<br/>Mecánicos"]
             end
             Conexion["Module ConexionBD<br/>(CADENA, de conexion.txt o por defecto)"]
             Impresion["Module Impresion<br/>(dibujo de reportes, sin SQL)"]
+            Recordatorios["Module Recordatorios<br/>(consulta de services vencidos)"]
             Recursos["Recursos/<br/>fondo-login-underground.png<br/>musica-login.mp3"]
         end
         Driver["MySqlConnector 2.6.2"]
@@ -207,8 +216,8 @@ graph TD
     end
 
     subgraph Datos["Base de datos"]
-        DB[("MariaDB: taller_mecanico<br/>14 tablas")]
-        Scripts["database/<br/>scripts 01 a 08"]
+        DB[("MariaDB: taller_mecanico<br/>15 tablas")]
+        Scripts["database/<br/>scripts 01 a 11"]
     end
 
     Login --> Principal
@@ -235,6 +244,10 @@ graph TD
     Tableros --> Conexion
     Tableros -.-> Sesion
     Tableros --> Graficos
+    Principal -->|"ADMINISTRADOR y OPERADOR"| Avisos
+    Avisos --> Recordatorios
+    Avisos --> Conexion
+    Avisos -.-> Sesion
     Clientes --> Conexion
     Clientes -->|"ficha impresa"| Impresion
     Vehiculos --> Conexion
@@ -263,13 +276,14 @@ graph TD
 
 ## Modelo de dominio
 
-El modelo tiene **14 tablas**. `taller-mecanico.dbml` describe las 12 del modelo original; las tablas `ot_foto` (fotos de recepción) y `ot_foto_trabajo` (fotos del trabajo) y las columnas `orden_trabajo.fecha_prometida` y `orden_trabajo.diagnostico` se agregaron después y están definidas en `database/01_ddl_estructura.sql` y en la sección 7 de `taller-mecanico-especificacion.md`, no en el archivo DBML. Los scripts de `database/` implementan el modelo sobre MariaDB con InnoDB, `utf8mb4` y todas las claves foráneas en `ON UPDATE RESTRICT`. Una base creada con la versión anterior de los scripts (12 tablas) debe ejecutar `database/07_recepcion_fotos.sql`, que agrega la columna y la tabla sin tocar los datos existentes; una de 13 tablas, `database/09_diagnostico_fotos.sql`, que agrega el diagnóstico y las fotos del trabajo de la misma forma.
+El modelo tiene **15 tablas**. `taller-mecanico.dbml` describe las 12 del modelo original; las tablas `ot_foto` (fotos de recepción), `ot_foto_trabajo` (fotos del trabajo) y `aviso_service` (avisos de service) y las columnas `orden_trabajo.fecha_prometida`, `orden_trabajo.diagnostico`, `servicio.intervalo_meses` y `servicio.intervalo_km` se agregaron después y están definidas en `database/01_ddl_estructura.sql` y en la sección 7 de `taller-mecanico-especificacion.md`, no en el archivo DBML. Los scripts de `database/` implementan el modelo sobre MariaDB con InnoDB, `utf8mb4` y todas las claves foráneas en `ON UPDATE RESTRICT`. Una base creada con la versión anterior de los scripts (12 tablas) debe ejecutar `database/07_recepcion_fotos.sql`, que agrega la columna y la tabla sin tocar los datos existentes; una de 13 tablas, `database/09_diagnostico_fotos.sql`, que agrega el diagnóstico y las fotos del trabajo de la misma forma.
 
 | Grupo | Tablas |
 |---|---|
 | Seguridad | `usuario` (roles `ADMINISTRADOR`, `OPERADOR`, `MECANICO`; vínculo opcional con `mecanico`; `hash_contrasena` y `salt` en Base64 para PBKDF2) |
 | Clientes y vehículos | `cliente`, `marca`, `modelo`, `vehiculo`, `mecanico` |
-| Catálogo de servicios | `categoria_servicio`, `servicio` |
+| Catálogo de servicios | `categoria_servicio`, `servicio` (incluye `intervalo_meses` e `intervalo_km`, opcionales: cada cuánto se repite el servicio) |
+| Avisos de service | `aviso_service` (vehículo, servicio, usuario y fecha de cada aviso enviado al cliente) |
 | Orden de trabajo y presupuesto | `estado_ot`, `orden_trabajo` (incluye `fecha_prometida`, fecha prometida de entrega, y `diagnostico`, lo que encontró el mecánico antes del presupuesto; las dos opcionales), `ot_detalle`, `ot_historial_estado` |
 | Fotos de recepción | `ot_foto` (orden, ángulo `FRENTE`, `TRASERA`, `LATERAL_IZQUIERDO`, `LATERAL_DERECHO` o `TABLERO`, imagen JPEG en `LONGBLOB`, usuario y fecha; una sola foto por orden y ángulo; se elimina junto con su orden) |
 | Fotos del trabajo | `ot_foto_trabajo` (orden, imagen JPEG en `LONGBLOB`, descripción opcional de hasta 100 caracteres, usuario y fecha; sin límite por orden; se elimina junto con su orden) |
@@ -295,6 +309,9 @@ graph TD
     usuario -.-> ot_historial_estado
     usuario -.-> ot_foto
     usuario -.-> ot_foto_trabajo
+    vehiculo -->|"1 a N"| aviso_service["aviso_service"]
+    servicio -->|"1 a N"| aviso_service
+    usuario -.-> aviso_service
     mecanico -.->|"opcional"| usuario
 ```
 
@@ -461,6 +478,8 @@ Riesgos conocidos no cubiertos:
 - En la gestión de la orden, las tildes de aprobación viven en pantalla hasta presionar "Registrar aprobación": se conservan al recargar la orden dentro de la ventana, pero se pierden si se cierra la ventana.
 - Una base creada con la versión anterior de los scripts y sin `database/07_recepcion_fotos.sql` no tiene `orden_trabajo.fecha_prometida` ni `ot_foto`: Recepción y Órdenes de trabajo muestran el error de MariaDB y no funcionan hasta ejecutar la migración.
 - Una base de 13 tablas sin `database/09_diagnostico_fotos.sql` no tiene `orden_trabajo.diagnostico` ni `ot_foto_trabajo`: la gestión de la orden, Mis órdenes y el historial impreso muestran el error de MariaDB hasta ejecutar la migración.
+- Una base de 14 tablas sin `database/10_recordatorio_service.sql` no tiene los intervalos de `servicio` ni `aviso_service`: Servicios y Services por vencer muestran el error de MariaDB y la tarjeta de services de Inicio queda con un guion hasta ejecutar la migración.
+- El kilometraje de los avisos de service es una referencia: el sistema solo conoce los km del auto cuando ingresa al taller, por eso el vencimiento se calcula por fecha.
 - Las fotos se guardan dentro de la base, por lo que su tamaño y el de sus copias de respaldo crecen con cada recepción (hasta cinco imágenes por orden).
 - El tablero de órdenes trae todas las órdenes que cumplen los filtros, sin paginar, y no se actualiza solo: los cambios hechos desde otro puesto se ven al cambiar un filtro, elegir una tarjeta de estado o presionar "Limpiar filtros".
 - Un usuario cuyo `salt` esté vacío o cuyo hash no sea Base64 válido (por ejemplo un hash BCrypt de una base sin migrar) no puede ingresar: `VerificarClave` devuelve `False` y se muestra el mensaje genérico. En ese caso hay que ejecutar `database/06_migracion_hash_pbkdf2.sql`.
