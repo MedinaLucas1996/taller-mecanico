@@ -573,6 +573,9 @@ Public Class FrmTableros
     End Sub
 
     Private Sub FrmTableros_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        'las grillas se dibujan con doble bufer para que no parpadeen ni se traben al desplazarse
+        ActivarDobleBufer(Me)
+
         'solo el administrador puede ver los tableros (el menu ya oculta el boton)
         If Sesion.Rol <> ROL_ADMINISTRADOR Then
             MessageBox.Show("Solo el administrador puede ver los tableros.")

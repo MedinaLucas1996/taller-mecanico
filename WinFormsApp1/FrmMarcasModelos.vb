@@ -241,6 +241,9 @@ Public Class FrmMarcasModelos
     ' =========================================================
 
     Private Sub FrmMarcasModelos_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        'las grillas se dibujan con doble bufer para que no parpadeen ni se traben al desplazarse
+        ActivarDobleBufer(Me)
+
         'iconos de los botones, si alguno falta ese boton queda solo con el texto
         btnNuevaMarca.Image = LeerIcono("agregar.png")
         btnNuevoModelo.Image = LeerIcono("agregar.png")

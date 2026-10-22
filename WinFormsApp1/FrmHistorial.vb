@@ -377,6 +377,9 @@ Public Class FrmHistorial
     End Sub
 
     Private Sub FrmHistorial_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        'las grillas se dibujan con doble bufer para que no parpadeen ni se traben al desplazarse
+        ActivarDobleBufer(Me)
+
         'iconos, si alguno falta ese control queda sin icono y el sistema sigue
         picBuscar.Image = LeerIcono("buscar-oscuro.png")
         picVehiculo.Image = LeerIcono("vehiculo-oscuro.png")

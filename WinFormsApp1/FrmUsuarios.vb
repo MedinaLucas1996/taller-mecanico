@@ -394,6 +394,9 @@ Public Class FrmUsuarios
     End Function
 
     Private Sub FrmUsuarios_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        'las grillas se dibujan con doble bufer para que no parpadeen ni se traben al desplazarse
+        ActivarDobleBufer(Me)
+
         'iconos de los botones, si alguno falta ese boton queda solo con el texto
         btnNuevo.Image = LeerIcono("agregar.png")
         btnGuardar.Image = LeerIcono("guardar.png")

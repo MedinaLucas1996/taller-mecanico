@@ -98,7 +98,7 @@ Estructura del repositorio:
 
 | Carpeta o archivo | Contenido |
 |---|---|
-| `WinFormsApp1/` | El proyecto: formularios `Frm*.vb` con su `Designer`, módulos compartidos (`ConexionBD`, `Seguridad`, `Sesion`, `Errores`, `Fotos`, `Impresion`, `Exportar`, `Recordatorios`, `Turnos`) y `Recursos/` (imagen y música del login, iconos). |
+| `WinFormsApp1/` | El proyecto: formularios `Frm*.vb` con su `Designer`, módulos compartidos (`ConexionBD`, `Seguridad`, `Sesion`, `Errores`, `Fotos`, `Impresion`, `Exportar`, `Grillas`, `Recordatorios`, `Turnos`) y `Recursos/` (imagen y música del login, iconos). |
 | `database/` | Los scripts SQL `01` a `12` descritos en [Instalación](#instalación). |
 | `doc/` | La documentación técnica. |
 | `WinFormsApp1.slnx` | La solución que se abre en Visual Studio. |

@@ -530,6 +530,9 @@ Public Class FrmMisOrdenes
     End Function
 
     Private Sub FrmMisOrdenes_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        'las grillas se dibujan con doble bufer para que no parpadeen ni se traben al desplazarse
+        ActivarDobleBufer(Me)
+
         'junto las tarjetas y sus etiquetas para recorrerlas con un For (el lugar 0 no se usa)
         tarjetas = {Nothing, pnlGrupo1, pnlGrupo2, pnlGrupo3, pnlGrupo4}
         etiquetasCantidad = {Nothing, lblCantGrupo1, lblCantGrupo2, lblCantGrupo3, lblCantGrupo4}

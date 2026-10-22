@@ -177,6 +177,9 @@ Public Class FrmServicesPorVencer
     End Function
 
     Private Sub FrmServicesPorVencer_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        'las grillas se dibujan con doble bufer para que no parpadeen ni se traben al desplazarse
+        ActivarDobleBufer(Me)
+
         'iconos de los botones, si alguno falta ese boton queda solo con el texto
         btnExportar.Image = LeerIcono("exportar.png")
         btnDarTurno.Image = LeerIcono("calendario-oscuro.png")
