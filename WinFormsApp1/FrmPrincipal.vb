@@ -124,7 +124,7 @@ Public Class FrmPrincipal
         lblUsuario.Text = "Usuario: " & Sesion.NombreCompleto & " (" & Sesion.Rol & ")"
 
         'junto los botones del menu en el orden en que se ven
-        botonesMenu = {btnInicio, btnMisOrdenes, btnRecepcion, btnOrdenes, btnHistorial, btnServicesPorVencer, btnTableros,
+        botonesMenu = {btnInicio, btnMisOrdenes, btnTurnos, btnRecepcion, btnOrdenes, btnHistorial, btnServicesPorVencer, btnTableros,
                        btnClientes, btnVehiculos,
                        btnMarcasModelos, btnServicios, btnCategorias, btnMecanicos, btnUsuarios}
 
@@ -135,6 +135,7 @@ Public Class FrmPrincipal
         'cargo el icono de cada opcion, si alguno falta ese boton queda sin icono
         btnInicio.Image = LeerIcono("inicio.png")
         btnMisOrdenes.Image = LeerIcono("mis-ordenes.png")
+        btnTurnos.Image = LeerIcono("turnos.png")
         btnRecepcion.Image = LeerIcono("recepcion.png")
         btnOrdenes.Image = LeerIcono("ordenes.png")
         btnHistorial.Image = LeerIcono("historial.png")
@@ -158,6 +159,7 @@ Public Class FrmPrincipal
         If Sesion.Rol = ROL_ADMINISTRADOR Then
             verOperaciones = True
             btnInicio.Visible = True
+            btnTurnos.Visible = True
             btnRecepcion.Visible = True
             btnOrdenes.Visible = True
             btnHistorial.Visible = True
@@ -178,6 +180,7 @@ Public Class FrmPrincipal
         If Sesion.Rol = ROL_OPERADOR Then
             verOperaciones = True
             btnInicio.Visible = True
+            btnTurnos.Visible = True
             btnRecepcion.Visible = True
             btnOrdenes.Visible = True
             btnHistorial.Visible = True
@@ -266,6 +269,10 @@ Public Class FrmPrincipal
 
     Private Sub btnMisOrdenes_Click(sender As Object, e As EventArgs) Handles btnMisOrdenes.Click
         AbrirFormulario(New FrmMisOrdenes(), CType(sender, Button))
+    End Sub
+
+    Private Sub btnTurnos_Click(sender As Object, e As EventArgs) Handles btnTurnos.Click
+        AbrirFormulario(New FrmTurnos(), CType(sender, Button))
     End Sub
 
     Private Sub btnRecepcion_Click(sender As Object, e As EventArgs) Handles btnRecepcion.Click
