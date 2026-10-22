@@ -2172,6 +2172,8 @@ Public Class FrmOrdenGestion
         Dim patente As String = ""
         Dim total As Decimal = 0D
         Dim servicios As New List(Of String)
+        'ultimo aviso ya registrado para esta orden, vacio si nunca se aviso
+        Dim avisoAnterior As String = ""
 
         Try
             Using cn As New MySqlConnection(CADENA)
@@ -2223,6 +2225,23 @@ Public Class FrmOrdenGestion
                         Loop
                     End Using
                 End Using
+
+                'busco si ya se aviso al cliente, para no anotar dos avisos por un doble click
+                consulta =
+                    "SELECT h.fecha_hora, u.nombre_completo FROM ot_historial_estado AS h " &
+                    "JOIN usuario AS u ON u.id_usuario = h.id_usuario " &
+                    "WHERE h.id_orden_trabajo = @id_orden_trabajo AND h.observacion LIKE @observacion " &
+                    "ORDER BY h.fecha_hora DESC LIMIT 1;"
+                Using cmd As New MySqlCommand(consulta, cn)
+                    cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
+                    cmd.Parameters.AddWithValue("@observacion", "Cliente avisado%")
+                    Using lector As MySqlDataReader = cmd.ExecuteReader
+                        If lector.Read() Then
+                            avisoAnterior = CDate(lector("fecha_hora")).ToString("dd/MM/yyyy HH:mm") &
+                                            " por " & lector("nombre_completo").ToString()
+                        End If
+                    End Using
+                End Using
             End Using
         Catch ex As Exception
             MessageBox.Show("Error al leer los datos de la orden para el aviso: " & ex.Message)
@@ -2234,6 +2253,15 @@ Public Class FrmOrdenGestion
             MessageBox.Show("La orden ya no está finalizada: el aviso al cliente no corresponde.")
             CargarOrden()
             Exit Sub
+        End If
+
+        'si ya se aviso, pregunto antes de copiar y anotar otro aviso
+        If avisoAnterior <> "" Then
+            Dim respuesta As DialogResult = MessageBox.Show(
+                "Este cliente ya fue avisado el " & avisoAnterior & "." & vbCrLf &
+                "¿Copiar el aviso otra vez y anotarlo de nuevo en el historial?",
+                "Aviso al cliente", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
+            If respuesta = DialogResult.No Then Exit Sub
         End If
 
         Dim lista As String = String.Join(", ", servicios)
