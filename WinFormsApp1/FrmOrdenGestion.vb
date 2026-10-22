@@ -26,6 +26,8 @@ Public Class FrmOrdenGestion
     Private cargando As Boolean = False
     'queda en True cuando hay cantidades, horas u observaciones escritas y todavia sin guardar
     Private avanceSinGuardar As Boolean = False
+    'queda en True cuando el mecanico escribio el diagnostico y todavia no lo guardo
+    Private diagnosticoSinGuardar As Boolean = False
 
     'fuente del primer renglon de cada fila del historial
     Private fuenteNegrita As Font
@@ -60,6 +62,11 @@ Public Class FrmOrdenGestion
 
     'fotos de la recepcion para el acta, por angulo; se liberan al volver a leerlas y al cerrar
     Private fotosImpresion As New Dictionary(Of String, Image)
+
+    'fotos del trabajo para su hoja, en el mismo orden que sus datos (descripcion, fecha y usuario)
+    'se liberan al volver a leerlas y al cerrar
+    Private fotosTrabajoImpresion As New List(Of Image)
+    Private datosFotosTrabajo As DataTable
 
     Function ColorEstado(codigo As String) As Color
         'color de fondo de cada estado, los mismos que usa el tablero de ordenes
@@ -106,6 +113,9 @@ Public Class FrmOrdenGestion
         btnAnular.Image = LeerIcono("anular-rojo.png")
         btnImprimir.Image = LeerIcono("reportes.png")
         btnAvisar.Image = LeerIcono("cliente-oscuro.png")
+        btnGuardarDiagnostico.Image = LeerIcono("guardar-oscuro.png")
+        btnAgregarFoto.Image = LeerIcono("foto-agregar-oscuro.png")
+        btnQuitarFoto.Image = LeerIcono("quitar-oscuro.png")
 
         picMecanico.Image = iconoMecanico
         picKm.Image = LeerIcono("km-oscuro.png")
@@ -363,6 +373,14 @@ Public Class FrmOrdenGestion
         txtNotasTecnicas.ReadOnly = (codigoEstado <> "EN_PROCESO")
         lblTotalAprobado.Visible = (codigoEstado <> "RECEPCIONADA")
 
+        'el diagnostico del mecanico se lee encima de las lineas mientras se arma el presupuesto,
+        'y mientras el cliente lo decide si esta cargado; aca es solo de lectura, lo escribe el mecanico
+        pnlDiagnostico.Visible = (codigoEstado = "RECEPCIONADA" OrElse
+                                  (codigoEstado = "PRESUPUESTADA" AndAlso txtDiagnostico.Text.Trim <> ""))
+        txtDiagnostico.ReadOnly = True
+        txtDiagnostico.PlaceholderText = "El mecánico todavía no cargó el diagnóstico."
+        btnGuardarDiagnostico.Visible = False
+
         'el mecanico se cambia mientras el estado no sea final, despues solo se lee
         cboMecanico.Visible = Not esEstadoFinal
         btnGuardarMecanico.Visible = Not esEstadoFinal
@@ -448,6 +466,9 @@ Public Class FrmOrdenGestion
             btnAnular.Left = btnAvisar.Left
         End If
 
+        'las fotos del trabajo valen igual para todos los roles que abren esta ventana
+        MostrarFotosTrabajo()
+
         'el mecanico ve la misma pantalla con menos cosas: lo ajusto al final, sobre lo ya armado
         If modoMecanico Then MostrarEtapaMecanico()
 
@@ -476,8 +497,12 @@ Public Class FrmOrdenGestion
         btnAvisar.Visible = False
 
         If codigoEstado = "RECEPCIONADA" Then
-            lblEtapaTitulo.Text = "Esperando el presupuesto"
-            lblEtapaAyuda.Text = "La orden todavía no tiene el presupuesto armado. Vas a poder iniciar el trabajo cuando el cliente lo apruebe."
+            'antes del presupuesto el mecanico revisa el vehiculo y escribe su diagnostico
+            lblEtapaTitulo.Text = "Diagnóstico del vehículo"
+            lblEtapaAyuda.Text = "Revisá el vehículo y escribí lo que encontraste. La recepción arma el presupuesto con tu diagnóstico."
+            txtDiagnostico.ReadOnly = False
+            txtDiagnostico.PlaceholderText = "Qué se encontró al revisar el vehículo y qué hace falta reparar."
+            btnGuardarDiagnostico.Visible = True
         End If
 
         If codigoEstado = "PRESUPUESTADA" Then
@@ -501,6 +526,79 @@ Public Class FrmOrdenGestion
             btnSecundario.Visible = False
             btnPrimario.Image = Nothing
             btnPrimario.Text = "Cerrar"
+        End If
+    End Sub
+
+    Function PermiteCargarFotos(codigo As String) As Boolean
+        'las fotos del trabajo se cargan al revisar el vehiculo (recepcionada) y mientras se trabaja (en proceso)
+        Return codigo = "RECEPCIONADA" OrElse codigo = "EN_PROCESO"
+    End Function
+
+    Function PermiteQuitarFotos(codigo As String) As Boolean
+        'una foto del trabajo se puede quitar hasta que el trabajo se finaliza; despues queda como constancia
+        Return codigo = "RECEPCIONADA" OrElse codigo = "PRESUPUESTADA" OrElse codigo = "APROBADA" OrElse codigo = "EN_PROCESO"
+    End Function
+
+    Sub CargarFotosTrabajo()
+        'cargo las miniaturas de las fotos del trabajo de la orden, la mas vieja primero
+        lvwFotosTrabajo.Items.Clear()
+        imlFotosTrabajo.Images.Clear()
+
+        Try
+            Using cn As New MySqlConnection(CADENA)
+                cn.Open()
+                Dim consulta As String =
+                    "SELECT f.id_ot_foto_trabajo, f.imagen, f.descripcion, f.fecha_hora, u.nombre_completo AS usuario " &
+                    "FROM ot_foto_trabajo AS f " &
+                    "JOIN usuario AS u ON u.id_usuario = f.id_usuario " &
+                    "WHERE f.id_orden_trabajo = @id_orden_trabajo " &
+                    "ORDER BY f.fecha_hora, f.id_ot_foto_trabajo;"
+                Using cmd As New MySqlCommand(consulta, cn)
+                    cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
+                    Using lector As MySqlDataReader = cmd.ExecuteReader
+                        While lector.Read()
+                            'cada foto es un elemento de la lista con su descripcion; su clave queda guardada
+                            Dim descripcion As String = lector("descripcion").ToString().Trim
+                            Dim elemento As New ListViewItem(descripcion)
+                            elemento.Tag = CInt(lector("id_ot_foto_trabajo"))
+                            If descripcion = "" Then descripcion = "Sin descripción"
+                            elemento.ToolTipText = descripcion & vbCrLf &
+                                                   CDate(lector("fecha_hora")).ToString("dd/MM/yyyy HH:mm") & " · " &
+                                                   lector("usuario").ToString()
+
+                            'una foto que no se puede leer queda en la lista sin miniatura y con el aviso
+                            Using foto As Image = BytesAFoto(CType(lector("imagen"), Byte()))
+                                If foto Is Nothing Then
+                                    elemento.Text = "Foto ilegible"
+                                Else
+                                    imlFotosTrabajo.Images.Add(Miniatura(foto, imlFotosTrabajo.ImageSize.Width, imlFotosTrabajo.ImageSize.Height))
+                                    elemento.ImageIndex = imlFotosTrabajo.Images.Count - 1
+                                End If
+                            End Using
+
+                            lvwFotosTrabajo.Items.Add(elemento)
+                        End While
+                    End Using
+                End Using
+            End Using
+        Catch ex As Exception
+            MessageBox.Show("Error al cargar las fotos del trabajo: " & ex.Message)
+        End Try
+    End Sub
+
+    Sub MostrarFotosTrabajo()
+        'acomodo la franja de fotos del trabajo segun el estado: se ve si se pueden cargar o si la orden ya tiene alguna
+        Dim cantidad As Integer = lvwFotosTrabajo.Items.Count
+
+        pnlFotosTrabajo.Visible = (PermiteCargarFotos(codigoEstado) OrElse cantidad > 0)
+        txtDescripcionFoto.Visible = PermiteCargarFotos(codigoEstado)
+        btnAgregarFoto.Visible = PermiteCargarFotos(codigoEstado)
+        btnQuitarFoto.Visible = (PermiteQuitarFotos(codigoEstado) AndAlso cantidad > 0)
+
+        If cantidad = 0 Then
+            lblFotosTrabajo.Text = "Fotos del trabajo"
+        Else
+            lblFotosTrabajo.Text = "Fotos del trabajo (" & cantidad & ")"
         End If
     End Sub
 
@@ -570,7 +668,7 @@ Public Class FrmOrdenGestion
                 Dim consulta As String =
                     "SELECT ot.nro_orden, ot.fecha_recepcion, ot.fecha_prometida, ot.km_ingreso, " &
                     "ot.fecha_finalizacion, ot.fecha_entrega, " &
-                    "ot.sintoma_reportado, ot.observaciones_recepcion, ot.observaciones_mecanico, " &
+                    "ot.sintoma_reportado, ot.observaciones_recepcion, ot.observaciones_mecanico, ot.diagnostico, " &
                     "ot.id_mecanico, ot.total_presupuestado, ot.total_aprobado, v.patente, " &
                     "CONCAT(ma.descripcion, ' ', mo.descripcion) AS vehiculo, " &
                     "c.razon_social AS cliente, " &
@@ -634,6 +732,9 @@ Public Class FrmOrdenGestion
                             'observaciones del mecanico: se guardan con el avance y al finalizar
                             txtNotasTecnicas.Text = lector("observaciones_mecanico").ToString()
 
+                            'diagnostico del mecanico: es opcional y se escribe antes del presupuesto
+                            txtDiagnostico.Text = lector("diagnostico").ToString()
+
                             'totales guardados en la cabecera de la orden
                             lblTotalPresupuestado.Text = "Total presupuestado: " & CDec(lector("total_presupuestado")).ToString("C2")
                             lblTotalAprobado.Text = "Total aprobado: " & CDec(lector("total_aprobado")).ToString("C2")
@@ -666,12 +767,14 @@ Public Class FrmOrdenGestion
             End If
 
             CargarHistorial()
+            CargarFotosTrabajo()
         End If
 
         MostrarEtapa()
 
         'lo que se ve es lo que esta guardado
         avanceSinGuardar = False
+        diagnosticoSinGuardar = False
         cargando = False
     End Sub
 
@@ -706,6 +809,7 @@ Public Class FrmOrdenGestion
                         "No se guardó ningún dato.")
         'lo escrito no se puede guardar, no tiene sentido preguntar por el al cerrar
         avanceSinGuardar = False
+        diagnosticoSinGuardar = False
         Me.Close()
     End Sub
 
@@ -931,6 +1035,19 @@ Public Class FrmOrdenGestion
     End Sub
 
     Private Sub FrmOrdenGestion_FormClosing(sender As Object, e As FormClosingEventArgs) Handles MyBase.FormClosing
+        'si hay un diagnostico escrito sin guardar, aviso antes de cerrar para no perderlo
+        If diagnosticoSinGuardar Then
+            Dim respuestaDiagnostico As DialogResult = MessageBox.Show(
+                "Hay un diagnóstico escrito sin guardar." & vbCrLf &
+                "¿Cerrar igual? Para conservarlo, elija No y use ""Guardar diagnóstico"".",
+                "Diagnóstico sin guardar",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning)
+
+            If respuestaDiagnostico = DialogResult.No Then e.Cancel = True
+            Exit Sub
+        End If
+
         'si hay avance del trabajo sin guardar, aviso antes de cerrar para no perderlo
         If Not avanceSinGuardar Then Exit Sub
 
@@ -1050,6 +1167,12 @@ Public Class FrmOrdenGestion
         'las observaciones escritas con el trabajo en proceso cuentan como avance sin guardar
         If cargando Then Exit Sub
         If codigoEstado = "EN_PROCESO" Then avanceSinGuardar = True
+    End Sub
+
+    Private Sub txtDiagnostico_TextChanged(sender As Object, e As EventArgs) Handles txtDiagnostico.TextChanged
+        'lo que el mecanico escribe en el diagnostico queda sin guardar hasta usar su boton
+        If cargando Then Exit Sub
+        If modoMecanico AndAlso codigoEstado = "RECEPCIONADA" Then diagnosticoSinGuardar = True
     End Sub
 
     Private Sub dgvHistorial_DataBindingComplete(sender As Object, e As DataGridViewBindingCompleteEventArgs) Handles dgvHistorial.DataBindingComplete
@@ -1215,6 +1338,339 @@ Public Class FrmOrdenGestion
 
         'vuelvo a cargar la orden con su estado actual
         CargarOrden()
+    End Sub
+
+    Private Sub btnGuardarDiagnostico_Click(sender As Object, e As EventArgs) Handles btnGuardarDiagnostico.Click
+        'guardo el diagnostico que escribio el mecanico; la orden sigue recepcionada
+        'el boton solo lo ve el mecanico de la orden, igual lo compruebo
+        If Not modoMecanico Then Exit Sub
+
+        Dim diagnostico As String = txtDiagnostico.Text.Trim
+        If diagnostico = "" Then
+            MessageBox.Show("Escriba el diagnóstico antes de guardarlo")
+            txtDiagnostico.Focus()
+            Exit Sub
+        End If
+
+        Dim aviso As String = ""
+        'queda en True cuando la orden dejo de ser del mecanico que la tiene abierta
+        Dim ordenAjena As Boolean = False
+
+        Try
+            Using cn As New MySqlConnection(CADENA)
+                cn.Open()
+
+                'el diagnostico y su fila de historial se guardan juntos o ninguno
+                Dim transaccion As MySqlTransaction = cn.BeginTransaction()
+                Try
+                    'leo el estado, lo que deja bloqueada la fila de la orden
+                    Dim codigoActual As String = LeerCodigoEstado(cn, transaccion)
+
+                    'un mecanico solo diagnostica sus ordenes: lo compruebo con la fila ya bloqueada
+                    If Not OrdenEsDelMecanico(cn, transaccion) Then
+                        ordenAjena = True
+                        aviso = "ajena"
+                    ElseIf codigoActual <> "RECEPCIONADA" Then
+                        aviso = "La orden ya no está recepcionada: el diagnóstico ya no se puede cambiar."
+                    End If
+
+                    'leo el diagnostico guardado para saber si es el primero o una correccion
+                    Dim anterior As String = ""
+                    Dim consulta As String
+                    If aviso = "" Then
+                        consulta = "SELECT diagnostico FROM orden_trabajo WHERE id_orden_trabajo = @id_orden_trabajo;"
+                        Using cmd As New MySqlCommand(consulta, cn, transaccion)
+                            cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
+                            Dim resultado As Object = cmd.ExecuteScalar()
+                            If resultado IsNot Nothing AndAlso Not IsDBNull(resultado) Then anterior = resultado.ToString().Trim
+                        End Using
+
+                        If anterior = diagnostico Then aviso = "El diagnóstico no tiene cambios para guardar."
+                    End If
+
+                    If aviso = "" Then
+                        consulta = "UPDATE orden_trabajo SET diagnostico = @diagnostico " &
+                                   "WHERE id_orden_trabajo = @id_orden_trabajo;"
+                        Using cmd As New MySqlCommand(consulta, cn, transaccion)
+                            cmd.Parameters.AddWithValue("@diagnostico", diagnostico)
+                            cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
+                            cmd.ExecuteNonQuery()
+                        End Using
+
+                        'dejo constancia en el historial con el estado actual de la orden, que no cambia
+                        Dim observacion As String = "Diagnóstico cargado"
+                        If anterior <> "" Then observacion = "Diagnóstico corregido"
+                        consulta =
+                            "INSERT INTO ot_historial_estado (id_orden_trabajo, id_estado_ot, id_usuario, observacion) " &
+                            "SELECT id_orden_trabajo, id_estado_ot, @id_usuario, @observacion FROM orden_trabajo " &
+                            "WHERE id_orden_trabajo = @id_orden_trabajo;"
+                        Using cmd As New MySqlCommand(consulta, cn, transaccion)
+                            cmd.Parameters.AddWithValue("@id_usuario", Sesion.IdUsuario)
+                            cmd.Parameters.AddWithValue("@observacion", observacion)
+                            cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
+                            cmd.ExecuteNonQuery()
+                        End Using
+                    End If
+                Catch ex As Exception
+                    'algo fallo antes de confirmar: deshago todo y dejo que el error llegue al mensaje de abajo
+                    transaccion.Rollback()
+                    Throw
+                End Try
+
+                'confirmo fuera del Try de arriba: si el Commit falla no se intenta deshacer una transaccion ya cerrada
+                If aviso = "" Then
+                    transaccion.Commit()
+                Else
+                    transaccion.Rollback()
+                End If
+            End Using
+        Catch ex As Exception
+            MessageBox.Show("No se pudo guardar el diagnóstico y no se guardó ningún dato." & vbCrLf &
+                            "Detalle: " & ex.Message)
+            Exit Sub
+        End Try
+
+        If ordenAjena Then
+            CerrarPorOrdenAjena()
+            Exit Sub
+        End If
+
+        If aviso <> "" Then
+            MessageBox.Show(aviso)
+        Else
+            MessageBox.Show("Diagnóstico guardado.")
+        End If
+
+        'vuelvo a cargar la orden con lo que quedo guardado
+        CargarOrden()
+    End Sub
+
+    Private Sub btnAgregarFoto_Click(sender As Object, e As EventArgs) Handles btnAgregarFoto.Click
+        'cargo desde el disco una foto del trabajo y la guardo con la descripcion escrita, si hay
+        If dlgFotoTrabajo.ShowDialog() <> DialogResult.OK Then Exit Sub
+
+        'mismo proceso que en la recepcion: reducida, enderezada y en JPEG
+        Dim bytes() As Byte = LeerFotoComoJpeg(dlgFotoTrabajo.FileName)
+        If bytes Is Nothing Then
+            MessageBox.Show("El archivo elegido no es una imagen válida. Elija una foto JPG o PNG.")
+            Exit Sub
+        End If
+
+        'la descripcion es opcional y se guarda como NULL si esta vacia
+        Dim descripcion As Object = DBNull.Value
+        If txtDescripcionFoto.Text.Trim <> "" Then descripcion = txtDescripcionFoto.Text.Trim
+
+        Dim aviso As String = ""
+        'queda en True cuando la orden dejo de ser del mecanico que la tiene abierta
+        Dim ordenAjena As Boolean = False
+
+        Try
+            Using cn As New MySqlConnection(CADENA)
+                cn.Open()
+
+                'la comprobacion del estado y el guardado van juntos en una transaccion
+                Dim transaccion As MySqlTransaction = cn.BeginTransaction()
+                Try
+                    'leo el estado, lo que deja bloqueada la fila de la orden
+                    Dim codigoActual As String = LeerCodigoEstado(cn, transaccion)
+
+                    'un mecanico solo carga fotos en sus ordenes: lo compruebo con la fila ya bloqueada
+                    If modoMecanico AndAlso Not OrdenEsDelMecanico(cn, transaccion) Then
+                        ordenAjena = True
+                        aviso = "ajena"
+                    ElseIf Not PermiteCargarFotos(codigoActual) Then
+                        aviso = "Las fotos del trabajo se cargan con la orden recepcionada o en proceso, y esta orden ya no lo está."
+                    End If
+
+                    If aviso = "" Then
+                        Dim consulta As String =
+                            "INSERT INTO ot_foto_trabajo (id_orden_trabajo, imagen, descripcion, id_usuario) " &
+                            "VALUES (@id_orden_trabajo, @imagen, @descripcion, @id_usuario);"
+                        Using cmd As New MySqlCommand(consulta, cn, transaccion)
+                            cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
+                            cmd.Parameters.AddWithValue("@imagen", bytes)
+                            cmd.Parameters.AddWithValue("@descripcion", descripcion)
+                            cmd.Parameters.AddWithValue("@id_usuario", Sesion.IdUsuario)
+                            cmd.ExecuteNonQuery()
+                        End Using
+                    End If
+                Catch ex As Exception
+                    'algo fallo antes de confirmar: deshago todo y dejo que el error llegue al mensaje de abajo
+                    transaccion.Rollback()
+                    Throw
+                End Try
+
+                'confirmo fuera del Try de arriba: si el Commit falla no se intenta deshacer una transaccion ya cerrada
+                If aviso = "" Then
+                    transaccion.Commit()
+                Else
+                    transaccion.Rollback()
+                End If
+            End Using
+        Catch ex As Exception
+            MessageBox.Show("No se pudo guardar la foto: " & ex.Message)
+            Exit Sub
+        End Try
+
+        If ordenAjena Then
+            CerrarPorOrdenAjena()
+            Exit Sub
+        End If
+
+        If aviso <> "" Then
+            'la orden cambio de estado desde otro puesto: la vuelvo a cargar entera, como las demas acciones
+            MessageBox.Show(aviso)
+            CargarOrden()
+            Exit Sub
+        End If
+
+        'la descripcion ya quedo con su foto: el campo queda listo para la siguiente
+        txtDescripcionFoto.Clear()
+
+        'vuelvo a cargar solo las fotos: lo demas que este escrito y sin guardar sigue en pantalla
+        CargarFotosTrabajo()
+        MostrarFotosTrabajo()
+    End Sub
+
+    Private Sub btnQuitarFoto_Click(sender As Object, e As EventArgs) Handles btnQuitarFoto.Click
+        'quito la foto del trabajo elegida en la lista
+        If lvwFotosTrabajo.SelectedItems.Count = 0 Then
+            MessageBox.Show("Seleccione en la lista la foto que quiere quitar")
+            Exit Sub
+        End If
+        Dim idFoto As Integer = CInt(lvwFotosTrabajo.SelectedItems(0).Tag)
+
+        'pido confirmacion antes de quitar
+        Dim respuesta As DialogResult = MessageBox.Show(
+            "¿Quitar la foto seleccionada? No se puede deshacer.",
+            "Quitar foto",
+            MessageBoxButtons.YesNo,
+            MessageBoxIcon.Warning)
+
+        If respuesta = DialogResult.No Then Exit Sub
+
+        Dim aviso As String = ""
+        'queda en True cuando la orden dejo de ser del mecanico que la tiene abierta
+        Dim ordenAjena As Boolean = False
+        'queda en True cuando otro puesto cambio el estado y la pantalla ya no muestra la orden como esta
+        Dim estadoCambiado As Boolean = False
+
+        Try
+            Using cn As New MySqlConnection(CADENA)
+                cn.Open()
+
+                'la comprobacion del estado y el borrado van juntos en una transaccion
+                Dim transaccion As MySqlTransaction = cn.BeginTransaction()
+                Try
+                    'leo el estado, lo que deja bloqueada la fila de la orden
+                    Dim codigoActual As String = LeerCodigoEstado(cn, transaccion)
+
+                    'un mecanico solo quita fotos de sus ordenes: lo compruebo con la fila ya bloqueada
+                    If modoMecanico AndAlso Not OrdenEsDelMecanico(cn, transaccion) Then
+                        ordenAjena = True
+                        aviso = "ajena"
+                    ElseIf Not PermiteQuitarFotos(codigoActual) Then
+                        estadoCambiado = True
+                        aviso = "El trabajo ya se finalizó o la orden está cerrada: sus fotos ya no se pueden quitar."
+                    End If
+
+                    If aviso = "" Then
+                        'borro solo esa foto, y solo si es de esta orden
+                        Dim consulta As String =
+                            "DELETE FROM ot_foto_trabajo " &
+                            "WHERE id_ot_foto_trabajo = @id_ot_foto_trabajo AND id_orden_trabajo = @id_orden_trabajo;"
+                        Using cmd As New MySqlCommand(consulta, cn, transaccion)
+                            cmd.Parameters.AddWithValue("@id_ot_foto_trabajo", idFoto)
+                            cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
+                            'si no se borro ninguna fila, otro puesto ya la habia quitado
+                            If cmd.ExecuteNonQuery() = 0 Then
+                                aviso = "La foto ya no existe: otro puesto la quitó antes."
+                            End If
+                        End Using
+                    End If
+                Catch ex As Exception
+                    'algo fallo antes de confirmar: deshago todo y dejo que el error llegue al mensaje de abajo
+                    transaccion.Rollback()
+                    Throw
+                End Try
+
+                'confirmo fuera del Try de arriba: si el Commit falla no se intenta deshacer una transaccion ya cerrada
+                If aviso = "" Then
+                    transaccion.Commit()
+                Else
+                    transaccion.Rollback()
+                End If
+            End Using
+        Catch ex As Exception
+            MessageBox.Show("No se pudo quitar la foto: " & ex.Message)
+            Exit Sub
+        End Try
+
+        If ordenAjena Then
+            CerrarPorOrdenAjena()
+            Exit Sub
+        End If
+
+        If aviso <> "" Then MessageBox.Show(aviso)
+
+        'la orden cambio de estado desde otro puesto: la vuelvo a cargar entera, como las demas acciones
+        If estadoCambiado Then
+            CargarOrden()
+            Exit Sub
+        End If
+
+        'vuelvo a cargar solo las fotos: lo demas que este escrito y sin guardar sigue en pantalla
+        CargarFotosTrabajo()
+        MostrarFotosTrabajo()
+    End Sub
+
+    Private Sub lvwFotosTrabajo_ItemActivate(sender As Object, e As EventArgs) Handles lvwFotosTrabajo.ItemActivate
+        'doble click sobre una foto del trabajo: la amplio en una ventana aparte, solo para mirar
+        If lvwFotosTrabajo.SelectedItems.Count = 0 Then Exit Sub
+
+        Dim elemento As ListViewItem = lvwFotosTrabajo.SelectedItems(0)
+        Dim foto As Image = Nothing
+
+        Try
+            Using cn As New MySqlConnection(CADENA)
+                cn.Open()
+                'la foto en su tamaño guardado, solo si sigue siendo de esta orden
+                Dim consulta As String =
+                    "SELECT imagen FROM ot_foto_trabajo " &
+                    "WHERE id_ot_foto_trabajo = @id_ot_foto_trabajo AND id_orden_trabajo = @id_orden_trabajo;"
+                Using cmd As New MySqlCommand(consulta, cn)
+                    cmd.Parameters.AddWithValue("@id_ot_foto_trabajo", CInt(elemento.Tag))
+                    cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
+                    Dim resultado As Object = cmd.ExecuteScalar()
+                    If resultado IsNot Nothing AndAlso Not IsDBNull(resultado) Then foto = BytesAFoto(CType(resultado, Byte()))
+                End Using
+            End Using
+        Catch ex As Exception
+            MessageBox.Show("Error al leer la foto del trabajo: " & ex.Message)
+            Exit Sub
+        End Try
+
+        'la foto pudo quitarse desde otro puesto, o sus bytes no son una imagen: vuelvo a cargar la lista
+        If foto Is Nothing Then
+            MessageBox.Show("La foto ya no está disponible o no se puede leer.")
+            CargarFotosTrabajo()
+            MostrarFotosTrabajo()
+            Exit Sub
+        End If
+
+        Using formulario As New FrmFoto
+            'el titulo de la ventana es la descripcion de la foto, si tiene, y el numero de la orden
+            Dim titulo As String = elemento.Text
+            If titulo = "" Then titulo = "Foto del trabajo"
+            formulario.Text = titulo & " - " & lblTitulo.Text
+            formulario.picFoto.Image = foto
+            'solo para mirar: se quita desde esta ventana
+            formulario.PermiteCambios = False
+            formulario.ShowDialog()
+        End Using
+
+        'la ventana no libera la foto al cerrarse: la libero aca
+        foto.Dispose()
     End Sub
 
     Private Sub btnAgregar_Click(sender As Object, e As EventArgs) Handles btnAgregar.Click
@@ -1496,6 +1952,35 @@ Public Class FrmOrdenGestion
 
         'accion de la recepcion: un mecanico no la hace aunque llegue hasta aca
         If RechazaMecanico() Then Exit Sub
+
+        'el diagnostico del mecanico es opcional: si falta, aviso y dejo seguir
+        'lo leo de la base, el mecanico pudo guardarlo despues de abrir esta ventana
+        Dim diagnosticoGuardado As String = ""
+        Try
+            Using cn As New MySqlConnection(CADENA)
+                cn.Open()
+                Dim consulta As String = "SELECT diagnostico FROM orden_trabajo WHERE id_orden_trabajo = @id_orden_trabajo;"
+                Using cmd As New MySqlCommand(consulta, cn)
+                    cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
+                    Dim resultado As Object = cmd.ExecuteScalar()
+                    If resultado IsNot Nothing AndAlso Not IsDBNull(resultado) Then diagnosticoGuardado = resultado.ToString().Trim
+                End Using
+            End Using
+        Catch ex As Exception
+            MessageBox.Show("Error al leer el diagnóstico de la orden: " & ex.Message)
+            Exit Sub
+        End Try
+
+        If diagnosticoGuardado = "" Then
+            Dim respuesta As DialogResult = MessageBox.Show(
+                "La orden no tiene el diagnóstico del mecánico." & vbCrLf &
+                "¿Presupuestar igual?",
+                "Sin diagnóstico",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning)
+
+            If respuesta = DialogResult.No Then Exit Sub
+        End If
 
         Dim aviso As String = ""
 
@@ -2315,6 +2800,7 @@ Public Class FrmOrdenGestion
     Const REPORTE_PRESUPUESTO As Integer = 2
     Const REPORTE_ACTA As Integer = 3
     Const REPORTE_COLGANTE As Integer = 4
+    Const REPORTE_FOTOS_TRABAJO As Integer = 5
 
     'secciones de los reportes; cada reporte usa algunas, en el orden de SeccionesReporte
     Const SECCION_DATOS As Integer = 0
@@ -2350,6 +2836,7 @@ Public Class FrmOrdenGestion
         If reporte = REPORTE_PRESUPUESTO Then Return "Presupuesto"
         If reporte = REPORTE_ACTA Then Return "Acta de recepción"
         If reporte = REPORTE_COLGANTE Then Return "Colgante de llaves"
+        If reporte = REPORTE_FOTOS_TRABAJO Then Return "Fotos del trabajo"
         Return "Orden de trabajo"
     End Function
 
@@ -2364,18 +2851,28 @@ Public Class FrmOrdenGestion
         If lineas IsNot Nothing Then conLineas = (lineas.Rows.Count > 0)
         mnuPresupuesto.Enabled = conLineas AndAlso codigoEstado <> "ANULADA"
 
+        'la hoja de fotos del trabajo no lleva importes: la imprime cualquier rol, si la orden tiene fotos
+        mnuFotosTrabajo.Enabled = (lvwFotosTrabajo.Items.Count > 0)
+
         'muestro el menu de reportes encima del boton, que esta al pie de la ventana
         cmsImprimir.Show(btnImprimir, New Point(0, 0), ToolStripDropDownDirection.AboveRight)
     End Sub
 
     Function ConfirmarAvanceSinGuardar() As Boolean
-        'el reporte sale de lo guardado en la base: si hay avance sin guardar, aviso que no va a aparecer
-        If Not avanceSinGuardar Then Return True
+        'el reporte sale de lo guardado en la base: si hay avance o diagnostico sin guardar, aviso que no va a aparecer
+        If Not avanceSinGuardar AndAlso Not diagnosticoSinGuardar Then Return True
+
+        Dim mensaje As String = "Hay cantidades, horas u observaciones sin guardar y no van a salir en el reporte."
+        Dim titulo As String = "Avance sin guardar"
+        If diagnosticoSinGuardar Then
+            mensaje = "Hay un diagnóstico escrito sin guardar y no va a salir en el reporte."
+            titulo = "Diagnóstico sin guardar"
+        End If
 
         Dim respuesta As DialogResult = MessageBox.Show(
-            "Hay cantidades, horas u observaciones sin guardar y no van a salir en el reporte." & vbCrLf &
+            mensaje & vbCrLf &
             "¿Imprimir igual?",
-            "Avance sin guardar",
+            titulo,
             MessageBoxButtons.YesNo,
             MessageBoxIcon.Warning)
         Return (respuesta = DialogResult.Yes)
@@ -2412,6 +2909,61 @@ Public Class FrmOrdenGestion
         'el colgante no lleva importes ni avance del trabajo: lo imprime cualquier rol, en cualquier estado
         If Not CargarDatosImpresion() Then Exit Sub
         MostrarVistaPrevia(prdColgante)
+    End Sub
+
+    Private Sub mnuFotosTrabajo_Click(sender As Object, e As EventArgs) Handles mnuFotosTrabajo.Click
+        'hoja aparte con las fotos cargadas durante el trabajo, sin importes: la imprime cualquier rol
+        If Not CargarDatosImpresion() Then Exit Sub
+        If Not CargarFotosTrabajoImpresion() Then Exit Sub
+
+        'otro puesto pudo quitar las fotos despues de abrir esta ventana
+        If fotosTrabajoImpresion.Count = 0 Then
+            MessageBox.Show("La orden no tiene fotos del trabajo para imprimir.")
+            CargarFotosTrabajo()
+            MostrarFotosTrabajo()
+            Exit Sub
+        End If
+        MostrarVistaPrevia(prdFotosTrabajo)
+    End Sub
+
+    Function CargarFotosTrabajoImpresion() As Boolean
+        'leo las fotos del trabajo con su descripcion, fecha y usuario; las anteriores se liberan antes
+        LiberarFotosTrabajoImpresion()
+
+        Try
+            Using cn As New MySqlConnection(CADENA)
+                cn.Open()
+                Dim consulta As String =
+                    "SELECT f.imagen, f.descripcion, f.fecha_hora, u.nombre_completo AS usuario " &
+                    "FROM ot_foto_trabajo AS f " &
+                    "JOIN usuario AS u ON u.id_usuario = f.id_usuario " &
+                    "WHERE f.id_orden_trabajo = @id_orden_trabajo " &
+                    "ORDER BY f.fecha_hora, f.id_ot_foto_trabajo;"
+                datosFotosTrabajo = LeerTablaImpresion(cn, consulta)
+            End Using
+        Catch ex As Exception
+            MessageBox.Show("Error al leer las fotos del trabajo: " & ex.Message)
+            LiberarFotosTrabajoImpresion()
+            Return False
+        End Try
+
+        'una foto ilegible queda como Nothing: la hoja la marca como ilegible
+        For Each registro As DataRow In datosFotosTrabajo.Rows
+            fotosTrabajoImpresion.Add(BytesAFoto(CType(registro("imagen"), Byte())))
+        Next
+
+        'los bytes ya estan en las fotos: no los guardo dos veces
+        datosFotosTrabajo.Columns.Remove("imagen")
+        Return True
+    End Function
+
+    Sub LiberarFotosTrabajoImpresion()
+        'libero las fotos del trabajo leidas para su hoja
+        For Each foto As Image In fotosTrabajoImpresion
+            If foto IsNot Nothing Then foto.Dispose()
+        Next
+        fotosTrabajoImpresion.Clear()
+        datosFotosTrabajo = Nothing
     End Sub
 
     Function CargarFotosImpresion() As Boolean
@@ -2466,11 +3018,13 @@ Public Class FrmOrdenGestion
     Private Sub FrmOrdenGestion_FormClosed(sender As Object, e As FormClosedEventArgs) Handles MyBase.FormClosed
         'la vista previa y los documentos de impresion no estan en components: los libero aca, con las fotos
         LiberarFotosImpresion()
+        LiberarFotosTrabajoImpresion()
         ppdVistaPrevia.Dispose()
         prdOrdenTrabajo.Dispose()
         prdPresupuesto.Dispose()
         prdActa.Dispose()
         prdColgante.Dispose()
+        prdFotosTrabajo.Dispose()
     End Sub
 
     Sub MostrarVistaPrevia(documento As Printing.PrintDocument)
@@ -2497,7 +3051,7 @@ Public Class FrmOrdenGestion
             consultaCabecera =
                 "SELECT ot.nro_orden, ot.fecha_recepcion, ot.fecha_prometida, ot.km_ingreso, ot.nivel_combustible, " &
                 "ot.fecha_finalizacion, ot.fecha_entrega, " &
-                "ot.sintoma_reportado, ot.observaciones_recepcion, ot.observaciones_mecanico, " &
+                "ot.sintoma_reportado, ot.observaciones_recepcion, ot.observaciones_mecanico, ot.diagnostico, " &
                 "v.patente, CONCAT(ma.descripcion, ' ', mo.descripcion) AS vehiculo, v.anio, v.color, " &
                 "c.razon_social AS cliente, c.documento, c.telefono, " &
                 "COALESCE(m.nombre_completo, 'Sin asignar') AS mecanico, " &
@@ -2519,7 +3073,7 @@ Public Class FrmOrdenGestion
             consultaCabecera =
                 "SELECT ot.nro_orden, ot.fecha_recepcion, ot.fecha_prometida, ot.km_ingreso, ot.nivel_combustible, " &
                 "ot.fecha_finalizacion, ot.fecha_entrega, " &
-                "ot.sintoma_reportado, ot.observaciones_recepcion, ot.observaciones_mecanico, " &
+                "ot.sintoma_reportado, ot.observaciones_recepcion, ot.observaciones_mecanico, ot.diagnostico, " &
                 "ot.total_presupuestado, ot.total_aprobado, " &
                 "v.patente, CONCAT(ma.descripcion, ' ', mo.descripcion) AS vehiculo, v.anio, v.color, " &
                 "c.razon_social AS cliente, c.documento, c.telefono, " &
@@ -2633,6 +3187,14 @@ Public Class FrmOrdenGestion
         EmpezarReporte(REPORTE_COLGANTE)
     End Sub
 
+    Private Sub prdFotosTrabajo_BeginPrint(sender As Object, e As Printing.PrintEventArgs) Handles prdFotosTrabajo.BeginPrint
+        EmpezarReporte(REPORTE_FOTOS_TRABAJO)
+    End Sub
+
+    Private Sub prdFotosTrabajo_PrintPage(sender As Object, e As Printing.PrintPageEventArgs) Handles prdFotosTrabajo.PrintPage
+        ImprimirHoja(e)
+    End Sub
+
     Private Sub prdOrdenTrabajo_PrintPage(sender As Object, e As Printing.PrintPageEventArgs) Handles prdOrdenTrabajo.PrintPage
         ImprimirHoja(e)
     End Sub
@@ -2654,6 +3216,8 @@ Public Class FrmOrdenGestion
         Try
             If reporteImpreso = REPORTE_COLGANTE Then
                 DibujarHojaColgantes(e)
+            ElseIf reporteImpreso = REPORTE_FOTOS_TRABAJO Then
+                DibujarHojaFotosTrabajo(e)
             Else
                 DibujarHoja(e)
             End If
@@ -2688,6 +3252,63 @@ Public Class FrmOrdenGestion
         Next
 
         e.HasMorePages = False
+    End Sub
+
+    Sub DibujarHojaFotosTrabajo(e As Printing.PrintPageEventArgs)
+        'fotos del trabajo en una grilla de dos columnas y tres renglones por hoja
+        'cada foto lleva su numero, su descripcion y cuando y quien la cargo; lo que no entra sigue en la hoja siguiente
+        Const COLUMNAS As Integer = 2
+        Const RENGLONES As Integer = 3
+        Const SEPARACION As Integer = 16
+        'lugar debajo de cada foto para su numero, dos renglones de descripcion y el renglon de la carga
+        Const ALTO_DEBAJO As Integer = ALTO_TITULO_FOTO + 56
+
+        Dim g As Graphics = e.Graphics
+        Dim area As Rectangle = e.MarginBounds
+        Dim x As Integer = area.Left
+        Dim ancho As Integer = area.Width
+        Dim limite As Integer = area.Bottom - ALTO_PIE
+        Dim fila As DataRow = datosImpresion
+        Dim titulo As String = TituloReporte(reporteImpreso)
+        Dim numero As String = "N.º " & fila("nro_orden").ToString()
+
+        hojaImpresa += 1
+
+        'la orden anulada lleva la marca de agua detras de todo, como sus otros reportes
+        If fila("codigo").ToString() = "ANULADA" Then DibujarMarcaAgua(g, area, "ANULADA")
+
+        Dim y As Integer = DibujarCabecera(g, x, area.Top, ancho, titulo, numero)
+
+        'renglon con el vehiculo y el cliente para ubicar la orden; la hoja no lleva importes
+        y = DibujarTextoChico(g, "Patente " & fila("patente").ToString() & " · " & fila("vehiculo").ToString() &
+                              " · Cliente: " & fila("cliente").ToString(), x, y + 4) + 8
+
+        Dim anchoFoto As Integer = (ancho - SEPARACION * (COLUMNAS - 1)) \ COLUMNAS
+        Dim altoCelda As Integer = (limite - y - SEPARACION * (RENGLONES - 1)) \ RENGLONES
+        Dim altoFoto As Integer = altoCelda - ALTO_DEBAJO
+
+        For i As Integer = 0 To COLUMNAS * RENGLONES - 1
+            If filaImpresa >= fotosTrabajoImpresion.Count Then Exit For
+
+            Dim columna As Integer = i Mod COLUMNAS
+            Dim renglon As Integer = i \ COLUMNAS
+            Dim caja As New Rectangle(x + columna * (anchoFoto + SEPARACION), y + renglon * (altoCelda + SEPARACION), anchoFoto, altoFoto)
+            Dim registro As DataRow = datosFotosTrabajo.Rows(filaImpresa)
+
+            DibujarFoto(g, fotosTrabajoImpresion(filaImpresa), "Foto " & (filaImpresa + 1).ToString(), "Foto ilegible", caja)
+
+            'debajo, la descripcion si tiene y quien la cargo
+            Dim yTexto As Integer = caja.Bottom + ALTO_TITULO_FOTO
+            Dim descripcion As String = registro("descripcion").ToString().Trim
+            If descripcion <> "" Then yTexto = DibujarParrafo(g, descripcion, caja.Left, yTexto, anchoFoto)
+            DibujarTextoChico(g, "Cargada el " & CDate(registro("fecha_hora")).ToString("dd/MM/yyyy HH:mm") &
+                              " por " & registro("usuario").ToString(), caja.Left, yTexto)
+
+            filaImpresa += 1
+        Next
+
+        DibujarPie(g, area, titulo & " " & numero & " · Impreso el " & fechaImpresion.ToString("dd/MM/yyyy HH:mm"), hojaImpresa)
+        e.HasMorePages = (filaImpresa < fotosTrabajoImpresion.Count)
     End Sub
 
     Sub DibujarHoja(e As Printing.PrintPageEventArgs)
@@ -2790,6 +3411,10 @@ Public Class FrmOrdenGestion
                 y = DibujarDato(g, "Entrega prometida", prometida, x, y, ancho, ANCHO_ETIQUETA, dibujar)
                 y = DibujarDato(g, "Síntoma reportado", fila("sintoma_reportado").ToString(), x, y, ancho, ANCHO_ETIQUETA, dibujar)
                 y = DibujarDato(g, "Observaciones", fila("observaciones_recepcion").ToString(), x, y, ancho, ANCHO_ETIQUETA, dibujar)
+                'la orden de trabajo suma el diagnostico del mecanico si esta cargado; el acta registra solo la recepcion
+                If reporteImpreso = REPORTE_ORDEN AndAlso fila("diagnostico").ToString().Trim <> "" Then
+                    y = DibujarDato(g, "Diagnóstico", fila("diagnostico").ToString().Trim, x, y, ancho, ANCHO_ETIQUETA, dibujar)
+                End If
                 Return y + 12
 
             Case SECCION_TOTALES
@@ -2842,6 +3467,10 @@ Public Class FrmOrdenGestion
                 'presupuesto: lo que pidio el cliente al dejar el vehiculo
                 y = DibujarTituloSeccion(g, "Motivo de la consulta", x, y, ancho, dibujar)
                 y = DibujarDato(g, "Síntoma reportado", fila("sintoma_reportado").ToString(), x, y, ancho, 175, dibujar)
+                'y lo que encontro el mecanico al revisarlo, si lo cargo
+                If fila("diagnostico").ToString().Trim <> "" Then
+                    y = DibujarDato(g, "Diagnóstico", fila("diagnostico").ToString().Trim, x, y, ancho, 175, dibujar)
+                End If
                 Return y + 12
 
             Case SECCION_VALIDEZ

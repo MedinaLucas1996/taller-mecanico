@@ -2,8 +2,8 @@ Imports MySqlConnector
 
 Public Class FrmFoto
 
-    'muestra en grande una foto de recepcion
-    'el tablero de ordenes carga la imagen en picFoto y el titulo, y estos datos, antes de abrirlo
+    'muestra en grande una foto de recepcion, o una del trabajo (esas solo para mirar, sin cambios)
+    'el formulario que lo abre carga la imagen en picFoto y el titulo, y estos datos, antes de abrirlo
 
     'orden y angulo de la foto que se muestra, tal como los guarda la base
     Public IdOrdenTrabajo As Integer = 0

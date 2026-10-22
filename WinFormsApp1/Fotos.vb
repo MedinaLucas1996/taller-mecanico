@@ -3,8 +3,9 @@ Imports System.Drawing.Imaging
 Imports System.IO
 
 Module Fotos
-    'rutinas compartidas para las fotos de recepcion y los iconos
-    'las usan el asistente de recepcion, el tablero de ordenes y la ventana de la foto ampliada
+    'rutinas compartidas para las fotos de recepcion, las fotos del trabajo y los iconos
+    'las usan el asistente de recepcion, el tablero de ordenes, la gestion de la orden, mis ordenes
+    'y la ventana de la foto ampliada
 
     'lado mayor maximo de las fotos guardadas, en pixeles
     Public Const LADO_MAXIMO As Integer = 1280
@@ -77,6 +78,35 @@ Module Fotos
             If foto Is Nothing Then Return Nothing
             Return ImagenABytes(foto)
         End Using
+    End Function
+
+    Function BytesAFoto(bytes() As Byte) As Image
+        'paso los bytes guardados en la base a una foto; devuelve Nothing si no son una imagen valida
+        Try
+            Using memoria As New MemoryStream(bytes)
+                Using original As Image = Image.FromStream(memoria)
+                    'copio la foto a un bitmap nuevo, que ya no depende de la memoria leida
+                    Return New Bitmap(original)
+                End Using
+            End Using
+        Catch ex As Exception
+            Return Nothing
+        End Try
+    End Function
+
+    Function Miniatura(foto As Image, ancho As Integer, alto As Integer) As Bitmap
+        'armo una miniatura del tamaño pedido con la foto entera, centrada y sin deformarla, sobre fondo blanco
+        'la usan las listas de fotos del trabajo, cuyas imagenes tienen todas el mismo tamaño
+        Dim reducida As New Bitmap(ancho, alto, PixelFormat.Format24bppRgb)
+        Using dibujo As Graphics = Graphics.FromImage(reducida)
+            dibujo.Clear(Color.White)
+            dibujo.InterpolationMode = InterpolationMode.HighQualityBicubic
+            Dim escala As Double = Math.Min(ancho / foto.Width, alto / foto.Height)
+            Dim anchoFoto As Integer = Math.Max(1, CInt(foto.Width * escala))
+            Dim altoFoto As Integer = Math.Max(1, CInt(foto.Height * escala))
+            dibujo.DrawImage(foto, (ancho - anchoFoto) \ 2, (alto - altoFoto) \ 2, anchoFoto, altoFoto)
+        End Using
+        Return reducida
     End Function
 
     Function LeerIcono(archivo As String) As Image

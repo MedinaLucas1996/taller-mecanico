@@ -22,6 +22,7 @@ Partial Class FrmMisOrdenes
     'No lo modifique con el editor de código.
     <System.Diagnostics.DebuggerStepThrough()> _
     Private Sub InitializeComponent()
+        components = New ComponentModel.Container()
         Dim DataGridViewCellStyle1 As DataGridViewCellStyle = New DataGridViewCellStyle()
         lblTitulo = New Label()
         lblSubtitulo = New Label()
@@ -35,6 +36,9 @@ Partial Class FrmMisOrdenes
         pnlGrupo3 = New Panel()
         lblNomGrupo3 = New Label()
         lblCantGrupo3 = New Label()
+        pnlGrupo4 = New Panel()
+        lblNomGrupo4 = New Label()
+        lblCantGrupo4 = New Label()
         pnlLista = New Panel()
         dgvOrdenes = New DataGridView()
         pnlResumen = New Panel()
@@ -63,12 +67,16 @@ Partial Class FrmMisOrdenes
         picLateralDer = New PictureBox()
         lblSinTablero = New Label()
         picTablero = New PictureBox()
+        lblFotosTrabajoTit = New Label()
+        lvwFotosTrabajo = New ListView()
+        imlFotosTrabajo = New ImageList(components)
         btnAbrir = New Button()
         btnExportar = New Button()
         tlpGrupos.SuspendLayout()
         pnlGrupo1.SuspendLayout()
         pnlGrupo2.SuspendLayout()
         pnlGrupo3.SuspendLayout()
+        pnlGrupo4.SuspendLayout()
         pnlLista.SuspendLayout()
         pnlResumen.SuspendLayout()
         pnlOrden.SuspendLayout()
@@ -107,13 +115,15 @@ Partial Class FrmMisOrdenes
         ' tlpGrupos
         '
         tlpGrupos.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
-        tlpGrupos.ColumnCount = 3
-        tlpGrupos.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 33.3333321F))
-        tlpGrupos.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 33.3333321F))
-        tlpGrupos.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 33.3333321F))
+        tlpGrupos.ColumnCount = 4
+        tlpGrupos.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 25F))
+        tlpGrupos.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 25F))
+        tlpGrupos.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 25F))
+        tlpGrupos.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 25F))
         tlpGrupos.Controls.Add(pnlGrupo1, 0, 0)
         tlpGrupos.Controls.Add(pnlGrupo2, 1, 0)
-        tlpGrupos.Controls.Add(pnlGrupo3, 2, 0)
+        tlpGrupos.Controls.Add(pnlGrupo4, 2, 0)
+        tlpGrupos.Controls.Add(pnlGrupo3, 3, 0)
         tlpGrupos.Location = New Point(30, 104)
         tlpGrupos.Name = "tlpGrupos"
         tlpGrupos.RowCount = 1
@@ -228,6 +238,42 @@ Partial Class FrmMisOrdenes
         lblCantGrupo3.TabIndex = 0
         lblCantGrupo3.Text = "0"
         lblCantGrupo3.TextAlign = ContentAlignment.BottomCenter
+        '
+        ' pnlGrupo4
+        '
+        pnlGrupo4.BackColor = Color.White
+        pnlGrupo4.Controls.Add(lblNomGrupo4)
+        pnlGrupo4.Controls.Add(lblCantGrupo4)
+        pnlGrupo4.Cursor = Cursors.Hand
+        pnlGrupo4.Dock = DockStyle.Fill
+        pnlGrupo4.Location = New Point(0, 0)
+        pnlGrupo4.Margin = New Padding(0, 0, 6, 0)
+        pnlGrupo4.Name = "pnlGrupo4"
+        pnlGrupo4.Size = New Size(196, 76)
+        pnlGrupo4.TabIndex = 3
+        '
+        ' lblNomGrupo4
+        '
+        lblNomGrupo4.Dock = DockStyle.Fill
+        lblNomGrupo4.Font = New Font("Segoe UI", 8.25F)
+        lblNomGrupo4.ForeColor = Color.DimGray
+        lblNomGrupo4.Location = New Point(0, 46)
+        lblNomGrupo4.Name = "lblNomGrupo4"
+        lblNomGrupo4.Size = New Size(196, 30)
+        lblNomGrupo4.TabIndex = 1
+        lblNomGrupo4.Text = "Para diagnosticar"
+        lblNomGrupo4.TextAlign = ContentAlignment.TopCenter
+        '
+        ' lblCantGrupo4
+        '
+        lblCantGrupo4.Dock = DockStyle.Top
+        lblCantGrupo4.Font = New Font("Segoe UI", 16F, FontStyle.Bold)
+        lblCantGrupo4.Location = New Point(0, 0)
+        lblCantGrupo4.Name = "lblCantGrupo4"
+        lblCantGrupo4.Size = New Size(196, 46)
+        lblCantGrupo4.TabIndex = 0
+        lblCantGrupo4.Text = "0"
+        lblCantGrupo4.TextAlign = ContentAlignment.BottomCenter
         '
         ' pnlLista
         '
@@ -347,9 +393,11 @@ Partial Class FrmMisOrdenes
         tlpResumen.Controls.Add(lblTrabajoTit, 0, 5)
         tlpResumen.Controls.Add(txtTrabajo, 0, 6)
         tlpResumen.Controls.Add(pnlFotos, 0, 7)
+        tlpResumen.Controls.Add(lblFotosTrabajoTit, 0, 8)
+        tlpResumen.Controls.Add(lvwFotosTrabajo, 0, 9)
         tlpResumen.Location = New Point(16, 46)
         tlpResumen.Name = "tlpResumen"
-        tlpResumen.RowCount = 8
+        tlpResumen.RowCount = 10
         tlpResumen.RowStyles.Add(New RowStyle())
         tlpResumen.RowStyles.Add(New RowStyle())
         tlpResumen.RowStyles.Add(New RowStyle())
@@ -357,6 +405,8 @@ Partial Class FrmMisOrdenes
         tlpResumen.RowStyles.Add(New RowStyle())
         tlpResumen.RowStyles.Add(New RowStyle())
         tlpResumen.RowStyles.Add(New RowStyle(SizeType.Percent, 100F))
+        tlpResumen.RowStyles.Add(New RowStyle())
+        tlpResumen.RowStyles.Add(New RowStyle())
         tlpResumen.RowStyles.Add(New RowStyle())
         tlpResumen.Size = New Size(348, 318)
         tlpResumen.TabIndex = 0
@@ -366,6 +416,8 @@ Partial Class FrmMisOrdenes
         tlpResumen.SetColumnSpan(lblTrabajoTit, 2)
         tlpResumen.SetColumnSpan(txtTrabajo, 2)
         tlpResumen.SetColumnSpan(pnlFotos, 2)
+        tlpResumen.SetColumnSpan(lblFotosTrabajoTit, 2)
+        tlpResumen.SetColumnSpan(lvwFotosTrabajo, 2)
         '
         ' picVehiculo
         '
@@ -498,6 +550,45 @@ Partial Class FrmMisOrdenes
         pnlFotos.Name = "pnlFotos"
         pnlFotos.Size = New Size(348, 58)
         pnlFotos.TabIndex = 19
+        '
+        ' lblFotosTrabajoTit
+        '
+        lblFotosTrabajoTit.AutoSize = True
+        lblFotosTrabajoTit.Font = New Font("Segoe UI", 8.25F)
+        lblFotosTrabajoTit.ForeColor = Color.DimGray
+        lblFotosTrabajoTit.Location = New Point(0, 0)
+        lblFotosTrabajoTit.Margin = New Padding(0, 6, 0, 2)
+        lblFotosTrabajoTit.Name = "lblFotosTrabajoTit"
+        lblFotosTrabajoTit.Size = New Size(100, 19)
+        lblFotosTrabajoTit.TabIndex = 20
+        lblFotosTrabajoTit.Text = "Fotos del trabajo"
+        lblFotosTrabajoTit.Visible = False
+        '
+        ' lvwFotosTrabajo
+        '
+        lvwFotosTrabajo.Activation = ItemActivation.OneClick
+        lvwFotosTrabajo.Anchor = AnchorStyles.Left Or AnchorStyles.Right
+        lvwFotosTrabajo.BackColor = Color.White
+        lvwFotosTrabajo.BorderStyle = BorderStyle.None
+        lvwFotosTrabajo.Location = New Point(0, 0)
+        lvwFotosTrabajo.Margin = New Padding(0, 0, 0, 0)
+        lvwFotosTrabajo.MultiSelect = False
+        lvwFotosTrabajo.Name = "lvwFotosTrabajo"
+        lvwFotosTrabajo.ShowItemToolTips = True
+        lvwFotosTrabajo.LargeImageList = imlFotosTrabajo
+        lvwFotosTrabajo.Size = New Size(348, 50)
+        lvwFotosTrabajo.TabIndex = 21
+        lvwFotosTrabajo.TabStop = False
+        lvwFotosTrabajo.TileSize = New Size(54, 40)
+        lvwFotosTrabajo.UseCompatibleStateImageBehavior = False
+        lvwFotosTrabajo.View = View.Tile
+        lvwFotosTrabajo.Visible = False
+        '
+        ' imlFotosTrabajo
+        '
+        imlFotosTrabajo.ColorDepth = ColorDepth.Depth24Bit
+        imlFotosTrabajo.ImageSize = New Size(48, 36)
+        imlFotosTrabajo.TransparentColor = Color.Transparent
         '
         ' lblSinFrente
         '
@@ -671,6 +762,7 @@ Partial Class FrmMisOrdenes
         pnlGrupo1.ResumeLayout(False)
         pnlGrupo2.ResumeLayout(False)
         pnlGrupo3.ResumeLayout(False)
+        pnlGrupo4.ResumeLayout(False)
         pnlLista.ResumeLayout(False)
         pnlResumen.ResumeLayout(False)
         pnlOrden.ResumeLayout(False)
@@ -701,6 +793,9 @@ Partial Class FrmMisOrdenes
     Friend WithEvents pnlGrupo3 As Panel
     Friend WithEvents lblNomGrupo3 As Label
     Friend WithEvents lblCantGrupo3 As Label
+    Friend WithEvents pnlGrupo4 As Panel
+    Friend WithEvents lblNomGrupo4 As Label
+    Friend WithEvents lblCantGrupo4 As Label
     Friend WithEvents pnlLista As Panel
     Friend WithEvents dgvOrdenes As DataGridView
     Friend WithEvents pnlResumen As Panel
@@ -719,6 +814,9 @@ Partial Class FrmMisOrdenes
     Friend WithEvents lblTrabajoTit As Label
     Friend WithEvents txtTrabajo As TextBox
     Friend WithEvents pnlFotos As Panel
+    Friend WithEvents lblFotosTrabajoTit As Label
+    Friend WithEvents lvwFotosTrabajo As ListView
+    Friend WithEvents imlFotosTrabajo As ImageList
     Friend WithEvents lblSinFrente As Label
     Friend WithEvents picFrente As PictureBox
     Friend WithEvents lblSinTrasera As Label

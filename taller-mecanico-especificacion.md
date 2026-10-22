@@ -236,7 +236,7 @@ El indicador de edición de detalle controla algo concreto: hasta el estado `PRE
 
 ## 7. Modelo de datos
 
-El modelo consta de **13 tablas**.
+El modelo consta de **14 tablas**.
 
 ### 7.1 Datos maestros
 
@@ -258,10 +258,11 @@ El modelo consta de **13 tablas**.
 
 | Tabla | Contenido |
 |---|---|
-| `orden_trabajo` | Cabecera: número, vehículo, cliente, mecánico, estado, fechas (incluida la fecha prometida de entrega), kilometraje, síntoma, observaciones, totales |
+| `orden_trabajo` | Cabecera: número, vehículo, cliente, mecánico, estado, fechas (incluida la fecha prometida de entrega), kilometraje, síntoma, observaciones, diagnóstico del mecánico, totales |
 | `ot_detalle` | Líneas del presupuesto: servicio, descripción y precio congelados, cantidad, subtotal, aprobación, horas trabajadas |
 | `ot_historial_estado` | Trazabilidad de los cambios de estado |
 | `ot_foto` | Fotos del vehículo tomadas en la recepción: orden, ángulo, imagen, usuario, fecha y hora |
+| `ot_foto_trabajo` | Fotos cargadas durante el trabajo, sin límite por orden: orden, imagen, descripción, usuario, fecha y hora |
 
 ---
 
