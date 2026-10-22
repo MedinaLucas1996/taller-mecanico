@@ -80,6 +80,7 @@ Partial Class FrmRecepcion
         pnlPaso3 = New Panel()
         lblAyudaFotos = New Label()
         tlpFotos = New TableLayoutPanel()
+        lblConsejoFotos = New Label()
         pnlFotoFrente = New Panel()
         picFrente = New PictureBox()
         lblFrente = New Label()
@@ -864,23 +865,37 @@ Partial Class FrmRecepcion
         ' tlpFotos
         '
         tlpFotos.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
-        tlpFotos.ColumnCount = 5
-        tlpFotos.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 20F))
-        tlpFotos.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 20F))
-        tlpFotos.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 20F))
-        tlpFotos.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 20F))
-        tlpFotos.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 20F))
+        tlpFotos.ColumnCount = 3
+        tlpFotos.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 33.3333321F))
+        tlpFotos.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 33.3333321F))
+        tlpFotos.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 33.3333321F))
         tlpFotos.Controls.Add(pnlFotoFrente, 0, 0)
         tlpFotos.Controls.Add(pnlFotoTrasera, 1, 0)
-        tlpFotos.Controls.Add(pnlFotoLateralIzq, 2, 0)
-        tlpFotos.Controls.Add(pnlFotoLateralDer, 3, 0)
-        tlpFotos.Controls.Add(pnlFotoTablero, 4, 0)
+        tlpFotos.Controls.Add(pnlFotoTablero, 2, 0)
+        tlpFotos.Controls.Add(pnlFotoLateralIzq, 0, 1)
+        tlpFotos.Controls.Add(pnlFotoLateralDer, 1, 1)
+        tlpFotos.Controls.Add(lblConsejoFotos, 2, 1)
         tlpFotos.Location = New Point(20, 44)
         tlpFotos.Name = "tlpFotos"
-        tlpFotos.RowCount = 1
-        tlpFotos.RowStyles.Add(New RowStyle(SizeType.Percent, 100F))
+        tlpFotos.RowCount = 2
+        tlpFotos.RowStyles.Add(New RowStyle(SizeType.Percent, 50F))
+        tlpFotos.RowStyles.Add(New RowStyle(SizeType.Percent, 50F))
         tlpFotos.Size = New Size(400, 364)
         tlpFotos.TabIndex = 1
+        '
+        ' lblConsejoFotos
+        '
+        lblConsejoFotos.Dock = DockStyle.Fill
+        lblConsejoFotos.ForeColor = Color.DimGray
+        lblConsejoFotos.Location = New Point(0, 0)
+        lblConsejoFotos.Margin = New Padding(12, 8, 0, 0)
+        lblConsejoFotos.Name = "lblConsejoFotos"
+        lblConsejoFotos.Size = New Size(130, 182)
+        lblConsejoFotos.TabIndex = 5
+        lblConsejoFotos.Text = "Conviene sacar las fotos con buena luz." & vbCrLf & vbCrLf &
+            "Frente o trasera: que se lea la patente." & vbCrLf &
+            "Laterales: los golpes o rayones que ya tenga." & vbCrLf &
+            "Tablero: el kilometraje y el nivel de combustible."
         '
         ' pnlFotoFrente
         '
@@ -891,7 +906,7 @@ Partial Class FrmRecepcion
         pnlFotoFrente.Controls.Add(btnQuitarFrente)
         pnlFotoFrente.Dock = DockStyle.Fill
         pnlFotoFrente.Location = New Point(0, 0)
-        pnlFotoFrente.Margin = New Padding(0, 0, 6, 0)
+        pnlFotoFrente.Margin = New Padding(0, 0, 6, 6)
         pnlFotoFrente.Name = "pnlFotoFrente"
         pnlFotoFrente.Padding = New Padding(4)
         pnlFotoFrente.Size = New Size(74, 364)
@@ -962,7 +977,7 @@ Partial Class FrmRecepcion
         pnlFotoTrasera.Controls.Add(btnQuitarTrasera)
         pnlFotoTrasera.Dock = DockStyle.Fill
         pnlFotoTrasera.Location = New Point(80, 0)
-        pnlFotoTrasera.Margin = New Padding(0, 0, 6, 0)
+        pnlFotoTrasera.Margin = New Padding(0, 0, 6, 6)
         pnlFotoTrasera.Name = "pnlFotoTrasera"
         pnlFotoTrasera.Padding = New Padding(4)
         pnlFotoTrasera.Size = New Size(74, 364)
@@ -1037,7 +1052,7 @@ Partial Class FrmRecepcion
         pnlFotoLateralIzq.Name = "pnlFotoLateralIzq"
         pnlFotoLateralIzq.Padding = New Padding(4)
         pnlFotoLateralIzq.Size = New Size(74, 364)
-        pnlFotoLateralIzq.TabIndex = 2
+        pnlFotoLateralIzq.TabIndex = 3
         '
         ' picLateralIzq
         '
@@ -1108,7 +1123,7 @@ Partial Class FrmRecepcion
         pnlFotoLateralDer.Name = "pnlFotoLateralDer"
         pnlFotoLateralDer.Padding = New Padding(4)
         pnlFotoLateralDer.Size = New Size(74, 364)
-        pnlFotoLateralDer.TabIndex = 3
+        pnlFotoLateralDer.TabIndex = 4
         '
         ' picLateralDer
         '
@@ -1175,11 +1190,11 @@ Partial Class FrmRecepcion
         pnlFotoTablero.Controls.Add(btnQuitarTablero)
         pnlFotoTablero.Dock = DockStyle.Fill
         pnlFotoTablero.Location = New Point(320, 0)
-        pnlFotoTablero.Margin = New Padding(0, 0, 0, 0)
+        pnlFotoTablero.Margin = New Padding(0, 0, 0, 6)
         pnlFotoTablero.Name = "pnlFotoTablero"
         pnlFotoTablero.Padding = New Padding(4)
         pnlFotoTablero.Size = New Size(74, 364)
-        pnlFotoTablero.TabIndex = 4
+        pnlFotoTablero.TabIndex = 2
         '
         ' picTablero
         '
@@ -1848,6 +1863,7 @@ Partial Class FrmRecepcion
     Friend WithEvents pnlPaso3 As Panel
     Friend WithEvents lblAyudaFotos As Label
     Friend WithEvents tlpFotos As TableLayoutPanel
+    Friend WithEvents lblConsejoFotos As Label
     Friend WithEvents pnlFotoFrente As Panel
     Friend WithEvents picFrente As PictureBox
     Friend WithEvents lblFrente As Label
