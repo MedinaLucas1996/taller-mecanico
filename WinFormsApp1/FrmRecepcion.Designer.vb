@@ -84,27 +84,22 @@ Partial Class FrmRecepcion
         pnlFotoFrente = New Panel()
         picFrente = New PictureBox()
         lblFrente = New Label()
-        btnCargarFrente = New Button()
         btnQuitarFrente = New Button()
         pnlFotoTrasera = New Panel()
         picTrasera = New PictureBox()
         lblTrasera = New Label()
-        btnCargarTrasera = New Button()
         btnQuitarTrasera = New Button()
         pnlFotoLateralIzq = New Panel()
         picLateralIzq = New PictureBox()
         lblLateralIzq = New Label()
-        btnCargarLateralIzq = New Button()
         btnQuitarLateralIzq = New Button()
         pnlFotoLateralDer = New Panel()
         picLateralDer = New PictureBox()
         lblLateralDer = New Label()
-        btnCargarLateralDer = New Button()
         btnQuitarLateralDer = New Button()
         pnlFotoTablero = New Panel()
         picTablero = New PictureBox()
         lblTablero = New Label()
-        btnCargarTablero = New Button()
         btnQuitarTablero = New Button()
         pnlPaso4 = New Panel()
         lblResumen = New Label()
@@ -902,7 +897,6 @@ Partial Class FrmRecepcion
         pnlFotoFrente.BackColor = Color.FromArgb(CByte(245), CByte(246), CByte(250))
         pnlFotoFrente.Controls.Add(picFrente)
         pnlFotoFrente.Controls.Add(lblFrente)
-        pnlFotoFrente.Controls.Add(btnCargarFrente)
         pnlFotoFrente.Controls.Add(btnQuitarFrente)
         pnlFotoFrente.Dock = DockStyle.Fill
         pnlFotoFrente.Location = New Point(0, 0)
@@ -936,21 +930,6 @@ Partial Class FrmRecepcion
         lblFrente.Text = "Frente"
         lblFrente.TextAlign = ContentAlignment.MiddleCenter
         '
-        ' btnCargarFrente
-        '
-        btnCargarFrente.BackColor = Color.White
-        btnCargarFrente.Cursor = Cursors.Hand
-        btnCargarFrente.Dock = DockStyle.Bottom
-        btnCargarFrente.FlatAppearance.BorderColor = Color.Silver
-        btnCargarFrente.FlatStyle = FlatStyle.Flat
-        btnCargarFrente.Location = New Point(4, 292)
-        btnCargarFrente.Name = "btnCargarFrente"
-        btnCargarFrente.Size = New Size(66, 34)
-        btnCargarFrente.TabIndex = 2
-        btnCargarFrente.Text = " Cargar foto"
-        btnCargarFrente.TextImageRelation = TextImageRelation.ImageBeforeText
-        btnCargarFrente.UseVisualStyleBackColor = False
-        '
         ' btnQuitarFrente
         '
         btnQuitarFrente.BackColor = Color.White
@@ -973,7 +952,6 @@ Partial Class FrmRecepcion
         pnlFotoTrasera.BackColor = Color.FromArgb(CByte(245), CByte(246), CByte(250))
         pnlFotoTrasera.Controls.Add(picTrasera)
         pnlFotoTrasera.Controls.Add(lblTrasera)
-        pnlFotoTrasera.Controls.Add(btnCargarTrasera)
         pnlFotoTrasera.Controls.Add(btnQuitarTrasera)
         pnlFotoTrasera.Dock = DockStyle.Fill
         pnlFotoTrasera.Location = New Point(80, 0)
@@ -1007,21 +985,6 @@ Partial Class FrmRecepcion
         lblTrasera.Text = "Trasera"
         lblTrasera.TextAlign = ContentAlignment.MiddleCenter
         '
-        ' btnCargarTrasera
-        '
-        btnCargarTrasera.BackColor = Color.White
-        btnCargarTrasera.Cursor = Cursors.Hand
-        btnCargarTrasera.Dock = DockStyle.Bottom
-        btnCargarTrasera.FlatAppearance.BorderColor = Color.Silver
-        btnCargarTrasera.FlatStyle = FlatStyle.Flat
-        btnCargarTrasera.Location = New Point(4, 292)
-        btnCargarTrasera.Name = "btnCargarTrasera"
-        btnCargarTrasera.Size = New Size(66, 34)
-        btnCargarTrasera.TabIndex = 2
-        btnCargarTrasera.Text = " Cargar foto"
-        btnCargarTrasera.TextImageRelation = TextImageRelation.ImageBeforeText
-        btnCargarTrasera.UseVisualStyleBackColor = False
-        '
         ' btnQuitarTrasera
         '
         btnQuitarTrasera.BackColor = Color.White
@@ -1044,7 +1007,6 @@ Partial Class FrmRecepcion
         pnlFotoLateralIzq.BackColor = Color.FromArgb(CByte(245), CByte(246), CByte(250))
         pnlFotoLateralIzq.Controls.Add(picLateralIzq)
         pnlFotoLateralIzq.Controls.Add(lblLateralIzq)
-        pnlFotoLateralIzq.Controls.Add(btnCargarLateralIzq)
         pnlFotoLateralIzq.Controls.Add(btnQuitarLateralIzq)
         pnlFotoLateralIzq.Dock = DockStyle.Fill
         pnlFotoLateralIzq.Location = New Point(160, 0)
@@ -1078,21 +1040,6 @@ Partial Class FrmRecepcion
         lblLateralIzq.Text = "Lateral izquierdo"
         lblLateralIzq.TextAlign = ContentAlignment.MiddleCenter
         '
-        ' btnCargarLateralIzq
-        '
-        btnCargarLateralIzq.BackColor = Color.White
-        btnCargarLateralIzq.Cursor = Cursors.Hand
-        btnCargarLateralIzq.Dock = DockStyle.Bottom
-        btnCargarLateralIzq.FlatAppearance.BorderColor = Color.Silver
-        btnCargarLateralIzq.FlatStyle = FlatStyle.Flat
-        btnCargarLateralIzq.Location = New Point(4, 292)
-        btnCargarLateralIzq.Name = "btnCargarLateralIzq"
-        btnCargarLateralIzq.Size = New Size(66, 34)
-        btnCargarLateralIzq.TabIndex = 2
-        btnCargarLateralIzq.Text = " Cargar foto"
-        btnCargarLateralIzq.TextImageRelation = TextImageRelation.ImageBeforeText
-        btnCargarLateralIzq.UseVisualStyleBackColor = False
-        '
         ' btnQuitarLateralIzq
         '
         btnQuitarLateralIzq.BackColor = Color.White
@@ -1115,7 +1062,6 @@ Partial Class FrmRecepcion
         pnlFotoLateralDer.BackColor = Color.FromArgb(CByte(245), CByte(246), CByte(250))
         pnlFotoLateralDer.Controls.Add(picLateralDer)
         pnlFotoLateralDer.Controls.Add(lblLateralDer)
-        pnlFotoLateralDer.Controls.Add(btnCargarLateralDer)
         pnlFotoLateralDer.Controls.Add(btnQuitarLateralDer)
         pnlFotoLateralDer.Dock = DockStyle.Fill
         pnlFotoLateralDer.Location = New Point(240, 0)
@@ -1149,21 +1095,6 @@ Partial Class FrmRecepcion
         lblLateralDer.Text = "Lateral derecho"
         lblLateralDer.TextAlign = ContentAlignment.MiddleCenter
         '
-        ' btnCargarLateralDer
-        '
-        btnCargarLateralDer.BackColor = Color.White
-        btnCargarLateralDer.Cursor = Cursors.Hand
-        btnCargarLateralDer.Dock = DockStyle.Bottom
-        btnCargarLateralDer.FlatAppearance.BorderColor = Color.Silver
-        btnCargarLateralDer.FlatStyle = FlatStyle.Flat
-        btnCargarLateralDer.Location = New Point(4, 292)
-        btnCargarLateralDer.Name = "btnCargarLateralDer"
-        btnCargarLateralDer.Size = New Size(66, 34)
-        btnCargarLateralDer.TabIndex = 2
-        btnCargarLateralDer.Text = " Cargar foto"
-        btnCargarLateralDer.TextImageRelation = TextImageRelation.ImageBeforeText
-        btnCargarLateralDer.UseVisualStyleBackColor = False
-        '
         ' btnQuitarLateralDer
         '
         btnQuitarLateralDer.BackColor = Color.White
@@ -1186,7 +1117,6 @@ Partial Class FrmRecepcion
         pnlFotoTablero.BackColor = Color.FromArgb(CByte(245), CByte(246), CByte(250))
         pnlFotoTablero.Controls.Add(picTablero)
         pnlFotoTablero.Controls.Add(lblTablero)
-        pnlFotoTablero.Controls.Add(btnCargarTablero)
         pnlFotoTablero.Controls.Add(btnQuitarTablero)
         pnlFotoTablero.Dock = DockStyle.Fill
         pnlFotoTablero.Location = New Point(320, 0)
@@ -1219,21 +1149,6 @@ Partial Class FrmRecepcion
         lblTablero.TabIndex = 1
         lblTablero.Text = "Tablero"
         lblTablero.TextAlign = ContentAlignment.MiddleCenter
-        '
-        ' btnCargarTablero
-        '
-        btnCargarTablero.BackColor = Color.White
-        btnCargarTablero.Cursor = Cursors.Hand
-        btnCargarTablero.Dock = DockStyle.Bottom
-        btnCargarTablero.FlatAppearance.BorderColor = Color.Silver
-        btnCargarTablero.FlatStyle = FlatStyle.Flat
-        btnCargarTablero.Location = New Point(4, 292)
-        btnCargarTablero.Name = "btnCargarTablero"
-        btnCargarTablero.Size = New Size(66, 34)
-        btnCargarTablero.TabIndex = 2
-        btnCargarTablero.Text = " Cargar foto"
-        btnCargarTablero.TextImageRelation = TextImageRelation.ImageBeforeText
-        btnCargarTablero.UseVisualStyleBackColor = False
         '
         ' btnQuitarTablero
         '
@@ -1867,27 +1782,22 @@ Partial Class FrmRecepcion
     Friend WithEvents pnlFotoFrente As Panel
     Friend WithEvents picFrente As PictureBox
     Friend WithEvents lblFrente As Label
-    Friend WithEvents btnCargarFrente As Button
     Friend WithEvents btnQuitarFrente As Button
     Friend WithEvents pnlFotoTrasera As Panel
     Friend WithEvents picTrasera As PictureBox
     Friend WithEvents lblTrasera As Label
-    Friend WithEvents btnCargarTrasera As Button
     Friend WithEvents btnQuitarTrasera As Button
     Friend WithEvents pnlFotoLateralIzq As Panel
     Friend WithEvents picLateralIzq As PictureBox
     Friend WithEvents lblLateralIzq As Label
-    Friend WithEvents btnCargarLateralIzq As Button
     Friend WithEvents btnQuitarLateralIzq As Button
     Friend WithEvents pnlFotoLateralDer As Panel
     Friend WithEvents picLateralDer As PictureBox
     Friend WithEvents lblLateralDer As Label
-    Friend WithEvents btnCargarLateralDer As Button
     Friend WithEvents btnQuitarLateralDer As Button
     Friend WithEvents pnlFotoTablero As Panel
     Friend WithEvents picTablero As PictureBox
     Friend WithEvents lblTablero As Label
-    Friend WithEvents btnCargarTablero As Button
     Friend WithEvents btnQuitarTablero As Button
     Friend WithEvents pnlPaso4 As Panel
     Friend WithEvents lblResumen As Label

@@ -29,11 +29,6 @@ Public Class FrmRecepcion
         btnSiguiente.Image = LeerIcono("siguiente.png")
         btnConfirmar.Image = LeerIcono("confirmar.png")
 
-        btnCargarFrente.Image = LeerIcono("foto-agregar-oscuro.png")
-        btnCargarTrasera.Image = LeerIcono("foto-agregar-oscuro.png")
-        btnCargarLateralIzq.Image = LeerIcono("foto-agregar-oscuro.png")
-        btnCargarLateralDer.Image = LeerIcono("foto-agregar-oscuro.png")
-        btnCargarTablero.Image = LeerIcono("foto-agregar-oscuro.png")
         btnQuitarFrente.Image = LeerIcono("quitar-oscuro.png")
         btnQuitarTrasera.Image = LeerIcono("quitar-oscuro.png")
         btnQuitarLateralIzq.Image = LeerIcono("quitar-oscuro.png")
@@ -667,40 +662,20 @@ Public Class FrmRecepcion
         btnBuscar.PerformClick()
     End Sub
 
-    Private Sub btnCargarFrente_Click(sender As Object, e As EventArgs) Handles btnCargarFrente.Click
-        CargarFoto(picFrente)
-    End Sub
-
     Private Sub btnQuitarFrente_Click(sender As Object, e As EventArgs) Handles btnQuitarFrente.Click
         QuitarFoto(picFrente)
-    End Sub
-
-    Private Sub btnCargarTrasera_Click(sender As Object, e As EventArgs) Handles btnCargarTrasera.Click
-        CargarFoto(picTrasera)
     End Sub
 
     Private Sub btnQuitarTrasera_Click(sender As Object, e As EventArgs) Handles btnQuitarTrasera.Click
         QuitarFoto(picTrasera)
     End Sub
 
-    Private Sub btnCargarLateralIzq_Click(sender As Object, e As EventArgs) Handles btnCargarLateralIzq.Click
-        CargarFoto(picLateralIzq)
-    End Sub
-
     Private Sub btnQuitarLateralIzq_Click(sender As Object, e As EventArgs) Handles btnQuitarLateralIzq.Click
         QuitarFoto(picLateralIzq)
     End Sub
 
-    Private Sub btnCargarLateralDer_Click(sender As Object, e As EventArgs) Handles btnCargarLateralDer.Click
-        CargarFoto(picLateralDer)
-    End Sub
-
     Private Sub btnQuitarLateralDer_Click(sender As Object, e As EventArgs) Handles btnQuitarLateralDer.Click
         QuitarFoto(picLateralDer)
-    End Sub
-
-    Private Sub btnCargarTablero_Click(sender As Object, e As EventArgs) Handles btnCargarTablero.Click
-        CargarFoto(picTablero)
     End Sub
 
     Private Sub btnQuitarTablero_Click(sender As Object, e As EventArgs) Handles btnQuitarTablero.Click
@@ -710,9 +685,8 @@ Public Class FrmRecepcion
     Private Sub Foto_Click(sender As Object, e As EventArgs) Handles _
         picFrente.Click, picTrasera.Click, picLateralIzq.Click, picLateralDer.Click, picTablero.Click
 
-        'un click en un cuadro vacio hace lo mismo que su boton "Cargar foto"
-        Dim pic As PictureBox = CType(sender, PictureBox)
-        If pic.Image Is Nothing Then CargarFoto(pic)
+        'un click en el cuadro carga la foto; si ya tenia una, la reemplaza
+        CargarFoto(CType(sender, PictureBox))
     End Sub
 
     Private Sub Foto_Paint(sender As Object, e As PaintEventArgs) Handles _
