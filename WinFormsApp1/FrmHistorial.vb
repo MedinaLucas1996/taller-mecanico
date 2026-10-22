@@ -134,7 +134,7 @@ Public Class FrmHistorial
             'el vehiculo que se estaba viendo queda en la tarjeta; si sigue en la lista, queda marcado
             MarcarFila(dgvVehiculos, "id_vehiculo", "patente", idVehiculo)
         Catch ex As Exception
-            MessageBox.Show("Error al cargar los vehículos: " & ex.Message)
+            MostrarError("Error al cargar los vehículos", ex)
         Finally
             'pase lo que pase, la grilla vuelve a atender al usuario
             cargando = False
@@ -226,7 +226,7 @@ Public Class FrmHistorial
 
             SinOrdenar(dgvOrdenes)
         Catch ex As Exception
-            MessageBox.Show("Error al cargar las órdenes del vehículo: " & ex.Message)
+            MostrarError("Error al cargar las órdenes del vehículo", ex)
         Finally
             cargando = False
         End Try
@@ -310,7 +310,7 @@ Public Class FrmHistorial
             dgvServicios.ClearSelection()
             dgvServicios.CurrentCell = Nothing
         Catch ex As Exception
-            MessageBox.Show("Error al cargar los servicios de la orden: " & ex.Message)
+            MostrarError("Error al cargar los servicios de la orden", ex)
         End Try
 
         If tabla.Rows.Count = 0 Then
@@ -526,7 +526,7 @@ Public Class FrmHistorial
             ppdVistaPrevia.WindowState = FormWindowState.Maximized
             ppdVistaPrevia.ShowDialog(Me.TopLevelControl)
         Catch ex As Exception
-            MessageBox.Show("No se pudo preparar la impresión: " & ex.Message)
+            MostrarError("No se pudo preparar la impresión", ex)
         End Try
     End Sub
 
@@ -575,7 +575,7 @@ Public Class FrmHistorial
                 serviciosHoja = LeerTablaHistorial(cn, consultaServicios)
             End Using
         Catch ex As Exception
-            MessageBox.Show("Error al leer los datos del historial: " & ex.Message)
+            MostrarError("Error al leer los datos del historial", ex)
             Return False
         End Try
 
@@ -633,7 +633,7 @@ Public Class FrmHistorial
             e.HasMorePages = False
             If Not errorHistorial Then
                 errorHistorial = True
-                MessageBox.Show("No se pudo dibujar el historial: " & ex.Message)
+                MostrarError("No se pudo dibujar el historial", ex)
             End If
         End Try
     End Sub

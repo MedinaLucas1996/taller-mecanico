@@ -303,7 +303,7 @@ Public Class FrmServicesPorVencer
         Try
             Clipboard.SetText(mensaje)
         Catch ex As Exception
-            MessageBox.Show("No se pudo copiar el mensaje al portapapeles: " & ex.Message)
+            MostrarError("No se pudo copiar el mensaje al portapapeles", ex)
             Exit Sub
         End Try
 
@@ -326,7 +326,7 @@ Public Class FrmServicesPorVencer
                     Next
                 Catch ex As Exception
                     'algo fallo antes de confirmar: deshago todo y dejo que el error llegue al mensaje de abajo
-                    transaccion.Rollback()
+                    Deshacer(transaccion)
                     Throw
                 End Try
 
@@ -334,7 +334,7 @@ Public Class FrmServicesPorVencer
                 transaccion.Commit()
             End Using
         Catch ex As Exception
-            MessageBox.Show("El mensaje quedó copiado, pero no se pudo registrar el aviso: " & ex.Message)
+            MostrarError("El mensaje quedó copiado, pero no se pudo registrar el aviso", ex)
         End Try
 
         'si el cliente no tiene telefono cargado, el mensaje se le lee igual

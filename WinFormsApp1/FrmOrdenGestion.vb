@@ -156,7 +156,7 @@ Public Class FrmOrdenGestion
                 End Using
             End Using
         Catch ex As Exception
-            MessageBox.Show("Error al cargar los mecánicos: " & ex.Message)
+            MostrarError("Error al cargar los mecánicos", ex)
         End Try
     End Sub
 
@@ -194,7 +194,7 @@ Public Class FrmOrdenGestion
                 End Using
             End Using
         Catch ex As Exception
-            MessageBox.Show("Error al cargar los servicios: " & ex.Message)
+            MostrarError("Error al cargar los servicios", ex)
         End Try
     End Sub
 
@@ -229,7 +229,7 @@ Public Class FrmOrdenGestion
                 End Using
             End Using
         Catch ex As Exception
-            MessageBox.Show("Error al cargar las líneas de la orden: " & ex.Message)
+            MostrarError("Error al cargar las líneas de la orden", ex)
         End Try
 
         'en proceso y en los resumenes se ven las horas trabajadas de cada linea
@@ -305,7 +305,7 @@ Public Class FrmOrdenGestion
                 End Using
             End Using
         Catch ex As Exception
-            MessageBox.Show("Error al cargar el historial de estados: " & ex.Message)
+            MostrarError("Error al cargar el historial de estados", ex)
         End Try
     End Sub
 
@@ -582,7 +582,7 @@ Public Class FrmOrdenGestion
                 End Using
             End Using
         Catch ex As Exception
-            MessageBox.Show("Error al cargar las fotos del trabajo: " & ex.Message)
+            MostrarError("Error al cargar las fotos del trabajo", ex)
         End Try
     End Sub
 
@@ -748,7 +748,7 @@ Public Class FrmOrdenGestion
                 End Using
             End Using
         Catch ex As Exception
-            MessageBox.Show("Error al cargar la orden de trabajo: " & ex.Message)
+            MostrarError("Error al cargar la orden de trabajo", ex)
         End Try
 
         If encontrada Then
@@ -984,7 +984,7 @@ Public Class FrmOrdenGestion
                     esSuya = OrdenEsDelMecanico(cn, Nothing)
                 End Using
             Catch ex As Exception
-                MessageBox.Show("No se pudo comprobar la orden de trabajo: " & ex.Message)
+                MostrarError("No se pudo comprobar la orden de trabajo", ex)
                 Me.Close()
                 Exit Sub
             End Try
@@ -1314,7 +1314,7 @@ Public Class FrmOrdenGestion
                     End If
                 Catch ex As Exception
                     'algo fallo antes de confirmar: deshago todo y dejo que el error llegue al mensaje de abajo
-                    transaccion.Rollback()
+                    Deshacer(transaccion)
                     Throw
                 End Try
 
@@ -1326,7 +1326,7 @@ Public Class FrmOrdenGestion
                 End If
             End Using
         Catch ex As Exception
-            MessageBox.Show("No se pudo guardar el mecánico: " & ex.Message)
+            MostrarError("No se pudo guardar el mecánico", ex)
             Exit Sub
         End Try
 
@@ -1413,7 +1413,7 @@ Public Class FrmOrdenGestion
                     End If
                 Catch ex As Exception
                     'algo fallo antes de confirmar: deshago todo y dejo que el error llegue al mensaje de abajo
-                    transaccion.Rollback()
+                    Deshacer(transaccion)
                     Throw
                 End Try
 
@@ -1425,8 +1425,7 @@ Public Class FrmOrdenGestion
                 End If
             End Using
         Catch ex As Exception
-            MessageBox.Show("No se pudo guardar el diagnóstico y no se guardó ningún dato." & vbCrLf &
-                            "Detalle: " & ex.Message)
+            MostrarError("No se pudo guardar el diagnóstico y no se guardó ningún dato.", ex)
             Exit Sub
         End Try
 
@@ -1496,7 +1495,7 @@ Public Class FrmOrdenGestion
                     End If
                 Catch ex As Exception
                     'algo fallo antes de confirmar: deshago todo y dejo que el error llegue al mensaje de abajo
-                    transaccion.Rollback()
+                    Deshacer(transaccion)
                     Throw
                 End Try
 
@@ -1508,7 +1507,7 @@ Public Class FrmOrdenGestion
                 End If
             End Using
         Catch ex As Exception
-            MessageBox.Show("No se pudo guardar la foto: " & ex.Message)
+            MostrarError("No se pudo guardar la foto", ex)
             Exit Sub
         End Try
 
@@ -1590,7 +1589,7 @@ Public Class FrmOrdenGestion
                     End If
                 Catch ex As Exception
                     'algo fallo antes de confirmar: deshago todo y dejo que el error llegue al mensaje de abajo
-                    transaccion.Rollback()
+                    Deshacer(transaccion)
                     Throw
                 End Try
 
@@ -1602,7 +1601,7 @@ Public Class FrmOrdenGestion
                 End If
             End Using
         Catch ex As Exception
-            MessageBox.Show("No se pudo quitar la foto: " & ex.Message)
+            MostrarError("No se pudo quitar la foto", ex)
             Exit Sub
         End Try
 
@@ -1646,7 +1645,7 @@ Public Class FrmOrdenGestion
                 End Using
             End Using
         Catch ex As Exception
-            MessageBox.Show("Error al leer la foto del trabajo: " & ex.Message)
+            MostrarError("Error al leer la foto del trabajo", ex)
             Exit Sub
         End Try
 
@@ -1765,7 +1764,7 @@ Public Class FrmOrdenGestion
                     End If
                 Catch ex As Exception
                     'algo fallo antes de confirmar: deshago todo y dejo que el error llegue al mensaje de abajo
-                    transaccion.Rollback()
+                    Deshacer(transaccion)
                     Throw
                 End Try
 
@@ -1777,8 +1776,7 @@ Public Class FrmOrdenGestion
                 End If
             End Using
         Catch ex As Exception
-            MessageBox.Show("No se pudo agregar el servicio y no se guardó ningún dato." & vbCrLf &
-                            "Detalle: " & ex.Message)
+            MostrarError("No se pudo agregar el servicio y no se guardó ningún dato.", ex)
             Exit Sub
         End Try
 
@@ -1848,7 +1846,7 @@ Public Class FrmOrdenGestion
                     If aviso = "" Then RecalcularTotales(cn, transaccion)
                 Catch ex As Exception
                     'algo fallo antes de confirmar: deshago todo y dejo que el error llegue al mensaje de abajo
-                    transaccion.Rollback()
+                    Deshacer(transaccion)
                     Throw
                 End Try
 
@@ -1860,8 +1858,7 @@ Public Class FrmOrdenGestion
                 End If
             End Using
         Catch ex As Exception
-            MessageBox.Show("No se pudo cambiar la cantidad y no se guardó ningún dato." & vbCrLf &
-                            "Detalle: " & ex.Message)
+            MostrarError("No se pudo cambiar la cantidad y no se guardó ningún dato.", ex)
             Exit Sub
         End Try
 
@@ -1924,7 +1921,7 @@ Public Class FrmOrdenGestion
                     If aviso = "" Then RecalcularTotales(cn, transaccion)
                 Catch ex As Exception
                     'algo fallo antes de confirmar: deshago todo y dejo que el error llegue al mensaje de abajo
-                    transaccion.Rollback()
+                    Deshacer(transaccion)
                     Throw
                 End Try
 
@@ -1936,8 +1933,7 @@ Public Class FrmOrdenGestion
                 End If
             End Using
         Catch ex As Exception
-            MessageBox.Show("No se pudo quitar la línea y no se guardó ningún dato." & vbCrLf &
-                            "Detalle: " & ex.Message)
+            MostrarError("No se pudo quitar la línea y no se guardó ningún dato.", ex)
             Exit Sub
         End Try
 
@@ -1967,7 +1963,7 @@ Public Class FrmOrdenGestion
                 End Using
             End Using
         Catch ex As Exception
-            MessageBox.Show("Error al leer el diagnóstico de la orden: " & ex.Message)
+            MostrarError("Error al leer el diagnóstico de la orden", ex)
             Exit Sub
         End Try
 
@@ -2010,7 +2006,7 @@ Public Class FrmOrdenGestion
                     If aviso = "" Then CambiarEstado(cn, transaccion, "PRESUPUESTADA", "Presupuesto cargado")
                 Catch ex As Exception
                     'algo fallo antes de confirmar: deshago todo y dejo que el error llegue al mensaje de abajo
-                    transaccion.Rollback()
+                    Deshacer(transaccion)
                     Throw
                 End Try
 
@@ -2022,8 +2018,7 @@ Public Class FrmOrdenGestion
                 End If
             End Using
         Catch ex As Exception
-            MessageBox.Show("No se pudo presupuestar la orden y no se guardó ningún dato." & vbCrLf &
-                            "Detalle: " & ex.Message)
+            MostrarError("No se pudo presupuestar la orden y no se guardó ningún dato.", ex)
             Exit Sub
         End Try
 
@@ -2131,7 +2126,7 @@ Public Class FrmOrdenGestion
                     End If
                 Catch ex As Exception
                     'algo fallo antes de confirmar: deshago todo y dejo que el error llegue al mensaje de abajo
-                    transaccion.Rollback()
+                    Deshacer(transaccion)
                     Throw
                 End Try
 
@@ -2143,8 +2138,7 @@ Public Class FrmOrdenGestion
                 End If
             End Using
         Catch ex As Exception
-            MessageBox.Show("No se pudo registrar la aprobación y no se guardó ningún dato." & vbCrLf &
-                            "Detalle: " & ex.Message)
+            MostrarError("No se pudo registrar la aprobación y no se guardó ningún dato.", ex)
             Exit Sub
         End Try
 
@@ -2200,7 +2194,7 @@ Public Class FrmOrdenGestion
                     End If
                 Catch ex As Exception
                     'algo fallo antes de confirmar: deshago todo y dejo que el error llegue al mensaje de abajo
-                    transaccion.Rollback()
+                    Deshacer(transaccion)
                     Throw
                 End Try
 
@@ -2212,8 +2206,7 @@ Public Class FrmOrdenGestion
                 End If
             End Using
         Catch ex As Exception
-            MessageBox.Show("No se pudo rechazar el presupuesto y no se guardó ningún dato." & vbCrLf &
-                            "Detalle: " & ex.Message)
+            MostrarError("No se pudo rechazar el presupuesto y no se guardó ningún dato.", ex)
             Exit Sub
         End Try
 
@@ -2268,7 +2261,7 @@ Public Class FrmOrdenGestion
                     If aviso = "" Then CambiarEstado(cn, transaccion, "EN_PROCESO", "Inicio del trabajo")
                 Catch ex As Exception
                     'algo fallo antes de confirmar: deshago todo y dejo que el error llegue al mensaje de abajo
-                    transaccion.Rollback()
+                    Deshacer(transaccion)
                     Throw
                 End Try
 
@@ -2280,8 +2273,7 @@ Public Class FrmOrdenGestion
                 End If
             End Using
         Catch ex As Exception
-            MessageBox.Show("No se pudo iniciar el trabajo y no se guardó ningún dato." & vbCrLf &
-                            "Detalle: " & ex.Message)
+            MostrarError("No se pudo iniciar el trabajo y no se guardó ningún dato.", ex)
             Exit Sub
         End Try
 
@@ -2333,7 +2325,7 @@ Public Class FrmOrdenGestion
                     If aviso = "" Then GuardarEjecucion(cn, transaccion, notas)
                 Catch ex As Exception
                     'algo fallo antes de confirmar: deshago todo y dejo que el error llegue al mensaje de abajo
-                    transaccion.Rollback()
+                    Deshacer(transaccion)
                     Throw
                 End Try
 
@@ -2345,8 +2337,7 @@ Public Class FrmOrdenGestion
                 End If
             End Using
         Catch ex As Exception
-            MessageBox.Show("No se pudo guardar el avance y no se guardó ningún dato." & vbCrLf &
-                            "Detalle: " & ex.Message)
+            MostrarError("No se pudo guardar el avance y no se guardó ningún dato.", ex)
             Exit Sub
         End Try
 
@@ -2449,7 +2440,7 @@ Public Class FrmOrdenGestion
                     End If
                 Catch ex As Exception
                     'algo fallo antes de confirmar: deshago todo y dejo que el error llegue al mensaje de abajo
-                    transaccion.Rollback()
+                    Deshacer(transaccion)
                     Throw
                 End Try
 
@@ -2461,8 +2452,7 @@ Public Class FrmOrdenGestion
                 End If
             End Using
         Catch ex As Exception
-            MessageBox.Show("No se pudo finalizar la orden y no se guardó ningún dato." & vbCrLf &
-                            "Detalle: " & ex.Message)
+            MostrarError("No se pudo finalizar la orden y no se guardó ningún dato.", ex)
             Exit Sub
         End Try
 
@@ -2548,7 +2538,7 @@ Public Class FrmOrdenGestion
                     End If
                 Catch ex As Exception
                     'algo fallo antes de confirmar: deshago todo y dejo que el error llegue al mensaje de abajo
-                    transaccion.Rollback()
+                    Deshacer(transaccion)
                     Throw
                 End Try
 
@@ -2560,8 +2550,7 @@ Public Class FrmOrdenGestion
                 End If
             End Using
         Catch ex As Exception
-            MessageBox.Show("No se pudo registrar la entrega y no se guardó ningún dato." & vbCrLf &
-                            "Detalle: " & ex.Message)
+            MostrarError("No se pudo registrar la entrega y no se guardó ningún dato.", ex)
             Exit Sub
         End Try
 
@@ -2612,7 +2601,7 @@ Public Class FrmOrdenGestion
                     If aviso = "" Then CambiarEstado(cn, transaccion, "ANULADA", motivo)
                 Catch ex As Exception
                     'algo fallo antes de confirmar: deshago todo y dejo que el error llegue al mensaje de abajo
-                    transaccion.Rollback()
+                    Deshacer(transaccion)
                     Throw
                 End Try
 
@@ -2624,8 +2613,7 @@ Public Class FrmOrdenGestion
                 End If
             End Using
         Catch ex As Exception
-            MessageBox.Show("No se pudo anular la orden y no se guardó ningún dato." & vbCrLf &
-                            "Detalle: " & ex.Message)
+            MostrarError("No se pudo anular la orden y no se guardó ningún dato.", ex)
             Exit Sub
         End Try
 
@@ -2729,7 +2717,7 @@ Public Class FrmOrdenGestion
                 End Using
             End Using
         Catch ex As Exception
-            MessageBox.Show("Error al leer los datos de la orden para el aviso: " & ex.Message)
+            MostrarError("Error al leer los datos de la orden para el aviso", ex)
             Exit Sub
         End Try
 
@@ -2761,7 +2749,7 @@ Public Class FrmOrdenGestion
         Try
             Clipboard.SetText(aviso)
         Catch ex As Exception
-            MessageBox.Show("No se pudo copiar el aviso al portapapeles: " & ex.Message)
+            MostrarError("No se pudo copiar el aviso al portapapeles", ex)
             Exit Sub
         End Try
 
@@ -2781,7 +2769,7 @@ Public Class FrmOrdenGestion
                 End Using
             End Using
         Catch ex As Exception
-            MessageBox.Show("El aviso quedó copiado, pero no se pudo anotar en el historial: " & ex.Message)
+            MostrarError("El aviso quedó copiado, pero no se pudo anotar en el historial", ex)
         End Try
 
         CargarHistorial()
@@ -2942,7 +2930,7 @@ Public Class FrmOrdenGestion
                 datosFotosTrabajo = LeerTablaImpresion(cn, consulta)
             End Using
         Catch ex As Exception
-            MessageBox.Show("Error al leer las fotos del trabajo: " & ex.Message)
+            MostrarError("Error al leer las fotos del trabajo", ex)
             LiberarFotosTrabajoImpresion()
             Return False
         End Try
@@ -2985,7 +2973,7 @@ Public Class FrmOrdenGestion
                 End Using
             End Using
         Catch ex As Exception
-            MessageBox.Show("Error al leer las fotos de la recepción: " & ex.Message)
+            MostrarError("Error al leer las fotos de la recepción", ex)
             LiberarFotosImpresion()
             Return False
         End Try
@@ -3037,7 +3025,7 @@ Public Class FrmOrdenGestion
             ppdVistaPrevia.WindowState = FormWindowState.Maximized
             ppdVistaPrevia.ShowDialog(Me)
         Catch ex As Exception
-            MessageBox.Show("No se pudo preparar la impresión: " & ex.Message)
+            MostrarError("No se pudo preparar la impresión", ex)
         End Try
     End Sub
 
@@ -3116,7 +3104,7 @@ Public Class FrmOrdenGestion
                 historialImpresion = LeerTablaImpresion(cn, consultaHistorial)
             End Using
         Catch ex As Exception
-            MessageBox.Show("Error al leer los datos del reporte: " & ex.Message)
+            MostrarError("Error al leer los datos del reporte", ex)
             Return False
         End Try
 
@@ -3225,7 +3213,7 @@ Public Class FrmOrdenGestion
             e.HasMorePages = False
             If Not errorImpresion Then
                 errorImpresion = True
-                MessageBox.Show("No se pudo dibujar el reporte: " & ex.Message)
+                MostrarError("No se pudo dibujar el reporte", ex)
             End If
         End Try
     End Sub

@@ -459,7 +459,7 @@ Public Class FrmTurnos
                         End Using
                     End If
                 Catch ex As Exception
-                    transaccion.Rollback()
+                    Deshacer(transaccion)
                     Throw
                 End Try
 
@@ -471,7 +471,7 @@ Public Class FrmTurnos
                 End If
             End Using
         Catch ex As Exception
-            MessageBox.Show("Error al cambiar el turno: " & ex.Message)
+            MostrarError("Error al cambiar el turno", ex)
             Exit Sub
         End Try
 
@@ -827,7 +827,7 @@ Public Class FrmTurnos
                 End Try
             End Using
         Catch ex As Exception
-            MessageBox.Show("Error al guardar el turno: " & ex.Message)
+            MostrarError("Error al guardar el turno", ex)
             Exit Sub
         End Try
 
@@ -913,7 +913,7 @@ Public Class FrmTurnos
         Try
             Clipboard.SetText(mensaje)
         Catch ex As Exception
-            MessageBox.Show("No se pudo copiar la confirmación al portapapeles: " & ex.Message)
+            MostrarError("No se pudo copiar la confirmación al portapapeles", ex)
             Exit Sub
         End Try
 
@@ -1051,7 +1051,7 @@ Public Class FrmTurnos
             End If
         Catch ex As Exception
             'algo fallo: deshago todo y dejo que el error llegue al mensaje de btnGuardar
-            transaccion.Rollback()
+            Deshacer(transaccion)
             Throw
         End Try
 

@@ -130,7 +130,7 @@ Public Class FrmVehiculos
                 MostrarAyuda()
             End If
         Catch ex As Exception
-            MessageBox.Show("Error al cargar los vehículos: " & ex.Message)
+            MostrarError("Error al cargar los vehículos", ex)
         Finally
             'pase lo que pase, la grilla vuelve a atender al usuario
             cargando = False
@@ -163,7 +163,7 @@ Public Class FrmVehiculos
                 End Using
             End Using
         Catch ex As Exception
-            MessageBox.Show("Error al cargar los titulares: " & ex.Message)
+            MostrarError("Error al cargar los titulares", ex)
         End Try
     End Sub
 
@@ -190,7 +190,7 @@ Public Class FrmVehiculos
                 End Using
             End Using
         Catch ex As Exception
-            MessageBox.Show("Error al cargar las marcas: " & ex.Message)
+            MostrarError("Error al cargar las marcas", ex)
         End Try
     End Sub
 
@@ -219,7 +219,7 @@ Public Class FrmVehiculos
                 End Using
             End Using
         Catch ex As Exception
-            MessageBox.Show("Error al cargar los modelos: " & ex.Message)
+            MostrarError("Error al cargar los modelos", ex)
         End Try
     End Sub
 
@@ -683,16 +683,29 @@ Public Class FrmVehiculos
                 txtPatente.Focus()
                 Exit Sub
             Catch ex As Exception
-                MessageBox.Show("Error al guardar " & ex.Message)
+                MostrarError("Error al guardar", ex)
                 Exit Sub
             End Try
         Else
             Try
                 Using cn As New MySqlConnection(CADENA)
                     cn.Open()
+                    'el kilometraje no puede quedar por debajo del de su orden de trabajo mas alta (regla 8.3)
+                    Dim consulta As String = "SELECT COALESCE(MAX(km_ingreso), 0) FROM orden_trabajo WHERE id_vehiculo = @id;"
+                    Using cmd As New MySqlCommand(consulta, cn)
+                        cmd.Parameters.AddWithValue("@id", idVehiculo)
+                        Dim kmUltimaOrden As Integer = CInt(cmd.ExecuteScalar())
+                        If nudKilometraje.Value < kmUltimaOrden Then
+                            MessageBox.Show("El kilometraje no puede ser menor que el de su última orden de trabajo (" &
+                                            kmUltimaOrden.ToString("N0") & " km).")
+                            nudKilometraje.Focus()
+                            Exit Sub
+                        End If
+                    End Using
+
                     'cambiar el titular aca no pierde el historial:
                     'cada orden de trabajo guarda su propio cliente (regla 8.4)
-                    Dim consulta As String =
+                    consulta =
                         "UPDATE vehiculo SET patente=@patente, id_cliente=@id_cliente, id_modelo=@id_modelo, " &
                         "anio=@anio, color=@color, nro_motor=@nro_motor, nro_chasis=@nro_chasis, " &
                         "km_actual=@km_actual, observaciones=@observaciones " &
@@ -721,7 +734,7 @@ Public Class FrmVehiculos
                 txtPatente.Focus()
                 Exit Sub
             Catch ex As Exception
-                MessageBox.Show("Error al modificar " & ex.Message)
+                MostrarError("Error al modificar", ex)
                 Exit Sub
             End Try
         End If
@@ -856,7 +869,7 @@ Public Class FrmVehiculos
                     End If
                 Catch ex As Exception
                     'algo fallo antes de confirmar: deshago todo y dejo que el error llegue al mensaje de abajo
-                    transaccion.Rollback()
+                    Deshacer(transaccion)
                     Throw
                 End Try
 
@@ -868,7 +881,7 @@ Public Class FrmVehiculos
                 End If
             End Using
         Catch ex As Exception
-            MessageBox.Show("Error al dar de baja " & ex.Message)
+            MostrarError("Error al dar de baja", ex)
             Exit Sub
         End Try
 

@@ -136,7 +136,7 @@ Public Class FrmTableros
                 End Using
             End Using
         Catch ex As Exception
-            MessageBox.Show("No se pudieron calcular los indicadores." & vbCrLf & "Detalle: " & ex.Message)
+            MostrarError("No se pudieron calcular los indicadores.", ex)
         End Try
     End Sub
 
@@ -200,7 +200,7 @@ Public Class FrmTableros
             fpFacturacion.Plot.HideGrid()
             fpFacturacion.Refresh()
         Catch ex As Exception
-            MessageBox.Show("No se pudo armar el gráfico de facturación." & vbCrLf & "Detalle: " & ex.Message)
+            MostrarError("No se pudo armar el gráfico de facturación.", ex)
         End Try
     End Sub
 
@@ -269,7 +269,7 @@ Public Class FrmTableros
             fpServicios.Plot.HideGrid()
             fpServicios.Refresh()
         Catch ex As Exception
-            MessageBox.Show("No se pudo armar el gráfico de servicios." & vbCrLf & "Detalle: " & ex.Message)
+            MostrarError("No se pudo armar el gráfico de servicios.", ex)
         End Try
     End Sub
 
@@ -342,7 +342,7 @@ Public Class FrmTableros
             fpHoras.Plot.HideGrid()
             fpHoras.Refresh()
         Catch ex As Exception
-            MessageBox.Show("No se pudo armar el gráfico de horas." & vbCrLf & "Detalle: " & ex.Message)
+            MostrarError("No se pudo armar el gráfico de horas.", ex)
         End Try
     End Sub
 
@@ -405,7 +405,7 @@ Public Class FrmTableros
             fpEstados.Plot.Title(titulo, 13)
             fpEstados.Refresh()
         Catch ex As Exception
-            MessageBox.Show("No se pudo armar el gráfico de estados." & vbCrLf & "Detalle: " & ex.Message)
+            MostrarError("No se pudo armar el gráfico de estados.", ex)
         End Try
     End Sub
 
@@ -479,7 +479,7 @@ Public Class FrmTableros
             hastaEtapas = dtpHasta.Value.Date
         Catch ex As Exception
             tablaEtapas = Nothing
-            MessageBox.Show("No se pudieron calcular los tiempos por etapa." & vbCrLf & "Detalle: " & ex.Message)
+            MostrarError("No se pudieron calcular los tiempos por etapa.", ex)
         End Try
 
         GraficoEtapas()
@@ -528,7 +528,7 @@ Public Class FrmTableros
             fpEtapas.Plot.HideGrid()
             fpEtapas.Refresh()
         Catch ex As Exception
-            MessageBox.Show("No se pudo armar el gráfico de tiempos por etapa." & vbCrLf & "Detalle: " & ex.Message)
+            MostrarError("No se pudo armar el gráfico de tiempos por etapa.", ex)
         End Try
     End Sub
 
@@ -613,7 +613,7 @@ Public Class FrmTableros
             ppdVistaPrevia.WindowState = FormWindowState.Maximized
             ppdVistaPrevia.ShowDialog(Me.TopLevelControl)
         Catch ex As Exception
-            MessageBox.Show("No se pudo preparar la impresión: " & ex.Message)
+            MostrarError("No se pudo preparar la impresión", ex)
         End Try
     End Sub
 
@@ -629,7 +629,7 @@ Public Class FrmTableros
         Catch ex As Exception
             If Not errorTiempos Then
                 errorTiempos = True
-                MessageBox.Show("No se pudo dibujar la hoja de tiempos: " & ex.Message)
+                MostrarError("No se pudo dibujar la hoja de tiempos", ex)
             End If
         End Try
         'la hoja es una sola

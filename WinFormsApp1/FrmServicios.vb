@@ -135,7 +135,7 @@ Public Class FrmServicios
                 MostrarAyuda()
             End If
         Catch ex As Exception
-            MessageBox.Show("Error al cargar los servicios: " & ex.Message)
+            MostrarError("Error al cargar los servicios", ex)
         Finally
             'pase lo que pase, la grilla vuelve a atender al usuario
             cargando = False
@@ -175,7 +175,7 @@ Public Class FrmServicios
                 End Using
             End Using
         Catch ex As Exception
-            MessageBox.Show("Error al cargar las categorías: " & ex.Message)
+            MostrarError("Error al cargar las categorías", ex)
         End Try
     End Sub
 
@@ -665,7 +665,7 @@ Public Class FrmServicios
                 txtCodigo.Focus()
                 Exit Sub
             Catch ex As Exception
-                MessageBox.Show("Error al guardar " & ex.Message)
+                MostrarError("Error al guardar", ex)
                 Exit Sub
             End Try
         Else
@@ -704,7 +704,7 @@ Public Class FrmServicios
                 txtCodigo.Focus()
                 Exit Sub
             Catch ex As Exception
-                MessageBox.Show("Error al modificar " & ex.Message)
+                MostrarError("Error al modificar", ex)
                 Exit Sub
             End Try
         End If
@@ -819,7 +819,7 @@ Public Class FrmServicios
                     End If
                 Catch ex As Exception
                     'algo fallo antes de confirmar: deshago todo y dejo que el error llegue al mensaje de abajo
-                    transaccion.Rollback()
+                    Deshacer(transaccion)
                     Throw
                 End Try
 
@@ -831,7 +831,7 @@ Public Class FrmServicios
                 End If
             End Using
         Catch ex As Exception
-            MessageBox.Show("Error al cambiar el estado del servicio: " & ex.Message)
+            MostrarError("Error al cambiar el estado del servicio", ex)
             Exit Sub
         End Try
 
