@@ -102,7 +102,7 @@ Public Class FrmOrdenes
                 End Using
             End Using
         Catch ex As Exception
-            MessageBox.Show("Error al cargar las cantidades por estado: " & ex.Message)
+            MostrarError("Error al cargar las cantidades por estado", ex)
         End Try
 
         PintarTarjetas()
@@ -229,7 +229,7 @@ Public Class FrmOrdenes
                 End Using
             End Using
         Catch ex As Exception
-            MessageBox.Show("Error al cargar las órdenes de trabajo: " & ex.Message)
+            MostrarError("Error al cargar las órdenes de trabajo", ex)
         End Try
 
         'busco en la lista nueva la orden que se estaba mostrando
@@ -456,7 +456,7 @@ Public Class FrmOrdenes
                     End If
                 Catch ex As Exception
                     'algo fallo antes de confirmar: deshago todo y dejo que el error llegue a los mensajes de abajo
-                    transaccion.Rollback()
+                    Deshacer(transaccion)
                     Throw
                 End Try
 
@@ -474,7 +474,7 @@ Public Class FrmOrdenes
             CargarFotos(idOrdenSeleccionada)
             Exit Sub
         Catch ex As Exception
-            MessageBox.Show("No se pudo guardar la foto: " & ex.Message)
+            MostrarError("No se pudo guardar la foto", ex)
             Exit Sub
         End Try
 
@@ -523,7 +523,7 @@ Public Class FrmOrdenes
                 End Using
             End Using
         Catch ex As Exception
-            MessageBox.Show("Error al cargar las fotos de la orden: " & ex.Message)
+            MostrarError("Error al cargar las fotos de la orden", ex)
         End Try
 
         'las miniaturas que quedaron vacias se ofrecen para cargar, si el estado de la orden lo permite

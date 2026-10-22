@@ -93,7 +93,7 @@ Public Class FrmFoto
                     End If
                 Catch ex As Exception
                     'algo fallo antes de confirmar: deshago todo y dejo que el error llegue al mensaje de abajo
-                    transaccion.Rollback()
+                    Deshacer(transaccion)
                     Throw
                 End Try
 
@@ -105,7 +105,7 @@ Public Class FrmFoto
                 End If
             End Using
         Catch ex As Exception
-            MessageBox.Show("No se pudo reemplazar la foto: " & ex.Message)
+            MostrarError("No se pudo reemplazar la foto", ex)
             Exit Sub
         End Try
 
@@ -176,7 +176,7 @@ Public Class FrmFoto
                     End If
                 Catch ex As Exception
                     'algo fallo antes de confirmar: deshago todo y dejo que el error llegue al mensaje de abajo
-                    transaccion.Rollback()
+                    Deshacer(transaccion)
                     Throw
                 End Try
 
@@ -188,7 +188,7 @@ Public Class FrmFoto
                 End If
             End Using
         Catch ex As Exception
-            MessageBox.Show("No se pudo quitar la foto: " & ex.Message)
+            MostrarError("No se pudo quitar la foto", ex)
             Exit Sub
         End Try
 

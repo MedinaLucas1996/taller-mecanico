@@ -35,6 +35,12 @@ Module Errores
         End Try
     End Function
 
+    Function RegistrarAviso(contexto As String, detalle As String) As Boolean
+        'misma entrada del archivo de errores, para problemas que no vienen de una excepcion
+        'por ejemplo un recurso que no esta o un codigo de error devuelto por Windows
+        Return RegistrarError(contexto, New ApplicationException(detalle))
+    End Function
+
     Function EsErrorDeConexion(ex As Exception) As Boolean
         'indica si el error es por no poder llegar al servidor de la base de datos
         Dim errorMySql As MySqlException = TryCast(ex, MySqlException)
@@ -50,6 +56,17 @@ Module Errores
 
         Return errorMySql.ErrorCode = MySqlErrorCode.AccessDenied
     End Function
+
+    Sub Deshacer(transaccion As MySqlTransaction)
+        'deshago una transaccion desde un Catch sin perder el error original
+        'si la conexion ya se corto, el Rollback tambien falla; la transaccion igual se descarta al cerrar la conexion
+        Try
+            transaccion.Rollback()
+        Catch exDeshacer As Exception
+            'dejo constancia en el registro; el error que importa es el que se vuelve a lanzar despues de llamar a esta rutina
+            RegistrarError("No se pudo deshacer la transacción", exDeshacer)
+        End Try
+    End Sub
 
     Sub MostrarError(mensaje As String, ex As Exception)
         'muestro un mensaje claro para el usuario y guardo el detalle tecnico en el archivo de errores

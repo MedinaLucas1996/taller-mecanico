@@ -79,7 +79,7 @@ Public Class FrmMisOrdenes
                 End Using
             End Using
         Catch ex As Exception
-            MessageBox.Show("Error al contar sus órdenes de trabajo: " & ex.Message)
+            MostrarError("Error al contar sus órdenes de trabajo", ex)
         End Try
 
         For i As Integer = 1 To 4
@@ -231,7 +231,7 @@ Public Class FrmMisOrdenes
                 MostrarAyuda()
             End If
         Catch ex As Exception
-            MessageBox.Show("Error al cargar sus órdenes de trabajo: " & ex.Message)
+            MostrarError("Error al cargar sus órdenes de trabajo", ex)
         Finally
             'pase lo que pase, la grilla vuelve a atender al usuario
             cargando = False
@@ -341,7 +341,7 @@ Public Class FrmMisOrdenes
                 End Using
             End Using
         Catch ex As Exception
-            MessageBox.Show("Error al cargar las fotos de la orden: " & ex.Message)
+            MostrarError("Error al cargar las fotos de la orden", ex)
         End Try
     End Sub
 
@@ -394,7 +394,7 @@ Public Class FrmMisOrdenes
                 End Using
             End Using
         Catch ex As Exception
-            MessageBox.Show("Error al cargar las fotos del trabajo: " & ex.Message)
+            MostrarError("Error al cargar las fotos del trabajo", ex)
         End Try
 
         If lvwFotosTrabajo.Items.Count > 0 Then
@@ -438,7 +438,7 @@ Public Class FrmMisOrdenes
                 End Using
             End Using
         Catch ex As Exception
-            MessageBox.Show("Error al cargar los servicios de la orden: " & ex.Message)
+            MostrarError("Error al cargar los servicios de la orden", ex)
         End Try
 
         If texto = "" Then texto = "La orden no tiene servicios aprobados."
@@ -579,7 +579,7 @@ Public Class FrmMisOrdenes
                 End Using
             End Using
         Catch ex As Exception
-            MessageBox.Show("Error al leer los datos del mecánico: " & ex.Message)
+            MostrarError("Error al leer los datos del mecánico", ex)
         End Try
 
         'cuento los grupos y entro por el primero que tenga ordenes: en curso, para empezar, para diagnosticar o terminadas
@@ -754,7 +754,7 @@ Public Class FrmMisOrdenes
                 End Using
             End Using
         Catch ex As Exception
-            MessageBox.Show("Error al leer la foto del trabajo: " & ex.Message)
+            MostrarError("Error al leer la foto del trabajo", ex)
             Exit Sub
         End Try
 
@@ -814,7 +814,7 @@ Public Class FrmMisOrdenes
                 End Using
             End Using
         Catch ex As Exception
-            MessageBox.Show("Error al leer el estado de la orden: " & ex.Message)
+            MostrarError("Error al leer el estado de la orden", ex)
         End Try
 
         'si se inicio o se finalizo, paso al grupo donde quedo para seguir viendola

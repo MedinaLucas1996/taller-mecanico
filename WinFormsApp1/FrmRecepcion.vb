@@ -178,7 +178,7 @@ Public Class FrmRecepcion
                 End Using
             End Using
         Catch ex As Exception
-            MessageBox.Show("Error al cargar los mecánicos: " & ex.Message)
+            MostrarError("Error al cargar los mecánicos", ex)
         End Try
     End Sub
 
@@ -654,7 +654,7 @@ Public Class FrmRecepcion
         Catch ex As Exception
             'si algo fallo a mitad de camino no dejo un vehiculo a medio cargar
             LimpiarVehiculo()
-            MessageBox.Show("Error al buscar el vehículo: " & ex.Message)
+            MostrarError("Error al buscar el vehículo", ex)
         End Try
     End Sub
 
@@ -1017,7 +1017,7 @@ Public Class FrmRecepcion
 
                 Catch ex As Exception
                     'algo fallo: deshago todo y dejo que el error llegue a los mensajes de abajo
-                    transaccion.Rollback()
+                    Deshacer(transaccion)
                     Throw
                 End Try
 
@@ -1036,8 +1036,7 @@ Public Class FrmRecepcion
                             "No se guardó nada: presione ""Confirmar recepción"" nuevamente.")
             Exit Sub
         Catch ex As Exception
-            MessageBox.Show("No se pudo registrar la recepción y no se guardó ningún dato." & vbCrLf &
-                            "Detalle: " & ex.Message)
+            MostrarError("No se pudo registrar la recepción y no se guardó ningún dato.", ex)
             Exit Sub
         Finally
             'pase lo que pase, el cursor vuelve a la normalidad

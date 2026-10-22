@@ -49,7 +49,7 @@ Public Class FrmAltaRapida
                 End Using
             End Using
         Catch ex As Exception
-            MessageBox.Show("Error al cargar los clientes: " & ex.Message)
+            MostrarError("Error al cargar los clientes", ex)
         End Try
     End Sub
 
@@ -76,7 +76,7 @@ Public Class FrmAltaRapida
                 End Using
             End Using
         Catch ex As Exception
-            MessageBox.Show("Error al cargar las marcas: " & ex.Message)
+            MostrarError("Error al cargar las marcas", ex)
         End Try
     End Sub
 
@@ -105,7 +105,7 @@ Public Class FrmAltaRapida
                 End Using
             End Using
         Catch ex As Exception
-            MessageBox.Show("Error al cargar los modelos: " & ex.Message)
+            MostrarError("Error al cargar los modelos", ex)
         End Try
     End Sub
 
@@ -314,7 +314,7 @@ Public Class FrmAltaRapida
                     End If
                 Catch ex As Exception
                     'algo fallo antes de confirmar: deshago todo y dejo que el error llegue a los mensajes de abajo
-                    transaccion.Rollback()
+                    Deshacer(transaccion)
                     Throw
                 End Try
 
@@ -339,13 +339,11 @@ Public Class FrmAltaRapida
                                 "Puede estar dado de baja: revíselo en ""Vehículos"".")
                 txtPatente.Focus()
             Else
-                MessageBox.Show("Ya existe un registro con esos datos y no se guardó nada." & vbCrLf &
-                                "Detalle: " & ex.Message)
+                MostrarError("Ya existe un registro con esos datos y no se guardó nada.", ex)
             End If
             Exit Sub
         Catch ex As Exception
-            MessageBox.Show("No se pudo registrar el vehículo y no se guardó ningún dato." & vbCrLf &
-                            "Detalle: " & ex.Message)
+            MostrarError("No se pudo registrar el vehículo y no se guardó ningún dato.", ex)
             Exit Sub
         End Try
 

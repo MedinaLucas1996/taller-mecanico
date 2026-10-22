@@ -101,7 +101,7 @@ Public Class FrmMarcasModelos
             'en la lista nueva dejo marcada la marca que se estaba viendo
             MarcarFila(dgvMarcas, "id_marca", idMarca)
         Catch ex As Exception
-            MessageBox.Show("Error al cargar las marcas: " & ex.Message)
+            MostrarError("Error al cargar las marcas", ex)
         Finally
             'pase lo que pase, la grilla vuelve a atender al usuario
             cargando = False
@@ -197,7 +197,7 @@ Public Class FrmMarcasModelos
 
             MarcarFila(dgvModelos, "id_modelo", idModelo)
         Catch ex As Exception
-            MessageBox.Show("Error al cargar los modelos: " & ex.Message)
+            MostrarError("Error al cargar los modelos", ex)
         Finally
             cargando = False
         End Try
@@ -400,7 +400,7 @@ Public Class FrmMarcasModelos
                 txtMarca.Focus()
                 Exit Sub
             Catch ex As Exception
-                MessageBox.Show("Error al guardar " & ex.Message)
+                MostrarError("Error al guardar", ex)
                 Exit Sub
             End Try
         Else
@@ -421,7 +421,7 @@ Public Class FrmMarcasModelos
                 txtMarca.Focus()
                 Exit Sub
             Catch ex As Exception
-                MessageBox.Show("Error al modificar " & ex.Message)
+                MostrarError("Error al modificar", ex)
                 Exit Sub
             End Try
         End If
@@ -458,7 +458,7 @@ Public Class FrmMarcasModelos
             MessageBox.Show("No se puede eliminar: la marca tiene modelos cargados. Elimine primero sus modelos.")
             Exit Sub
         Catch ex As Exception
-            MessageBox.Show("Error al eliminar " & ex.Message)
+            MostrarError("Error al eliminar", ex)
             Exit Sub
         End Try
 
@@ -505,7 +505,7 @@ Public Class FrmMarcasModelos
                 txtModelo.Focus()
                 Exit Sub
             Catch ex As Exception
-                MessageBox.Show("Error al guardar " & ex.Message)
+                MostrarError("Error al guardar", ex)
                 Exit Sub
             End Try
 
@@ -529,7 +529,7 @@ Public Class FrmMarcasModelos
                 txtModelo.Focus()
                 Exit Sub
             Catch ex As Exception
-                MessageBox.Show("Error al modificar " & ex.Message)
+                MostrarError("Error al modificar", ex)
                 Exit Sub
             End Try
         End If
@@ -566,7 +566,7 @@ Public Class FrmMarcasModelos
             MessageBox.Show("No se puede eliminar: hay vehículos cargados con ese modelo.")
             Exit Sub
         Catch ex As Exception
-            MessageBox.Show("Error al eliminar " & ex.Message)
+            MostrarError("Error al eliminar", ex)
             Exit Sub
         End Try
 

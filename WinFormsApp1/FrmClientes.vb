@@ -122,7 +122,7 @@ Public Class FrmClientes
             End If
         Catch ex As Exception
             'muestro mensaje de error
-            MessageBox.Show("Error al cargar los clientes: " & ex.Message)
+            MostrarError("Error al cargar los clientes", ex)
         Finally
             'pase lo que pase, la grilla vuelve a atender al usuario
             cargando = False
@@ -531,7 +531,7 @@ Public Class FrmClientes
                 txtDocumento.Focus()
                 Exit Sub
             Catch ex As Exception
-                MessageBox.Show("Error al guardar " & ex.Message)
+                MostrarError("Error al guardar", ex)
                 Exit Sub
             End Try
         Else
@@ -567,7 +567,7 @@ Public Class FrmClientes
                 txtDocumento.Focus()
                 Exit Sub
             Catch ex As Exception
-                MessageBox.Show("Error al modificar " & ex.Message)
+                MostrarError("Error al modificar", ex)
                 Exit Sub
             End Try
         End If
@@ -680,7 +680,7 @@ Public Class FrmClientes
                     End If
                 Catch ex As Exception
                     'algo fallo antes de confirmar: deshago todo y dejo que el error llegue al mensaje de abajo
-                    transaccion.Rollback()
+                    Deshacer(transaccion)
                     Throw
                 End Try
 
@@ -692,7 +692,7 @@ Public Class FrmClientes
                 End If
             End Using
         Catch ex As Exception
-            MessageBox.Show("Error al dar de baja " & ex.Message)
+            MostrarError("Error al dar de baja", ex)
             Exit Sub
         End Try
 
@@ -760,7 +760,7 @@ Public Class FrmClientes
             ppdVistaPrevia.WindowState = FormWindowState.Maximized
             ppdVistaPrevia.ShowDialog(Me.TopLevelControl)
         Catch ex As Exception
-            MessageBox.Show("No se pudo preparar la impresión: " & ex.Message)
+            MostrarError("No se pudo preparar la impresión", ex)
         End Try
     End Sub
 
@@ -813,7 +813,7 @@ Public Class FrmClientes
                 ordenesFicha = LeerTablaFicha(cn, consultaOrdenes)
             End Using
         Catch ex As Exception
-            MessageBox.Show("Error al leer los datos de la ficha: " & ex.Message)
+            MostrarError("Error al leer los datos de la ficha", ex)
             Return False
         End Try
 
@@ -886,7 +886,7 @@ Public Class FrmClientes
             e.HasMorePages = False
             If Not errorFicha Then
                 errorFicha = True
-                MessageBox.Show("No se pudo dibujar la ficha: " & ex.Message)
+                MostrarError("No se pudo dibujar la ficha", ex)
             End If
         End Try
     End Sub

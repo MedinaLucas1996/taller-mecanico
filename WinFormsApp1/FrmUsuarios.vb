@@ -122,7 +122,7 @@ Public Class FrmUsuarios
                 MostrarAyuda()
             End If
         Catch ex As Exception
-            MessageBox.Show("Error al cargar los usuarios: " & ex.Message)
+            MostrarError("Error al cargar los usuarios", ex)
         Finally
             'pase lo que pase, la grilla vuelve a atender al usuario
             cargando = False
@@ -155,7 +155,7 @@ Public Class FrmUsuarios
                 End Using
             End Using
         Catch ex As Exception
-            MessageBox.Show("Error al cargar los mecánicos: " & ex.Message)
+            MostrarError("Error al cargar los mecánicos", ex)
         End Try
     End Sub
 
@@ -615,7 +615,7 @@ Public Class FrmUsuarios
                 txtUsuario.Focus()
                 Exit Sub
             Catch ex As Exception
-                MessageBox.Show("Error al guardar " & ex.Message)
+                MostrarError("Error al guardar", ex)
                 Exit Sub
             End Try
         Else
@@ -677,7 +677,7 @@ Public Class FrmUsuarios
                 txtUsuario.Focus()
                 Exit Sub
             Catch ex As Exception
-                MessageBox.Show("Error al modificar " & ex.Message)
+                MostrarError("Error al modificar", ex)
                 Exit Sub
             End Try
         End If
@@ -822,7 +822,7 @@ Public Class FrmUsuarios
                     End If
                 Catch ex As Exception
                     'algo fallo antes de confirmar: deshago todo y dejo que el error llegue al mensaje de abajo
-                    transaccion.Rollback()
+                    Deshacer(transaccion)
                     Throw
                 End Try
 
@@ -834,7 +834,7 @@ Public Class FrmUsuarios
                 End If
             End Using
         Catch ex As Exception
-            MessageBox.Show("Error al dar de baja " & ex.Message)
+            MostrarError("Error al dar de baja", ex)
             Exit Sub
         End Try
 

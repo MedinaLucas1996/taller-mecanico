@@ -308,13 +308,13 @@ graph TD
 
 ### Run
 
-1. Crear la base ejecutando los scripts de `database/` en orden numérico:
+1. Crear la base ejecutando los scripts de `database/`. Instalación nueva: `01`, `02` y `03`, más `08` y `11` para la presentación. Los scripts `06`, `07`, `09`, `10` y `12` son migraciones para bases creadas con una versión anterior: en una base nueva no hacen falta y, si se ejecutan igual, no hacen daño.
 
    | Script | Qué hace |
    |---|---|
    | `01_ddl_estructura.sql` | Crea la base `taller_mecanico` y las 16 tablas. **Elimina la base completa si ya existe** (`DROP DATABASE IF EXISTS`): comentar esa línea si hay datos que conservar. |
    | `02_dml_catalogos.sql` | Carga los catálogos necesarios para funcionar (estados de OT, categorías de servicio y el usuario administrador inicial). Se ejecuta una vez. |
-   | `03_dml_prueba.sql` | Datos de prueba (mecánicos, usuarios, marcas, modelos, clientes, vehículos y servicios). **Solo desarrollo.** |
+   | `03_dml_prueba.sql` | **Requerido.** Carga el catálogo de marcas, modelos y servicios que la aplicación necesita para recepcionar y presupuestar, más datos de prueba (mecánicos, usuarios `operador` y `mecanico`, clientes y vehículos). Sin este script, los scripts 08 y 11 no cargan ninguna orden. |
    | `04_consultas_verificacion.sql` | Consultas de verificación (cantidad de tablas, filas por tabla, etc.). Opcional. |
    | `05_consultas_basicas.sql` | Consultas de práctica de solo lectura. Opcional. |
    | `06_migracion_hash_pbkdf2.sql` | Migración para bases ya cargadas con una versión anterior de 01 a 03: agrega la columna `salt` y reemplaza los hashes de los usuarios semilla. **Una instalación nueva con 01 a 03 no la necesita.** |
@@ -348,7 +348,7 @@ dotnet run --project WinFormsApp1
 
 La única configuración es la cadena de conexión (servidor, puerto, base, usuario y contraseña). `Module ConexionBD` la lee de `conexion.txt`, junto al ejecutable, si el archivo existe; si no, usa la cadena por defecto (`localhost`, `root`, sin contraseña). El formato está en `WinFormsApp1/conexion.ejemplo.txt`.
 
-Los errores que ninguna pantalla atrapa, y los que se muestran con `Errores.MostrarError` (por ejemplo el del login), quedan registrados con fecha, usuario y detalle en `%LocalAppData%\TallerMecanico\errores.log`. Ante un error no atrapado, el sistema pregunta si se desea seguir trabajando o salir; si el error se repite tres veces seguidas en pocos segundos, se cierra solo, y si el registro no se pudo escribir el detalle se muestra en el mismo aviso. Cuando la base de datos no responde, el mensaje dice "No se pudo conectar con la base de datos." en lugar del detalle del driver; cuando el servidor responde pero rechaza el usuario o la contraseña, el mensaje indica revisar `conexion.txt`. Si `conexion.txt` existe pero no se puede leer o no tiene ninguna cadena, el login no deja entrar y pide corregir o eliminar el archivo, para que un puesto configurado no termine conectado al servidor por defecto sin querer; el motivo queda también en el registro.
+Los errores que ninguna pantalla atrapa, y los que cada pantalla muestra cuando falla una operación (todos pasan por `Errores.MostrarError`), quedan registrados con fecha, usuario y detalle en `%LocalAppData%\TallerMecanico\errores.log`. Ante un error no atrapado, el sistema pregunta si se desea seguir trabajando o salir; si el error se repite tres veces seguidas en pocos segundos, se cierra solo, y si el registro no se pudo escribir el detalle se muestra en el mismo aviso. Cuando la base de datos no responde, el mensaje dice "No se pudo conectar con la base de datos." en lugar del detalle del driver; cuando el servidor responde pero rechaza el usuario o la contraseña, el mensaje indica revisar `conexion.txt`. Si `conexion.txt` existe pero no se puede leer o no tiene ninguna cadena, el login no deja entrar y pide corregir o eliminar el archivo, para que un puesto configurado no termine conectado al servidor por defecto sin querer; el motivo queda también en el registro.
 
 ### appsettings por entorno
 

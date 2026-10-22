@@ -112,7 +112,7 @@ Public Class FrmMecanicos
                 MostrarAyuda()
             End If
         Catch ex As Exception
-            MessageBox.Show("Error al cargar los mecánicos: " & ex.Message)
+            MostrarError("Error al cargar los mecánicos", ex)
         Finally
             'pase lo que pase, la grilla vuelve a atender al usuario
             cargando = False
@@ -515,7 +515,7 @@ Public Class FrmMecanicos
                 End Using
 
             Catch ex As Exception
-                MessageBox.Show("Error al guardar " & ex.Message)
+                MostrarError("Error al guardar", ex)
                 Exit Sub
             End Try
         Else
@@ -558,7 +558,7 @@ Public Class FrmMecanicos
                 End Using
 
             Catch ex As Exception
-                MessageBox.Show("Error al modificar " & ex.Message)
+                MostrarError("Error al modificar", ex)
                 Exit Sub
             End Try
         End If
@@ -666,6 +666,19 @@ Public Class FrmMecanicos
                         End Using
                     End If
 
+                    If aviso = "" AndAlso activoEnBase Then
+                        'tampoco se da de baja a un mecanico con un usuario activo: ese usuario seguiria entrando como mecanico (regla 8.6)
+                        consulta = "SELECT COUNT(*) FROM usuario WHERE id_mecanico = @id AND activo = 1;"
+                        Using cmd As New MySqlCommand(consulta, cn, transaccion)
+                            cmd.Parameters.AddWithValue("@id", idRegistro)
+                            Dim usuariosActivos As Integer = CInt(cmd.ExecuteScalar())
+                            If usuariosActivos > 0 Then
+                                aviso = "No se puede dar de baja: el mecánico tiene " & usuariosActivos &
+                                        " usuario(s) activo(s) del sistema. Dé de baja ese usuario primero, en Usuarios."
+                            End If
+                        End Using
+                    End If
+
                     If aviso = "" AndAlso Not activoEnBase Then
                         'al reactivar no puede quedar con el nombre de otro mecanico activo
                         consulta =
@@ -692,7 +705,7 @@ Public Class FrmMecanicos
                     End If
                 Catch ex As Exception
                     'algo fallo antes de confirmar: deshago todo y dejo que el error llegue al mensaje de abajo
-                    transaccion.Rollback()
+                    Deshacer(transaccion)
                     Throw
                 End Try
 
@@ -704,7 +717,7 @@ Public Class FrmMecanicos
                 End If
             End Using
         Catch ex As Exception
-            MessageBox.Show("Error al cambiar el estado del mecánico: " & ex.Message)
+            MostrarError("Error al cambiar el estado del mecánico", ex)
             Exit Sub
         End Try
 

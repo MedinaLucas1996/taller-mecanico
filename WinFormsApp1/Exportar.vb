@@ -36,7 +36,7 @@ Module Exportar
             Catch
                 'si no se puede borrar el temporal, queda junto al archivo; no cambia nada para el usuario
             End Try
-            MessageBox.Show("No se pudo guardar el archivo: " & ex.Message)
+            MostrarError("No se pudo guardar el archivo", ex)
         End Try
     End Sub
 

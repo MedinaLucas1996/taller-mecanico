@@ -8,6 +8,8 @@ Public Class FrmVehiculos
     Private creando As Boolean = False
     'indica si el vehiculo cargado esta activo, decide si el boton da de baja o reactiva
     Private registroActivo As Boolean = True
+    'kilometraje guardado del vehiculo cargado, para saber si el usuario lo cambio
+    Private kmGuardado As Integer = 0
 
     'queda en True cuando el usuario cambio algun campo y todavia no guardo
     Private hayCambios As Boolean = False
@@ -130,7 +132,7 @@ Public Class FrmVehiculos
                 MostrarAyuda()
             End If
         Catch ex As Exception
-            MessageBox.Show("Error al cargar los vehículos: " & ex.Message)
+            MostrarError("Error al cargar los vehículos", ex)
         Finally
             'pase lo que pase, la grilla vuelve a atender al usuario
             cargando = False
@@ -163,7 +165,7 @@ Public Class FrmVehiculos
                 End Using
             End Using
         Catch ex As Exception
-            MessageBox.Show("Error al cargar los titulares: " & ex.Message)
+            MostrarError("Error al cargar los titulares", ex)
         End Try
     End Sub
 
@@ -190,7 +192,7 @@ Public Class FrmVehiculos
                 End Using
             End Using
         Catch ex As Exception
-            MessageBox.Show("Error al cargar las marcas: " & ex.Message)
+            MostrarError("Error al cargar las marcas", ex)
         End Try
     End Sub
 
@@ -219,7 +221,7 @@ Public Class FrmVehiculos
                 End Using
             End Using
         Catch ex As Exception
-            MessageBox.Show("Error al cargar los modelos: " & ex.Message)
+            MostrarError("Error al cargar los modelos", ex)
         End Try
     End Sub
 
@@ -286,6 +288,7 @@ Public Class FrmVehiculos
                 txtMotor.Clear()
                 txtChasis.Clear()
                 nudKilometraje.Value = 0
+                kmGuardado = 0
                 txtObservaciones.Clear()
             Else
                 txtPatente.Text = fila.Cells("patente").Value.ToString()
@@ -310,6 +313,7 @@ Public Class FrmVehiculos
                 txtMotor.Text = fila.Cells("nro_motor").Value.ToString()
                 txtChasis.Text = fila.Cells("nro_chasis").Value.ToString()
                 nudKilometraje.Value = CInt(fila.Cells("km_actual").Value)
+                kmGuardado = CInt(nudKilometraje.Value)
                 txtObservaciones.Text = fila.Cells("observaciones").Value.ToString()
             End If
 
@@ -683,16 +687,30 @@ Public Class FrmVehiculos
                 txtPatente.Focus()
                 Exit Sub
             Catch ex As Exception
-                MessageBox.Show("Error al guardar " & ex.Message)
+                MostrarError("Error al guardar", ex)
                 Exit Sub
             End Try
         Else
             Try
                 Using cn As New MySqlConnection(CADENA)
                     cn.Open()
+                    'si el usuario cambio el kilometraje, no puede dejarlo por debajo del de su orden de trabajo mas alta (regla 8.3)
+                    'un vehiculo cargado antes de esta regla se puede seguir editando mientras no se toque el kilometraje
+                    Dim consulta As String = "SELECT COALESCE(MAX(km_ingreso), 0) FROM orden_trabajo WHERE id_vehiculo = @id;"
+                    Using cmd As New MySqlCommand(consulta, cn)
+                        cmd.Parameters.AddWithValue("@id", idVehiculo)
+                        Dim kmUltimaOrden As Integer = CInt(cmd.ExecuteScalar())
+                        If nudKilometraje.Value <> kmGuardado AndAlso nudKilometraje.Value < kmUltimaOrden Then
+                            MessageBox.Show("El kilometraje no puede ser menor que el de su última orden de trabajo (" &
+                                            kmUltimaOrden.ToString("N0") & " km).")
+                            nudKilometraje.Focus()
+                            Exit Sub
+                        End If
+                    End Using
+
                     'cambiar el titular aca no pierde el historial:
                     'cada orden de trabajo guarda su propio cliente (regla 8.4)
-                    Dim consulta As String =
+                    consulta =
                         "UPDATE vehiculo SET patente=@patente, id_cliente=@id_cliente, id_modelo=@id_modelo, " &
                         "anio=@anio, color=@color, nro_motor=@nro_motor, nro_chasis=@nro_chasis, " &
                         "km_actual=@km_actual, observaciones=@observaciones " &
@@ -712,6 +730,7 @@ Public Class FrmVehiculos
 
                         Dim Resultado As Integer = cmd.ExecuteNonQuery()
                         hayCambios = False
+                        kmGuardado = CInt(nudKilometraje.Value)
                         MessageBox.Show("Registros actualizados: " & Resultado)
                     End Using
                 End Using
@@ -721,7 +740,7 @@ Public Class FrmVehiculos
                 txtPatente.Focus()
                 Exit Sub
             Catch ex As Exception
-                MessageBox.Show("Error al modificar " & ex.Message)
+                MostrarError("Error al modificar", ex)
                 Exit Sub
             End Try
         End If
@@ -856,7 +875,7 @@ Public Class FrmVehiculos
                     End If
                 Catch ex As Exception
                     'algo fallo antes de confirmar: deshago todo y dejo que el error llegue al mensaje de abajo
-                    transaccion.Rollback()
+                    Deshacer(transaccion)
                     Throw
                 End Try
 
@@ -868,7 +887,7 @@ Public Class FrmVehiculos
                 End If
             End Using
         Catch ex As Exception
-            MessageBox.Show("Error al dar de baja " & ex.Message)
+            MostrarError("Error al dar de baja", ex)
             Exit Sub
         End Try
 

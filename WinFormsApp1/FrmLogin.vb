@@ -160,7 +160,8 @@ Public Class FrmLogin
                 End If
             Next
         Catch ex As Exception
-            MessageBox.Show("No se pudo cargar el fondo: " & ex.Message)
+            'sin fondo el login sigue sirviendo: lo anoto en el registro y no molesto al usuario
+            RegistrarError("No se pudo cargar el fondo del login", ex)
         End Try
 
         IniciarMusica()
@@ -182,13 +183,14 @@ Public Class FrmLogin
 
         Dim rutaMusica As String = Path.Combine(AppContext.BaseDirectory, "Recursos", "musica-login.mp3")
         If Not File.Exists(rutaMusica) Then
-            MessageBox.Show("No se encontró la música del login.")
+            'la musica es un adorno: si falta, queda en el registro y el login sigue
+            RegistrarAviso("Música del login", "No se encontró el archivo " & rutaMusica)
             Exit Sub
         End If
 
         Dim resultado As Integer = EnviarAudio("open """ & rutaMusica & """ type mpegvideo alias musicaLogin", Nothing, 0, IntPtr.Zero)
         If resultado <> 0 Then
-            MessageBox.Show("No se pudo abrir la música del login. Código: " & resultado)
+            RegistrarAviso("Música del login", "No se pudo abrir el archivo. Código MCI: " & resultado)
             Exit Sub
         End If
 
@@ -197,7 +199,7 @@ Public Class FrmLogin
         resultado = EnviarAudio("play musicaLogin repeat", Nothing, 0, IntPtr.Zero)
         If resultado <> 0 Then
             DetenerMusica()
-            MessageBox.Show("No se pudo reproducir la música. Código: " & resultado)
+            RegistrarAviso("Música del login", "No se pudo reproducir el archivo. Código MCI: " & resultado)
         End If
     End Sub
 
