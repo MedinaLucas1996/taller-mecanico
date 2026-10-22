@@ -31,7 +31,7 @@ Public Class FrmServicios
                 'armo mi consulta sql, cada servicio con su categoria
                 Dim consulta As String =
                     "SELECT s.id_servicio, s.codigo, s.descripcion, c.descripcion AS categoria, " &
-                    "s.precio, s.tiempo_estimado_horas, s.activo, " &
+                    "s.precio, s.tiempo_estimado_horas, s.intervalo_meses, s.intervalo_km, s.activo, " &
                     "s.id_categoria_servicio, c.activo AS categoria_activa " &
                     "FROM servicio AS s " &
                     "JOIN categoria_servicio AS c ON c.id_categoria_servicio = s.id_categoria_servicio " &
@@ -69,6 +69,9 @@ Public Class FrmServicios
                     dgvServicios.Columns("activo").Visible = False
                     dgvServicios.Columns("id_categoria_servicio").Visible = False
                     dgvServicios.Columns("categoria_activa").Visible = False
+                    'los intervalos del recordatorio se ven en la tarjeta, no en la lista
+                    dgvServicios.Columns("intervalo_meses").Visible = False
+                    dgvServicios.Columns("intervalo_km").Visible = False
 
                     'pongo titulos legibles en las columnas, con un ancho minimo para cada una
                     dgvServicios.Columns("codigo").HeaderText = "Código"
@@ -232,6 +235,11 @@ Public Class FrmServicios
                 'el tiempo estimado es opcional, arranca sin marcar
                 chkTiempo.Checked = False
                 nudTiempo.Value = 0
+                'los intervalos tambien son opcionales: sin marcar, el servicio no genera avisos
+                chkIntervaloMeses.Checked = False
+                nudIntervaloMeses.Value = 6
+                chkIntervaloKm.Checked = False
+                nudIntervaloKm.Value = 10000
                 'dejo en el combo solo las categorias activas, en la opcion de ayuda
                 CargarComboCategorias()
             Else
@@ -254,6 +262,29 @@ Public Class FrmServicios
                     chkTiempo.Checked = True
                     Dim tiempo As Decimal = CDec(fila.Cells("tiempo_estimado_horas").Value)
                     If tiempo <= nudTiempo.Maximum Then nudTiempo.Value = tiempo
+                End If
+
+                'cada intervalo es NULL cuando el servicio no se repite por ese criterio
+                If IsDBNull(fila.Cells("intervalo_meses").Value) Then
+                    chkIntervaloMeses.Checked = False
+                    nudIntervaloMeses.Value = 6
+                Else
+                    chkIntervaloMeses.Checked = True
+                    Dim meses As Integer = CInt(fila.Cells("intervalo_meses").Value)
+                    If meses >= nudIntervaloMeses.Minimum AndAlso meses <= nudIntervaloMeses.Maximum Then
+                        nudIntervaloMeses.Value = meses
+                    End If
+                End If
+
+                If IsDBNull(fila.Cells("intervalo_km").Value) Then
+                    chkIntervaloKm.Checked = False
+                    nudIntervaloKm.Value = 10000
+                Else
+                    chkIntervaloKm.Checked = True
+                    Dim km As Integer = CInt(fila.Cells("intervalo_km").Value)
+                    If km >= nudIntervaloKm.Minimum AndAlso km <= nudIntervaloKm.Maximum Then
+                        nudIntervaloKm.Value = km
+                    End If
                 End If
             End If
 
@@ -387,6 +418,15 @@ Public Class FrmServicios
         If nudPrecio.Value < 0 Then
             MessageBox.Show("El precio no puede ser negativo")
             nudPrecio.Focus()
+            Return False
+        End If
+
+        'el aviso de service sale por fecha: los km solos no alcanzan, porque el sistema
+        'conoce el kilometraje del auto solo cuando ingresa al taller
+        If chkIntervaloKm.Checked AndAlso Not chkIntervaloMeses.Checked Then
+            MessageBox.Show("Para avisar el service hace falta el intervalo en meses. " &
+                            "Los km se muestran solo como referencia en el aviso.")
+            chkIntervaloMeses.Focus()
             Return False
         End If
 
@@ -541,9 +581,25 @@ Public Class FrmServicios
         hayCambios = True
     End Sub
 
+    Private Sub chkIntervaloMeses_CheckedChanged(sender As Object, e As EventArgs) Handles chkIntervaloMeses.CheckedChanged
+        'los meses solo se cargan cuando el servicio se repite por fecha
+        nudIntervaloMeses.Enabled = chkIntervaloMeses.Checked
+
+        If cargando Then Exit Sub
+        hayCambios = True
+    End Sub
+
+    Private Sub chkIntervaloKm_CheckedChanged(sender As Object, e As EventArgs) Handles chkIntervaloKm.CheckedChanged
+        'los km solo se cargan cuando el servicio tiene un kilometraje de referencia
+        nudIntervaloKm.Enabled = chkIntervaloKm.Checked
+
+        If cargando Then Exit Sub
+        hayCambios = True
+    End Sub
+
     Private Sub Campo_Changed(sender As Object, e As EventArgs) Handles _
         txtCodigo.TextChanged, cboCategoria.SelectedIndexChanged, txtDescripcion.TextChanged,
-        nudPrecio.ValueChanged, nudTiempo.ValueChanged
+        nudPrecio.ValueChanged, nudTiempo.ValueChanged, nudIntervaloMeses.ValueChanged, nudIntervaloKm.ValueChanged
 
         'el usuario cambio un campo: hay cambios sin guardar
         If cargando Then Exit Sub
@@ -564,14 +620,22 @@ Public Class FrmServicios
         Dim tiempo As Object = DBNull.Value
         If chkTiempo.Checked Then tiempo = Math.Round(nudTiempo.Value, 2, MidpointRounding.AwayFromZero)
 
+        'los intervalos sin marcar tambien se guardan como NULL
+        Dim meses As Object = DBNull.Value
+        If chkIntervaloMeses.Checked Then meses = CInt(nudIntervaloMeses.Value)
+        Dim km As Object = DBNull.Value
+        If chkIntervaloKm.Checked Then km = CInt(nudIntervaloKm.Value)
+
         If creando Then
             Try
                 Using cn As New MySqlConnection(CADENA)
                     cn.Open()
                     'armo mi consulta sql
                     Dim consulta As String =
-                        "INSERT INTO servicio (codigo, descripcion, id_categoria_servicio, precio, tiempo_estimado_horas) " &
-                        "VALUES (@codigo, @descripcion, @id_categoria_servicio, @precio, @tiempo_estimado_horas);"
+                        "INSERT INTO servicio (codigo, descripcion, id_categoria_servicio, precio, tiempo_estimado_horas, " &
+                        "intervalo_meses, intervalo_km) " &
+                        "VALUES (@codigo, @descripcion, @id_categoria_servicio, @precio, @tiempo_estimado_horas, " &
+                        "@intervalo_meses, @intervalo_km);"
 
                     Using cmd As New MySqlCommand(consulta, cn)
                         'cargo valores en los parametros, el codigo se guarda sin espacios y en mayusculas
@@ -580,6 +644,8 @@ Public Class FrmServicios
                         cmd.Parameters.AddWithValue("@id_categoria_servicio", Convert.ToInt32(cboCategoria.SelectedValue))
                         cmd.Parameters.AddWithValue("@precio", precio)
                         cmd.Parameters.AddWithValue("@tiempo_estimado_horas", tiempo)
+                        cmd.Parameters.AddWithValue("@intervalo_meses", meses)
+                        cmd.Parameters.AddWithValue("@intervalo_km", km)
 
                         'ejecuto la consulta y obtengo los registros afectados
                         Dim Resultado As Integer = cmd.ExecuteNonQuery()
@@ -611,7 +677,8 @@ Public Class FrmServicios
                     Dim consulta As String =
                         "UPDATE servicio SET codigo=@codigo, descripcion=@descripcion, " &
                         "id_categoria_servicio=@id_categoria_servicio, precio=@precio, " &
-                        "tiempo_estimado_horas=@tiempo_estimado_horas " &
+                        "tiempo_estimado_horas=@tiempo_estimado_horas, " &
+                        "intervalo_meses=@intervalo_meses, intervalo_km=@intervalo_km " &
                         "WHERE id_servicio=@id;"
 
                     Using cmd As New MySqlCommand(consulta, cn)
@@ -621,6 +688,8 @@ Public Class FrmServicios
                         cmd.Parameters.AddWithValue("@id_categoria_servicio", Convert.ToInt32(cboCategoria.SelectedValue))
                         cmd.Parameters.AddWithValue("@precio", precio)
                         cmd.Parameters.AddWithValue("@tiempo_estimado_horas", tiempo)
+                        cmd.Parameters.AddWithValue("@intervalo_meses", meses)
+                        cmd.Parameters.AddWithValue("@intervalo_km", km)
                         cmd.Parameters.AddWithValue("@id", idServicio)
 
                         Dim Resultado As Integer = cmd.ExecuteNonQuery()

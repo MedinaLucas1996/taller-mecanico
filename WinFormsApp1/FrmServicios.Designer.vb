@@ -47,6 +47,10 @@ Partial Class FrmServicios
         nudPrecio = New NumericUpDown()
         chkTiempo = New CheckBox()
         nudTiempo = New NumericUpDown()
+        chkIntervaloMeses = New CheckBox()
+        nudIntervaloMeses = New NumericUpDown()
+        chkIntervaloKm = New CheckBox()
+        nudIntervaloKm = New NumericUpDown()
         lblContexto = New Label()
         btnGuardar = New Button()
         btnBaja = New Button()
@@ -59,6 +63,8 @@ Partial Class FrmServicios
         CType(dgvServicios, ComponentModel.ISupportInitialize).BeginInit()
         CType(nudPrecio, ComponentModel.ISupportInitialize).BeginInit()
         CType(nudTiempo, ComponentModel.ISupportInitialize).BeginInit()
+        CType(nudIntervaloMeses, ComponentModel.ISupportInitialize).BeginInit()
+        CType(nudIntervaloKm, ComponentModel.ISupportInitialize).BeginInit()
         SuspendLayout()
         '
         ' lblTitulo
@@ -251,10 +257,16 @@ Partial Class FrmServicios
         tlpCampos.Controls.Add(nudPrecio, 0, 5)
         tlpCampos.Controls.Add(chkTiempo, 1, 4)
         tlpCampos.Controls.Add(nudTiempo, 1, 5)
-        tlpCampos.Controls.Add(lblContexto, 0, 6)
+        tlpCampos.Controls.Add(chkIntervaloMeses, 0, 6)
+        tlpCampos.Controls.Add(nudIntervaloMeses, 0, 7)
+        tlpCampos.Controls.Add(chkIntervaloKm, 1, 6)
+        tlpCampos.Controls.Add(nudIntervaloKm, 1, 7)
+        tlpCampos.Controls.Add(lblContexto, 0, 8)
         tlpCampos.Location = New Point(16, 78)
         tlpCampos.Name = "tlpCampos"
-        tlpCampos.RowCount = 8
+        tlpCampos.RowCount = 10
+        tlpCampos.RowStyles.Add(New RowStyle())
+        tlpCampos.RowStyles.Add(New RowStyle())
         tlpCampos.RowStyles.Add(New RowStyle())
         tlpCampos.RowStyles.Add(New RowStyle())
         tlpCampos.RowStyles.Add(New RowStyle())
@@ -388,6 +400,62 @@ Partial Class FrmServicios
         nudTiempo.TabIndex = 9
         nudTiempo.TextAlign = HorizontalAlignment.Right
         '
+        ' chkIntervaloMeses
+        '
+        chkIntervaloMeses.AutoSize = True
+        chkIntervaloMeses.Font = New Font("Segoe UI", 8.25F)
+        chkIntervaloMeses.ForeColor = Color.DimGray
+        chkIntervaloMeses.Location = New Point(0, 0)
+        chkIntervaloMeses.Margin = New Padding(0, 6, 6, 0)
+        chkIntervaloMeses.Name = "chkIntervaloMeses"
+        chkIntervaloMeses.Size = New Size(100, 23)
+        chkIntervaloMeses.TabIndex = 10
+        chkIntervaloMeses.Text = "Repetir cada (meses)"
+        chkIntervaloMeses.UseVisualStyleBackColor = True
+        '
+        ' nudIntervaloMeses
+        '
+        nudIntervaloMeses.Anchor = AnchorStyles.Left Or AnchorStyles.Right
+        nudIntervaloMeses.Enabled = False
+        nudIntervaloMeses.Location = New Point(0, 0)
+        nudIntervaloMeses.Margin = New Padding(0, 0, 6, 0)
+        nudIntervaloMeses.Maximum = New Decimal(New Integer() {120, 0, 0, 0})
+        nudIntervaloMeses.Minimum = New Decimal(New Integer() {1, 0, 0, 0})
+        nudIntervaloMeses.Name = "nudIntervaloMeses"
+        nudIntervaloMeses.Size = New Size(168, 27)
+        nudIntervaloMeses.TabIndex = 11
+        nudIntervaloMeses.TextAlign = HorizontalAlignment.Right
+        nudIntervaloMeses.Value = New Decimal(New Integer() {6, 0, 0, 0})
+        '
+        ' chkIntervaloKm
+        '
+        chkIntervaloKm.AutoSize = True
+        chkIntervaloKm.Font = New Font("Segoe UI", 8.25F)
+        chkIntervaloKm.ForeColor = Color.DimGray
+        chkIntervaloKm.Location = New Point(0, 0)
+        chkIntervaloKm.Margin = New Padding(6, 6, 0, 0)
+        chkIntervaloKm.Name = "chkIntervaloKm"
+        chkIntervaloKm.Size = New Size(100, 23)
+        chkIntervaloKm.TabIndex = 12
+        chkIntervaloKm.Text = "Repetir cada (km)"
+        chkIntervaloKm.UseVisualStyleBackColor = True
+        '
+        ' nudIntervaloKm
+        '
+        nudIntervaloKm.Anchor = AnchorStyles.Left Or AnchorStyles.Right
+        nudIntervaloKm.Enabled = False
+        nudIntervaloKm.Increment = New Decimal(New Integer() {1000, 0, 0, 0})
+        nudIntervaloKm.Location = New Point(0, 0)
+        nudIntervaloKm.Margin = New Padding(6, 0, 0, 0)
+        nudIntervaloKm.Maximum = New Decimal(New Integer() {500000, 0, 0, 0})
+        nudIntervaloKm.Minimum = New Decimal(New Integer() {1, 0, 0, 0})
+        nudIntervaloKm.Name = "nudIntervaloKm"
+        nudIntervaloKm.Size = New Size(168, 27)
+        nudIntervaloKm.TabIndex = 13
+        nudIntervaloKm.TextAlign = HorizontalAlignment.Right
+        nudIntervaloKm.ThousandsSeparator = True
+        nudIntervaloKm.Value = New Decimal(New Integer() {10000, 0, 0, 0})
+        '
         ' lblContexto
         '
         lblContexto.AutoSize = True
@@ -397,7 +465,7 @@ Partial Class FrmServicios
         lblContexto.Margin = New Padding(0, 10, 0, 0)
         lblContexto.Name = "lblContexto"
         lblContexto.Size = New Size(100, 19)
-        lblContexto.TabIndex = 10
+        lblContexto.TabIndex = 14
         lblContexto.Text = "-"
         '
         ' btnGuardar
@@ -477,6 +545,8 @@ Partial Class FrmServicios
         CType(dgvServicios, ComponentModel.ISupportInitialize).EndInit()
         CType(nudPrecio, ComponentModel.ISupportInitialize).EndInit()
         CType(nudTiempo, ComponentModel.ISupportInitialize).EndInit()
+        CType(nudIntervaloMeses, ComponentModel.ISupportInitialize).EndInit()
+        CType(nudIntervaloKm, ComponentModel.ISupportInitialize).EndInit()
         ResumeLayout(False)
         PerformLayout()
     End Sub
@@ -505,6 +575,10 @@ Partial Class FrmServicios
     Friend WithEvents nudPrecio As NumericUpDown
     Friend WithEvents chkTiempo As CheckBox
     Friend WithEvents nudTiempo As NumericUpDown
+    Friend WithEvents chkIntervaloMeses As CheckBox
+    Friend WithEvents nudIntervaloMeses As NumericUpDown
+    Friend WithEvents chkIntervaloKm As CheckBox
+    Friend WithEvents nudIntervaloKm As NumericUpDown
     Friend WithEvents lblContexto As Label
     Friend WithEvents btnGuardar As Button
     Friend WithEvents btnBaja As Button
