@@ -5,7 +5,7 @@
 
 USE taller_mecanico;
 
--- 1. Cantidad de tablas (esperado: 13)
+-- 1. Cantidad de tablas (esperado: 16)
 SELECT COUNT(*) AS tablas
 FROM information_schema.tables
 WHERE table_schema = 'taller_mecanico';
@@ -23,7 +23,10 @@ UNION ALL SELECT 'estado_ot', COUNT(*) FROM estado_ot
 UNION ALL SELECT 'orden_trabajo', COUNT(*) FROM orden_trabajo
 UNION ALL SELECT 'ot_detalle', COUNT(*) FROM ot_detalle
 UNION ALL SELECT 'ot_historial_estado', COUNT(*) FROM ot_historial_estado
-UNION ALL SELECT 'ot_foto', COUNT(*) FROM ot_foto;
+UNION ALL SELECT 'ot_foto', COUNT(*) FROM ot_foto
+UNION ALL SELECT 'ot_foto_trabajo', COUNT(*) FROM ot_foto_trabajo
+UNION ALL SELECT 'aviso_service', COUNT(*) FROM aviso_service
+UNION ALL SELECT 'turno', COUNT(*) FROM turno;
 
 -- 3. Estados de OT con sus indicadores
 SELECT id_estado_ot, codigo, permite_edicion_detalle, es_estado_final, orden_flujo

@@ -123,6 +123,12 @@ JOIN (SELECT 1 AS id_estado_ot, 0 AS minutos, @u_oper AS id_usuario, 'Recepción
       UNION ALL SELECT 5, 300, @u_admin, 'Trabajo finalizado'
       UNION ALL SELECT 6, 360, @u_oper, 'Vehículo entregado al cliente') AS x;
 
+-- El kilometraje de cada vehículo queda en el de su última orden, como en 08:
+-- si no, la recepción exige el km de la orden y la ficha muestra uno menor
+UPDATE vehiculo AS v
+JOIN (SELECT patente, MAX(km) AS km FROM demo_aviso_orden GROUP BY patente) AS d ON d.patente = v.patente
+SET v.km_actual = GREATEST(v.km_actual, d.km);
+
 DROP TEMPORARY TABLE IF EXISTS demo_aviso_orden;
 DROP TEMPORARY TABLE IF EXISTS demo_aviso_linea;
 
