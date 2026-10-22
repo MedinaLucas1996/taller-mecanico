@@ -8,6 +8,8 @@ Public Class FrmVehiculos
     Private creando As Boolean = False
     'indica si el vehiculo cargado esta activo, decide si el boton da de baja o reactiva
     Private registroActivo As Boolean = True
+    'kilometraje guardado del vehiculo cargado, para saber si el usuario lo cambio
+    Private kmGuardado As Integer = 0
 
     'queda en True cuando el usuario cambio algun campo y todavia no guardo
     Private hayCambios As Boolean = False
@@ -286,6 +288,7 @@ Public Class FrmVehiculos
                 txtMotor.Clear()
                 txtChasis.Clear()
                 nudKilometraje.Value = 0
+                kmGuardado = 0
                 txtObservaciones.Clear()
             Else
                 txtPatente.Text = fila.Cells("patente").Value.ToString()
@@ -310,6 +313,7 @@ Public Class FrmVehiculos
                 txtMotor.Text = fila.Cells("nro_motor").Value.ToString()
                 txtChasis.Text = fila.Cells("nro_chasis").Value.ToString()
                 nudKilometraje.Value = CInt(fila.Cells("km_actual").Value)
+                kmGuardado = CInt(nudKilometraje.Value)
                 txtObservaciones.Text = fila.Cells("observaciones").Value.ToString()
             End If
 
@@ -690,12 +694,13 @@ Public Class FrmVehiculos
             Try
                 Using cn As New MySqlConnection(CADENA)
                     cn.Open()
-                    'el kilometraje no puede quedar por debajo del de su orden de trabajo mas alta (regla 8.3)
+                    'si el usuario cambio el kilometraje, no puede dejarlo por debajo del de su orden de trabajo mas alta (regla 8.3)
+                    'un vehiculo cargado antes de esta regla se puede seguir editando mientras no se toque el kilometraje
                     Dim consulta As String = "SELECT COALESCE(MAX(km_ingreso), 0) FROM orden_trabajo WHERE id_vehiculo = @id;"
                     Using cmd As New MySqlCommand(consulta, cn)
                         cmd.Parameters.AddWithValue("@id", idVehiculo)
                         Dim kmUltimaOrden As Integer = CInt(cmd.ExecuteScalar())
-                        If nudKilometraje.Value < kmUltimaOrden Then
+                        If nudKilometraje.Value <> kmGuardado AndAlso nudKilometraje.Value < kmUltimaOrden Then
                             MessageBox.Show("El kilometraje no puede ser menor que el de su última orden de trabajo (" &
                                             kmUltimaOrden.ToString("N0") & " km).")
                             nudKilometraje.Focus()
@@ -725,6 +730,7 @@ Public Class FrmVehiculos
 
                         Dim Resultado As Integer = cmd.ExecuteNonQuery()
                         hayCambios = False
+                        kmGuardado = CInt(nudKilometraje.Value)
                         MessageBox.Show("Registros actualizados: " & Resultado)
                     End Using
                 End Using

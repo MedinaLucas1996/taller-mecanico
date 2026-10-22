@@ -68,3 +68,12 @@ FROM marca ma
 LEFT JOIN modelo mo ON mo.id_marca = ma.id_marca
 GROUP BY ma.id_marca, ma.descripcion
 ORDER BY ma.descripcion;
+
+-- 9. Mecánicos dados de baja que todavía tienen un usuario activo
+--    (esperado: ninguna fila; la pantalla Mecánicos no permite dar de baja
+--    a un mecánico con usuario activo, regla 8.6)
+SELECT m.id_mecanico, m.nombre_completo, u.nombre_usuario
+FROM mecanico m
+JOIN usuario u ON u.id_mecanico = m.id_mecanico AND u.activo = 1
+WHERE m.activo = 0
+ORDER BY m.nombre_completo;

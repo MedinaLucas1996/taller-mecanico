@@ -62,8 +62,9 @@ Module Errores
         'si la conexion ya se corto, el Rollback tambien falla; la transaccion igual se descarta al cerrar la conexion
         Try
             transaccion.Rollback()
-        Catch
-            'nada que hacer: el error que importa es el que se vuelve a lanzar despues de llamar a esta rutina
+        Catch exDeshacer As Exception
+            'dejo constancia en el registro; el error que importa es el que se vuelve a lanzar despues de llamar a esta rutina
+            RegistrarError("No se pudo deshacer la transacción", exDeshacer)
         End Try
     End Sub
 
