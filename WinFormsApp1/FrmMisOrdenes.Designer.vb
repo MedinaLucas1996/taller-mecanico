@@ -22,6 +22,7 @@ Partial Class FrmMisOrdenes
     'No lo modifique con el editor de código.
     <System.Diagnostics.DebuggerStepThrough()> _
     Private Sub InitializeComponent()
+        components = New ComponentModel.Container()
         Dim DataGridViewCellStyle1 As DataGridViewCellStyle = New DataGridViewCellStyle()
         lblTitulo = New Label()
         lblSubtitulo = New Label()
@@ -66,6 +67,9 @@ Partial Class FrmMisOrdenes
         picLateralDer = New PictureBox()
         lblSinTablero = New Label()
         picTablero = New PictureBox()
+        lblFotosTrabajoTit = New Label()
+        lvwFotosTrabajo = New ListView()
+        imlFotosTrabajo = New ImageList(components)
         btnAbrir = New Button()
         btnExportar = New Button()
         tlpGrupos.SuspendLayout()
@@ -389,9 +393,11 @@ Partial Class FrmMisOrdenes
         tlpResumen.Controls.Add(lblTrabajoTit, 0, 5)
         tlpResumen.Controls.Add(txtTrabajo, 0, 6)
         tlpResumen.Controls.Add(pnlFotos, 0, 7)
+        tlpResumen.Controls.Add(lblFotosTrabajoTit, 0, 8)
+        tlpResumen.Controls.Add(lvwFotosTrabajo, 0, 9)
         tlpResumen.Location = New Point(16, 46)
         tlpResumen.Name = "tlpResumen"
-        tlpResumen.RowCount = 8
+        tlpResumen.RowCount = 10
         tlpResumen.RowStyles.Add(New RowStyle())
         tlpResumen.RowStyles.Add(New RowStyle())
         tlpResumen.RowStyles.Add(New RowStyle())
@@ -399,6 +405,8 @@ Partial Class FrmMisOrdenes
         tlpResumen.RowStyles.Add(New RowStyle())
         tlpResumen.RowStyles.Add(New RowStyle())
         tlpResumen.RowStyles.Add(New RowStyle(SizeType.Percent, 100F))
+        tlpResumen.RowStyles.Add(New RowStyle())
+        tlpResumen.RowStyles.Add(New RowStyle())
         tlpResumen.RowStyles.Add(New RowStyle())
         tlpResumen.Size = New Size(348, 318)
         tlpResumen.TabIndex = 0
@@ -408,6 +416,8 @@ Partial Class FrmMisOrdenes
         tlpResumen.SetColumnSpan(lblTrabajoTit, 2)
         tlpResumen.SetColumnSpan(txtTrabajo, 2)
         tlpResumen.SetColumnSpan(pnlFotos, 2)
+        tlpResumen.SetColumnSpan(lblFotosTrabajoTit, 2)
+        tlpResumen.SetColumnSpan(lvwFotosTrabajo, 2)
         '
         ' picVehiculo
         '
@@ -540,6 +550,45 @@ Partial Class FrmMisOrdenes
         pnlFotos.Name = "pnlFotos"
         pnlFotos.Size = New Size(348, 58)
         pnlFotos.TabIndex = 19
+        '
+        ' lblFotosTrabajoTit
+        '
+        lblFotosTrabajoTit.AutoSize = True
+        lblFotosTrabajoTit.Font = New Font("Segoe UI", 8.25F)
+        lblFotosTrabajoTit.ForeColor = Color.DimGray
+        lblFotosTrabajoTit.Location = New Point(0, 0)
+        lblFotosTrabajoTit.Margin = New Padding(0, 6, 0, 2)
+        lblFotosTrabajoTit.Name = "lblFotosTrabajoTit"
+        lblFotosTrabajoTit.Size = New Size(100, 19)
+        lblFotosTrabajoTit.TabIndex = 20
+        lblFotosTrabajoTit.Text = "Fotos del trabajo"
+        lblFotosTrabajoTit.Visible = False
+        '
+        ' lvwFotosTrabajo
+        '
+        lvwFotosTrabajo.Activation = ItemActivation.OneClick
+        lvwFotosTrabajo.Anchor = AnchorStyles.Left Or AnchorStyles.Right
+        lvwFotosTrabajo.BackColor = Color.White
+        lvwFotosTrabajo.BorderStyle = BorderStyle.None
+        lvwFotosTrabajo.Location = New Point(0, 0)
+        lvwFotosTrabajo.Margin = New Padding(0, 0, 0, 0)
+        lvwFotosTrabajo.MultiSelect = False
+        lvwFotosTrabajo.Name = "lvwFotosTrabajo"
+        lvwFotosTrabajo.ShowItemToolTips = True
+        lvwFotosTrabajo.LargeImageList = imlFotosTrabajo
+        lvwFotosTrabajo.Size = New Size(348, 50)
+        lvwFotosTrabajo.TabIndex = 21
+        lvwFotosTrabajo.TabStop = False
+        lvwFotosTrabajo.TileSize = New Size(54, 40)
+        lvwFotosTrabajo.UseCompatibleStateImageBehavior = False
+        lvwFotosTrabajo.View = View.Tile
+        lvwFotosTrabajo.Visible = False
+        '
+        ' imlFotosTrabajo
+        '
+        imlFotosTrabajo.ColorDepth = ColorDepth.Depth24Bit
+        imlFotosTrabajo.ImageSize = New Size(48, 36)
+        imlFotosTrabajo.TransparentColor = Color.Transparent
         '
         ' lblSinFrente
         '
@@ -765,6 +814,9 @@ Partial Class FrmMisOrdenes
     Friend WithEvents lblTrabajoTit As Label
     Friend WithEvents txtTrabajo As TextBox
     Friend WithEvents pnlFotos As Panel
+    Friend WithEvents lblFotosTrabajoTit As Label
+    Friend WithEvents lvwFotosTrabajo As ListView
+    Friend WithEvents imlFotosTrabajo As ImageList
     Friend WithEvents lblSinFrente As Label
     Friend WithEvents picFrente As PictureBox
     Friend WithEvents lblSinTrasera As Label

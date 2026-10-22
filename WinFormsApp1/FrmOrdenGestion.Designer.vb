@@ -65,6 +65,14 @@ Partial Class FrmOrdenGestion
         picAvisoMecanico = New PictureBox()
         lblAvisoMecanico = New Label()
         pnlNotas = New Panel()
+        pnlFotosTrabajo = New Panel()
+        lblFotosTrabajo = New Label()
+        txtDescripcionFoto = New TextBox()
+        btnAgregarFoto = New Button()
+        btnQuitarFoto = New Button()
+        lvwFotosTrabajo = New ListView()
+        imlFotosTrabajo = New ImageList(components)
+        dlgFotoTrabajo = New OpenFileDialog()
         lblNotas = New Label()
         txtNotasTecnicas = New TextBox()
         pnlEditor = New Panel()
@@ -121,10 +129,12 @@ Partial Class FrmOrdenGestion
         mnuPresupuesto = New ToolStripMenuItem()
         mnuActa = New ToolStripMenuItem()
         mnuColgante = New ToolStripMenuItem()
+        mnuFotosTrabajo = New ToolStripMenuItem()
         prdOrdenTrabajo = New Printing.PrintDocument()
         prdPresupuesto = New Printing.PrintDocument()
         prdActa = New Printing.PrintDocument()
         prdColgante = New Printing.PrintDocument()
+        prdFotosTrabajo = New Printing.PrintDocument()
         ppdVistaPrevia = New PrintPreviewDialog()
         tlpEtapas.SuspendLayout()
         pnlEtapa1.SuspendLayout()
@@ -137,6 +147,7 @@ Partial Class FrmOrdenGestion
         pnlPieLineas.SuspendLayout()
         pnlAvisoMecanico.SuspendLayout()
         pnlNotas.SuspendLayout()
+        pnlFotosTrabajo.SuspendLayout()
         pnlEditor.SuspendLayout()
         pnlDiagnostico.SuspendLayout()
         pnlCabeceraEtapa.SuspendLayout()
@@ -454,6 +465,7 @@ Partial Class FrmOrdenGestion
         pnlTrabajo.Controls.Add(pnlPieLineas)
         pnlTrabajo.Controls.Add(pnlAvisoMecanico)
         pnlTrabajo.Controls.Add(pnlNotas)
+        pnlTrabajo.Controls.Add(pnlFotosTrabajo)
         pnlTrabajo.Controls.Add(pnlEditor)
         pnlTrabajo.Controls.Add(pnlDiagnostico)
         pnlTrabajo.Controls.Add(pnlCabeceraEtapa)
@@ -686,6 +698,96 @@ Partial Class FrmOrdenGestion
         txtNotasTecnicas.ScrollBars = ScrollBars.Vertical
         txtNotasTecnicas.Size = New Size(740, 114)
         txtNotasTecnicas.TabIndex = 1
+        '
+        ' pnlFotosTrabajo
+        '
+        pnlFotosTrabajo.Controls.Add(lblFotosTrabajo)
+        pnlFotosTrabajo.Controls.Add(txtDescripcionFoto)
+        pnlFotosTrabajo.Controls.Add(btnAgregarFoto)
+        pnlFotosTrabajo.Controls.Add(btnQuitarFoto)
+        pnlFotosTrabajo.Controls.Add(lvwFotosTrabajo)
+        pnlFotosTrabajo.Dock = DockStyle.Bottom
+        pnlFotosTrabajo.Location = New Point(16, 490)
+        pnlFotosTrabajo.Name = "pnlFotosTrabajo"
+        pnlFotosTrabajo.Size = New Size(740, 110)
+        pnlFotosTrabajo.TabIndex = 7
+        pnlFotosTrabajo.Visible = False
+        '
+        ' lblFotosTrabajo
+        '
+        lblFotosTrabajo.AutoSize = True
+        lblFotosTrabajo.Font = New Font("Segoe UI", 9.5F, FontStyle.Bold)
+        lblFotosTrabajo.Location = New Point(0, 12)
+        lblFotosTrabajo.Name = "lblFotosTrabajo"
+        lblFotosTrabajo.Size = New Size(100, 20)
+        lblFotosTrabajo.TabIndex = 0
+        lblFotosTrabajo.Text = "Fotos del trabajo"
+        '
+        ' txtDescripcionFoto
+        '
+        txtDescripcionFoto.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
+        txtDescripcionFoto.Location = New Point(176, 7)
+        txtDescripcionFoto.MaxLength = 100
+        txtDescripcionFoto.Name = "txtDescripcionFoto"
+        txtDescripcionFoto.PlaceholderText = "Descripción de la foto (opcional)"
+        txtDescripcionFoto.Size = New Size(290, 27)
+        txtDescripcionFoto.TabIndex = 1
+        '
+        ' btnAgregarFoto
+        '
+        btnAgregarFoto.Anchor = AnchorStyles.Top Or AnchorStyles.Right
+        btnAgregarFoto.BackColor = Color.White
+        btnAgregarFoto.Cursor = Cursors.Hand
+        btnAgregarFoto.FlatAppearance.BorderColor = Color.Silver
+        btnAgregarFoto.FlatStyle = FlatStyle.Flat
+        btnAgregarFoto.Location = New Point(474, 2)
+        btnAgregarFoto.Name = "btnAgregarFoto"
+        btnAgregarFoto.Size = New Size(150, 38)
+        btnAgregarFoto.TabIndex = 2
+        btnAgregarFoto.Text = " Agregar foto"
+        btnAgregarFoto.TextImageRelation = TextImageRelation.ImageBeforeText
+        btnAgregarFoto.UseVisualStyleBackColor = False
+        '
+        ' btnQuitarFoto
+        '
+        btnQuitarFoto.Anchor = AnchorStyles.Top Or AnchorStyles.Right
+        btnQuitarFoto.BackColor = Color.White
+        btnQuitarFoto.Cursor = Cursors.Hand
+        btnQuitarFoto.FlatAppearance.BorderColor = Color.Silver
+        btnQuitarFoto.FlatStyle = FlatStyle.Flat
+        btnQuitarFoto.Location = New Point(632, 2)
+        btnQuitarFoto.Name = "btnQuitarFoto"
+        btnQuitarFoto.Size = New Size(108, 38)
+        btnQuitarFoto.TabIndex = 3
+        btnQuitarFoto.Text = " Quitar"
+        btnQuitarFoto.TextImageRelation = TextImageRelation.ImageBeforeText
+        btnQuitarFoto.UseVisualStyleBackColor = False
+        '
+        ' lvwFotosTrabajo
+        '
+        lvwFotosTrabajo.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
+        lvwFotosTrabajo.HideSelection = False
+        lvwFotosTrabajo.LargeImageList = imlFotosTrabajo
+        lvwFotosTrabajo.Location = New Point(0, 46)
+        lvwFotosTrabajo.MultiSelect = False
+        lvwFotosTrabajo.Name = "lvwFotosTrabajo"
+        lvwFotosTrabajo.ShowItemToolTips = True
+        lvwFotosTrabajo.Size = New Size(740, 62)
+        lvwFotosTrabajo.TabIndex = 4
+        lvwFotosTrabajo.TileSize = New Size(230, 54)
+        lvwFotosTrabajo.UseCompatibleStateImageBehavior = False
+        lvwFotosTrabajo.View = View.Tile
+        '
+        ' imlFotosTrabajo
+        '
+        imlFotosTrabajo.ColorDepth = ColorDepth.Depth24Bit
+        imlFotosTrabajo.ImageSize = New Size(64, 48)
+        imlFotosTrabajo.TransparentColor = Color.Transparent
+        '
+        ' dlgFotoTrabajo
+        '
+        dlgFotoTrabajo.Filter = "Imágenes (*.jpg;*.jpeg;*.png)|*.jpg;*.jpeg;*.png"
+        dlgFotoTrabajo.Title = "Seleccionar foto del trabajo"
         '
         ' pnlEditor
         '
@@ -1282,9 +1384,9 @@ Partial Class FrmOrdenGestion
         '
         cmsImprimir.Font = New Font("Segoe UI", 10F)
         cmsImprimir.ImageScalingSize = New Size(20, 20)
-        cmsImprimir.Items.AddRange(New ToolStripItem() {mnuOrdenTrabajo, mnuPresupuesto, mnuActa, mnuColgante})
+        cmsImprimir.Items.AddRange(New ToolStripItem() {mnuOrdenTrabajo, mnuPresupuesto, mnuActa, mnuColgante, mnuFotosTrabajo})
         cmsImprimir.Name = "cmsImprimir"
-        cmsImprimir.Size = New Size(221, 108)
+        cmsImprimir.Size = New Size(221, 134)
         '
         ' mnuOrdenTrabajo
         '
@@ -1310,6 +1412,12 @@ Partial Class FrmOrdenGestion
         mnuColgante.Size = New Size(220, 26)
         mnuColgante.Text = "Colgante de llaves"
         '
+        ' mnuFotosTrabajo
+        '
+        mnuFotosTrabajo.Name = "mnuFotosTrabajo"
+        mnuFotosTrabajo.Size = New Size(220, 26)
+        mnuFotosTrabajo.Text = "Fotos del trabajo"
+        '
         ' prdOrdenTrabajo
         '
         prdOrdenTrabajo.DocumentName = "Orden de trabajo"
@@ -1325,6 +1433,10 @@ Partial Class FrmOrdenGestion
         ' prdColgante
         '
         prdColgante.DocumentName = "Colgante de llaves"
+        '
+        ' prdFotosTrabajo
+        '
+        prdFotosTrabajo.DocumentName = "Fotos del trabajo"
         '
         ' ppdVistaPrevia
         '
@@ -1375,6 +1487,8 @@ Partial Class FrmOrdenGestion
         pnlAvisoMecanico.ResumeLayout(False)
         pnlNotas.ResumeLayout(False)
         pnlNotas.PerformLayout()
+        pnlFotosTrabajo.ResumeLayout(False)
+        pnlFotosTrabajo.PerformLayout()
         pnlEditor.ResumeLayout(False)
         pnlEditor.PerformLayout()
         pnlDiagnostico.ResumeLayout(False)
@@ -1444,6 +1558,14 @@ Partial Class FrmOrdenGestion
     Friend WithEvents pnlNotas As Panel
     Friend WithEvents lblNotas As Label
     Friend WithEvents txtNotasTecnicas As TextBox
+    Friend WithEvents pnlFotosTrabajo As Panel
+    Friend WithEvents lblFotosTrabajo As Label
+    Friend WithEvents txtDescripcionFoto As TextBox
+    Friend WithEvents btnAgregarFoto As Button
+    Friend WithEvents btnQuitarFoto As Button
+    Friend WithEvents lvwFotosTrabajo As ListView
+    Friend WithEvents imlFotosTrabajo As ImageList
+    Friend WithEvents dlgFotoTrabajo As OpenFileDialog
     Friend WithEvents pnlEditor As Panel
     Friend WithEvents lblServicio As Label
     Friend WithEvents cboServicio As ComboBox
@@ -1498,9 +1620,11 @@ Partial Class FrmOrdenGestion
     Friend WithEvents mnuPresupuesto As ToolStripMenuItem
     Friend WithEvents mnuActa As ToolStripMenuItem
     Friend WithEvents mnuColgante As ToolStripMenuItem
+    Friend WithEvents mnuFotosTrabajo As ToolStripMenuItem
     Friend WithEvents prdOrdenTrabajo As Printing.PrintDocument
     Friend WithEvents prdPresupuesto As Printing.PrintDocument
     Friend WithEvents prdActa As Printing.PrintDocument
     Friend WithEvents prdColgante As Printing.PrintDocument
+    Friend WithEvents prdFotosTrabajo As Printing.PrintDocument
     Friend WithEvents ppdVistaPrevia As PrintPreviewDialog
 End Class
