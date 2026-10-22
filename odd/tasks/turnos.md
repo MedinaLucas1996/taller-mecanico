@@ -1,0 +1,32 @@
+# Feature: turnos (appointments, part 1)
+
+Objective: book a workshop time slot for a vehicle and close it when the vehicle is received. Branch `feature/TM-0022` from `main` at 62a6763. Delivery strategy: single-pr. Test runner: none; checks are a clean `dotnet build` to a scratch OutDir, a throwaway MariaDB and the harness that drives the forms (the user authorized end-to-end tests on the local database for TM-0021).
+
+Style (mandatory): the professor's event-driven VB.NET, same rules as `odd/tasks/recordatorio-service.md`. UI texts in neutral Spanish.
+
+## Specs
+
+- S1 Design agreed by the user: a turno reserves a time slot of the workshop, not a mechanic. User: "Perfecto".
+- S2 Slots agreed by the user ("Esta bien esa franja"): Monday to Friday 8 to 17 (9 one-hour slots, the last starts at 16), Saturday 8 to 12 (4 slots), 2 vehicles per slot. Constants in code. Sunday closed.
+- S3 Table `turno`: vehicle, date and time (start of the slot), reason, state `PENDIENTE`, `ATENDIDO`, `CANCELADO` or `AUSENTE`, order generated (optional), user and creation date. Idempotent migration `database/12_turnos.sql`; `01` creates it; the model goes from 15 to 16 tables. The vehicle must exist (new vehicles are registered first; the reception quick registration already exists).
+- S4 Screen "Turnos" for administrador and operador: one day at a time with previous/next/today; one row per slot with its turnos and the free places; give, cancel and mark a turno absent.
+- S5 Recepción: when the plate has a turno today it warns "Tiene turno a las 10:00 (motivo)"; confirming the reception marks the turno `ATENDIDO` and links the order.
+- Part 2, not here: "Dar turno" from Services por vencer, Inicio card "Turnos de hoy", WhatsApp confirmation.
+- Assumptions: a cancelled turno frees its place; a vehicle can have only one pending turno from now on; a slot can be booked until it ends; "Marcar ausente" only once the slot started; the reason prefills the reception symptom when that box is empty.
+
+## Tasks
+
+- [x] T1 S3 — inline — commit 98c213b
+- [x] T2 S4 — inline — commit c1b4cbf (`Turnos.vb` module, `FrmTurnos`, menu option between Mis órdenes and Recepción, `turnos.png` calendar icon drawn with System.Drawing from the Lucide calendar geometry)
+- [x] T3 S5 — inline — commit 091d62f
+- [x] T4 docs — inline — closing docs commit
+
+## Log
+
+- L1 (2026-10-22) User: "Bien, el tema de turnos, que opinas? como lo harias vos? Cual consideras que seria la mejor opcion?" Proposal (slot of the workshop, hourly slots with a cupo, table turno, day view, Recepción link; part 2 later) answered "Perfecto"; slots answered "Esta bien esa franja".
+- Route: inline (the screen and the reception change share the table and the slot rules; no disjoint units).
+- Decisions while building (2026-10-22): the agenda is one grid with a row per turno and one grey "Libre" row per slot with free places (a click on it opens the new turno at that hour); cancelled turnos are hidden; a slot is offered until it ends; Recepción shows the notice next to the Buscar button and closes the turno inside the order transaction only when the search found one (so a database without migration 12 still receives vehicles). The turno has no client column: the current owner of the vehicle is shown, and the order keeps the client at reception as before.
+- Verification (2026-10-22): `dotnet build` to a scratch OutDir: 0 warnings, 0 errors. Migration 12 on main's 01 + 02 + 03 + 08 + 11 (15 tables) twice: no error; new 01..12: 16 tables; `val_turno_orden` rejects PENDIENTE with an order and ATENDIDO without one. Harness on the throwaway MariaDB (port 3399, connection asserted), sessions of operador, admin and mecanico, buttons and dialogs driven by code, 31 checks passed: today lists only slots that did not end; a future Monday has 9 slots and 18 places; a click on the free 09:00 row opens the new turno at 09:00; AB123CD saved PENDIENTE; second vehicle fills 09:00 and the combo stops offering it; a second pending turno for AB123CD refused; two turnos inserted at 10:00 from "another station" while the form was open: saving is refused and nothing is inserted; cancelling AF456GH frees the place and hides it; Sunday shows "cerrado" and refuses a new turno, and the agenda loads again after it; Saturday has 4 slots ending at 11:00; a pending turno of 08:00 today shows "Marcar ausente" and becomes AUSENTE; Recepción shows "Tiene turno hoy a las 13:00 (Cambio de aceite y filtro)", fills the symptom, hides the notice for a vehicle without turno, and confirming through the four steps says the turno was attended, stores ATENDIDO with order 47, and the agenda shows "Recepcionado: orden de trabajo N.º 47" without buttons; operador and admin see the menu option, mecanico does not and the screen refuses it.
+- Not exercised: the user's local database (it does not have migration 12 yet).
+- Concurrency check (2026-10-22): a real race with mariadb sessions sharing the slot. With one turno already in the slot the FOR UPDATE count serialized correctly (the second session saw 2 and did not insert). With an empty slot and three sessions at once all saw 0 (InnoDB gap locks do not exclude each other) and two failed with a MariaDB error although there were places; the cupo was never exceeded but the user would get a raw error. Fixed in FrmTurnos: saving takes a named lock per slot (GET_LOCK 'taller_turno_yyyyMMddHH', 10 s, released in Finally) before the transaction, so stations giving a turno in the same slot go one by one; the transaction moved to GuardarTurno. Re-run of the race with the lock: the three sessions saw 0, 1 and 2, inserted 1, 1 and 0, total 2. Harness re-run: 31 checks passed.
+- Review (2026-10-22, lineage review-6372256026b55e43, lenses risk/resilience/reliability, consent granted by the user): APPROVED and acknowledged, two non-blocking reliability notes: a database failure while opening a new turno also said "No quedan lugares libres" (fixed: errorLeyendoHoras), and there are no committed automated tests (the project has no test runner; the harness lives outside the repo). Independent verifier (same day): no blockers; advisories fixed together: the turno motivo copied to the symptom stayed when the operator searched another vehicle (fixed: LimpiarVehiculo clears it when unedited), and a gap-lock deadlock between two different empty slots showed the raw MariaDB error (fixed: error 1213 becomes a retry message). Kept on purpose: the notice says "Tiene turno hoy a las ...". Harness re-run: 32 checks passed.

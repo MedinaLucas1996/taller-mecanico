@@ -18,7 +18,7 @@ Repositorio: https://github.com/MedinaLucas1996/taller-mecanico (público).
 - El menú se filtra por rol. Los botones del menú y los tres títulos de sección tienen `Visible = False` en el diseñador, y `FrmPrincipal_Load` muestra los que corresponden con un bloque `If Sesion.Rol = "..." Then` por rol (ver [Menú por rol](#menú-por-rol)). Un rol desconocido no ve ninguna opción del menú.
 - Menú lateral (`panelMenu`, acoplado a la izquierda): tiene tres paneles declarados en el diseñador.
   - `panelLogo` (arriba): el botón `btnMenu`, que contrae y expande el menú, y el nombre del sistema.
-  - `panelMenuArriba` (arriba): Operaciones (Inicio, Mis órdenes, Recepción, Órdenes de trabajo, Historial, Services por vencer) y Reportes (Tableros), cada título sobre sus botones.
+  - `panelMenuArriba` (arriba): Operaciones (Inicio, Mis órdenes, Turnos, Recepción, Órdenes de trabajo, Historial, Services por vencer) y Reportes (Tableros), cada título sobre sus botones.
   - `panelMenuAbajo` (acoplado al borde inferior): Datos maestros (Clientes, Vehículos, Marcas y modelos, Servicios, Categorías, Mecánicos, Usuarios). Sus botones se acoplan hacia abajo, de modo que las opciones ocultas por rol no dejan huecos y el espacio libre queda entre Reportes y Datos maestros.
   - Iconos: `LeerIcono` lee en `FrmPrincipal_Load` cada PNG de `Recursos\iconos` junto al ejecutable (el proyecto los copia a la carpeta de salida con `Recursos\iconos\*`). Si un archivo falta o no se puede leer, el botón queda sin icono. Los iconos provienen de Lucide (licencia ISC, texto en `Recursos/iconos/LICENCIA-lucide.txt`).
   - Contraer y expandir: `AplicarMenu` cambia el ancho del menú entre 230 y 56. Contraído oculta los títulos de sección y el nombre del sistema, deja en cada botón solo el icono centrado y le asigna su nombre como tooltip (`tipMenu`); un botón sin icono muestra su inicial. El nombre de cada opción se guarda una sola vez, en el `Tag` del botón. Como el panel de contenido está acoplado con `Fill`, ocupa el ancho que el menú libera. El estado no se guarda: el menú arranca siempre expandido.
@@ -142,6 +142,13 @@ Repositorio: https://github.com/MedinaLucas1996/taller-mecanico (público).
     - "Copiar mensaje" (o doble clic): junta todas las filas listadas del vehículo elegido y arma el mensaje (`ArmarMensaje`): saludo con el nombre del cliente y un emoji, el vehículo y la patente, el service con la fecha y los km del último (o una lista con viñetas si son varios), una línea sobre mantener el service al día con la oferta de un turno, y la despedida con `NOMBRE_TALLER`. Con la lista de próximos dice "se acerca" y la fecha de vencimiento. Si alguno de esos services ya tiene un aviso, pregunta antes. Copia con `Clipboard.SetText` y después inserta una fila de `aviso_service` por service, en una transacción; si la base falla avisa que el mensaje quedó copiado sin registrar. Vuelve a cargar la lista.
     - "Exportar" usa `ExportarGrilla` del `Module Exportar`.
   - **Tarjeta de Inicio**: `FrmInicio.CargarServices` cuenta con la misma consulta los services vencidos sin aviso en los últimos 15 días. Va en su propio `Try`: con una base sin la migración 10 la tarjeta muestra un guion, el error queda en el registro y el resto de Inicio carga igual. Un clic en la tarjeta abre la pantalla a través de `btnServicesPorVencer` del menú.
+  - **Turnos** (`FrmTurnos`, administrador y operador): agenda de turnos del taller. Un turno reserva un horario del taller para un vehículo, no un mecánico. `Load` muestra un aviso y deshabilita la pantalla con otro rol; la agenda se carga en `Shown`.
+    - Franjas (`Module Turnos`): `FranjasDelDia` devuelve el inicio de cada franja de una hora entre `HORA_APERTURA` (8) y `HORA_CIERRE` (17), o `HORA_CIERRE_SABADO` (12) los sábados; los domingos no tiene franjas. `CUPO_POR_FRANJA` es 2. Un turno guarda el inicio de su franja en `turno.fecha_hora`.
+    - Agenda (`CargarAgenda`): arma en memoria una tabla con, por cada franja, sus turnos no cancelados y una fila "Libre" con los lugares que quedan, solo mientras la franja no terminó. Un turno fuera del horario actual se lista al final. El cliente es el titular actual del vehículo. Colores: libres en gris, atendidos en verde, ausentes en rosa y pendientes con la franja ya empezada en amarillo. Las columnas no se ordenan por clic. El domingo muestra "El taller no atiende los domingos." en lugar de la grilla; como una grilla oculta no arma sus columnas, `CargarAgenda` la vuelve a mostrar antes de enlazarla.
+    - Navegación: "<", ">", "Hoy" y el calendario `dtpDia`. Cambiar de día con un turno nuevo a medio cargar pregunta antes.
+    - Turno nuevo: clic en una fila "Libre" (con la hora ya elegida) o "Nuevo turno". El combo `cboHora` lista las franjas del día que no terminaron y tienen lugar, con la cantidad libre. La patente se busca exacta; un vehículo o un titular dado de baja se rechaza, y una patente no registrada ofrece `FrmAltaRapida`. "Dar turno" primero toma un bloqueo con nombre por franja (`GET_LOCK('taller_turno_yyyyMMddHH', 10)`, liberado en `Finally`), para que los puestos que dan un turno en la misma franja pasen de a uno: con la franja vacía, los bloqueos de la consulta del cupo no se excluyen entre sí. Después `GuardarTurno` abre una transacción que bloquea la fila del vehículo, rechaza si el vehículo ya tiene un turno pendiente desde la franja en curso en adelante, y cuenta los turnos de la franja con `FOR UPDATE` (índice `ind_turno_fecha_hora`) antes de insertar: si otro puesto ocupó el último lugar, avisa y recarga las horas.
+    - Turno existente: la tarjeta muestra día y hora, vehículo, cliente y teléfono, motivo, quién lo dio y, si fue atendido, el número de orden. "Cancelar turno" (con el turno pendiente) y "Marcar ausente" (pendiente y con la franja ya empezada) piden confirmación y cambian el estado en una transacción que vuelve a leer el turno con bloqueo.
+  - **Turno en la recepción**: `FrmRecepcion.BuscarTurnoDeHoy`, al encontrar la patente, busca el primer turno pendiente de hoy del vehículo, lo muestra en `lblTurno` al lado del botón Buscar ("Tiene turno hoy a las 10:00 (motivo)") y completa el síntoma con el motivo si está vacío; si después se busca otro vehículo y ese síntoma no se editó, `LimpiarVehiculo` lo borra. Va en su propio `Try`: con una base sin la tabla `turno` la recepción sigue igual, sin el aviso. Al confirmar, dentro de la misma transacción de la orden, el turno pasa a `ATENDIDO` con `id_orden_trabajo`; si otro puesto lo canceló mientras tanto, no se toca y el mensaje final no lo menciona.
 
 - Pendiente en el flujo de la orden de trabajo: diagnóstico escrito por el mecánico antes del presupuesto y fotos cargadas por el mecánico (necesitan cambios en la base).
 - Pendiente en los reportes de gestión: tiempo por etapa (reporte 7 de la especificación).
@@ -153,6 +160,7 @@ Opciones del menú principal que ve cada rol (`FrmPrincipal_Load`):
 | Opción del menú | ADMINISTRADOR | OPERADOR | MECANICO |
 |---|---|---|---|
 | Mis órdenes | No | No | Sí |
+| Turnos | Sí | Sí | No |
 | Recepción | Sí | Sí | No |
 | Órdenes de trabajo | Sí | Sí | No |
 | Historial | Sí | Sí | Sí |
@@ -202,6 +210,7 @@ graph TD
                 Historial["FrmHistorial<br/>(historial por patente)"]
                 Tableros["FrmTableros<br/>(tablero de gestión)"]
                 Avisos["FrmServicesPorVencer<br/>(avisos de service)"]
+                TurnosPantalla["FrmTurnos<br/>(agenda de turnos)"]
             end
             subgraph Pendientes["Opciones de menú sin pantalla"]
                 Pend["Servicios, Categorías,<br/>Mecánicos"]
@@ -209,6 +218,7 @@ graph TD
             Conexion["Module ConexionBD<br/>(CADENA, de conexion.txt o por defecto)"]
             Impresion["Module Impresion<br/>(dibujo de reportes, sin SQL)"]
             Recordatorios["Module Recordatorios<br/>(consulta de services vencidos)"]
+            TurnosModulo["Module Turnos<br/>(franjas y cupo)"]
             Recursos["Recursos/<br/>fondo-login-underground.png<br/>musica-login.mp3"]
         end
         Driver["MySqlConnector 2.6.2"]
@@ -216,8 +226,8 @@ graph TD
     end
 
     subgraph Datos["Base de datos"]
-        DB[("MariaDB: taller_mecanico<br/>15 tablas")]
-        Scripts["database/<br/>scripts 01 a 11"]
+        DB[("MariaDB: taller_mecanico<br/>16 tablas")]
+        Scripts["database/<br/>scripts 01 a 12"]
     end
 
     Login --> Principal
@@ -248,6 +258,10 @@ graph TD
     Avisos --> Recordatorios
     Avisos --> Conexion
     Avisos -.-> Sesion
+    Principal -->|"ADMINISTRADOR y OPERADOR"| TurnosPantalla
+    TurnosPantalla --> TurnosModulo
+    TurnosPantalla --> Conexion
+    TurnosPantalla -.-> Sesion
     Clientes --> Conexion
     Clientes -->|"ficha impresa"| Impresion
     Vehiculos --> Conexion
@@ -276,7 +290,7 @@ graph TD
 
 ## Modelo de dominio
 
-El modelo tiene **15 tablas**. `taller-mecanico.dbml` describe las 12 del modelo original; las tablas `ot_foto` (fotos de recepción), `ot_foto_trabajo` (fotos del trabajo) y `aviso_service` (avisos de service) y las columnas `orden_trabajo.fecha_prometida`, `orden_trabajo.diagnostico`, `servicio.intervalo_meses` y `servicio.intervalo_km` se agregaron después y están definidas en `database/01_ddl_estructura.sql` y en la sección 7 de `taller-mecanico-especificacion.md`, no en el archivo DBML. Los scripts de `database/` implementan el modelo sobre MariaDB con InnoDB, `utf8mb4` y todas las claves foráneas en `ON UPDATE RESTRICT`. Una base creada con la versión anterior de los scripts (12 tablas) debe ejecutar `database/07_recepcion_fotos.sql`, que agrega la columna y la tabla sin tocar los datos existentes; una de 13 tablas, `database/09_diagnostico_fotos.sql`, que agrega el diagnóstico y las fotos del trabajo de la misma forma.
+El modelo tiene **16 tablas**. `taller-mecanico.dbml` describe las 12 del modelo original; las tablas `ot_foto` (fotos de recepción), `ot_foto_trabajo` (fotos del trabajo), `aviso_service` (avisos de service) y `turno` (turnos) y las columnas `orden_trabajo.fecha_prometida`, `orden_trabajo.diagnostico`, `servicio.intervalo_meses` y `servicio.intervalo_km` se agregaron después y están definidas en `database/01_ddl_estructura.sql` y en la sección 7 de `taller-mecanico-especificacion.md`, no en el archivo DBML. Los scripts de `database/` implementan el modelo sobre MariaDB con InnoDB, `utf8mb4` y todas las claves foráneas en `ON UPDATE RESTRICT`. Una base creada con la versión anterior de los scripts (12 tablas) debe ejecutar `database/07_recepcion_fotos.sql`, que agrega la columna y la tabla sin tocar los datos existentes; una de 13 tablas, `database/09_diagnostico_fotos.sql`, que agrega el diagnóstico y las fotos del trabajo de la misma forma.
 
 | Grupo | Tablas |
 |---|---|
@@ -284,6 +298,7 @@ El modelo tiene **15 tablas**. `taller-mecanico.dbml` describe las 12 del modelo
 | Clientes y vehículos | `cliente`, `marca`, `modelo`, `vehiculo`, `mecanico` |
 | Catálogo de servicios | `categoria_servicio`, `servicio` (incluye `intervalo_meses` e `intervalo_km`, opcionales: cada cuánto se repite el servicio) |
 | Avisos de service | `aviso_service` (vehículo, servicio, usuario y fecha de cada aviso enviado al cliente) |
+| Turnos | `turno` (vehículo, inicio de la franja, motivo opcional, estado `PENDIENTE`, `ATENDIDO`, `CANCELADO` o `AUSENTE`, orden de trabajo creada al recepcionar, usuario y fecha de alta; la restricción `val_turno_orden` exige que solo un turno atendido tenga orden, y que siempre la tenga) |
 | Orden de trabajo y presupuesto | `estado_ot`, `orden_trabajo` (incluye `fecha_prometida`, fecha prometida de entrega, y `diagnostico`, lo que encontró el mecánico antes del presupuesto; las dos opcionales), `ot_detalle`, `ot_historial_estado` |
 | Fotos de recepción | `ot_foto` (orden, ángulo `FRENTE`, `TRASERA`, `LATERAL_IZQUIERDO`, `LATERAL_DERECHO` o `TABLERO`, imagen JPEG en `LONGBLOB`, usuario y fecha; una sola foto por orden y ángulo; se elimina junto con su orden) |
 | Fotos del trabajo | `ot_foto_trabajo` (orden, imagen JPEG en `LONGBLOB`, descripción opcional de hasta 100 caracteres, usuario y fecha; sin límite por orden; se elimina junto con su orden) |
@@ -312,6 +327,9 @@ graph TD
     vehiculo -->|"1 a N"| aviso_service["aviso_service"]
     servicio -->|"1 a N"| aviso_service
     usuario -.-> aviso_service
+    vehiculo -->|"1 a N"| turno["turno"]
+    turno -.->|"al recepcionar"| orden_trabajo
+    usuario -.-> turno
     mecanico -.->|"opcional"| usuario
 ```
 
@@ -479,6 +497,8 @@ Riesgos conocidos no cubiertos:
 - Una base creada con la versión anterior de los scripts y sin `database/07_recepcion_fotos.sql` no tiene `orden_trabajo.fecha_prometida` ni `ot_foto`: Recepción y Órdenes de trabajo muestran el error de MariaDB y no funcionan hasta ejecutar la migración.
 - Una base de 13 tablas sin `database/09_diagnostico_fotos.sql` no tiene `orden_trabajo.diagnostico` ni `ot_foto_trabajo`: la gestión de la orden, Mis órdenes y el historial impreso muestran el error de MariaDB hasta ejecutar la migración.
 - Una base de 14 tablas sin `database/10_recordatorio_service.sql` no tiene los intervalos de `servicio` ni `aviso_service`: Servicios y Services por vencer muestran el error de MariaDB y la tarjeta de services de Inicio queda con un guion hasta ejecutar la migración.
+- Una base de 15 tablas sin `database/12_turnos.sql` no tiene `turno`: la pantalla Turnos muestra el error de MariaDB; la recepción sigue funcionando sin el aviso de turno (el error queda en el registro).
+- Los turnos no tienen recordatorio automático ni se pueden reprogramar: para cambiar la hora se cancela el turno y se da otro. La franja y el cupo son constantes del código (`Module Turnos`).
 - El kilometraje de los avisos de service es una referencia: el sistema solo conoce los km del auto cuando ingresa al taller, por eso el vencimiento se calcula por fecha.
 - Las fotos se guardan dentro de la base, por lo que su tamaño y el de sus copias de respaldo crecen con cada recepción (hasta cinco imágenes por orden).
 - El tablero de órdenes trae todas las órdenes que cumplen los filtros, sin paginar, y no se actualiza solo: los cambios hechos desde otro puesto se ven al cambiar un filtro, elegir una tarjeta de estado o presionar "Limpiar filtros".

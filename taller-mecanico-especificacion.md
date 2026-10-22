@@ -236,7 +236,7 @@ El indicador de edición de detalle controla algo concreto: hasta el estado `PRE
 
 ## 7. Modelo de datos
 
-El modelo consta de **15 tablas**.
+El modelo consta de **16 tablas**.
 
 ### 7.1 Datos maestros
 
@@ -264,6 +264,7 @@ El modelo consta de **15 tablas**.
 | `ot_foto` | Fotos del vehículo tomadas en la recepción: orden, ángulo, imagen, usuario, fecha y hora |
 | `ot_foto_trabajo` | Fotos cargadas durante el trabajo, sin límite por orden: orden, imagen, descripción, usuario, fecha y hora |
 | `aviso_service` | Avisos de service enviados a los clientes: vehículo, servicio, usuario, fecha y hora |
+| `turno` | Turnos del taller: vehículo, fecha y hora de la franja, motivo, estado (pendiente, atendido, cancelado o ausente), orden de trabajo generada al recepcionar, usuario y fecha de alta |
 
 ---
 

@@ -3,8 +3,8 @@
 -- 01 - DDL: estructura de la base de datos (MariaDB >= 10.6)
 -- Fuente: taller-mecanico.dbml (12 tablas, solo servicios) más la
 -- tabla ot_foto de las fotos de recepción, ot_foto_trabajo de las
--- fotos del trabajo y aviso_service de los avisos de service: 15
--- tablas en total
+-- fotos del trabajo, aviso_service de los avisos de service y turno
+-- de los turnos: 16 tablas en total
 --
 -- ATENCIÓN: la primera sentencia elimina la base completa.
 -- Sirve para reiniciar durante el desarrollo. Comentarla cuando
@@ -346,4 +346,35 @@ CREATE TABLE aviso_service (
     CONSTRAINT cf_aviso_service_usuario FOREIGN KEY (id_usuario)
         REFERENCES usuario (id_usuario)
         ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB;
+
+-- ---------------------------------------------------------------------
+-- TURNOS
+-- ---------------------------------------------------------------------
+
+CREATE TABLE turno (
+    id_turno          INT          NOT NULL AUTO_INCREMENT,
+    id_vehiculo       INT          NOT NULL,
+    fecha_hora        DATETIME     NOT NULL COMMENT 'Inicio de la franja reservada',
+    motivo            VARCHAR(200) NULL COMMENT 'Lo que el cliente pide. Opcional',
+    estado            ENUM('PENDIENTE', 'ATENDIDO', 'CANCELADO', 'AUSENTE') NOT NULL DEFAULT 'PENDIENTE',
+    id_orden_trabajo  INT          NULL COMMENT 'Orden creada al recepcionar el vehículo del turno',
+    id_usuario        INT          NOT NULL COMMENT 'Usuario que dio el turno',
+    fecha_alta        DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT cp_turno PRIMARY KEY (id_turno),
+    -- Los turnos de un día se buscan por fecha y hora; el cupo de cada
+    -- franja se cuenta por este índice
+    INDEX ind_turno_fecha_hora (fecha_hora),
+    INDEX ind_turno_vehiculo (id_vehiculo, estado),
+    CONSTRAINT cf_turno_vehiculo FOREIGN KEY (id_vehiculo)
+        REFERENCES vehiculo (id_vehiculo)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT cf_turno_orden FOREIGN KEY (id_orden_trabajo)
+        REFERENCES orden_trabajo (id_orden_trabajo)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT cf_turno_usuario FOREIGN KEY (id_usuario)
+        REFERENCES usuario (id_usuario)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    -- Solo un turno atendido tiene orden de trabajo, y siempre la tiene
+    CONSTRAINT val_turno_orden CHECK ((estado = 'ATENDIDO') = (id_orden_trabajo IS NOT NULL))
 ) ENGINE = InnoDB;

@@ -37,6 +37,7 @@ Partial Class FrmPrincipal
         lblTituloOperaciones = New Label()
         btnInicio = New Button()
         btnMisOrdenes = New Button()
+        btnTurnos = New Button()
         btnRecepcion = New Button()
         btnOrdenes = New Button()
         btnHistorial = New Button()
@@ -293,16 +294,17 @@ Partial Class FrmPrincipal
         panelMenuArriba.Controls.Add(lblTituloOperaciones, 0, 0)
         panelMenuArriba.Controls.Add(btnInicio, 0, 1)
         panelMenuArriba.Controls.Add(btnMisOrdenes, 0, 2)
-        panelMenuArriba.Controls.Add(btnRecepcion, 0, 3)
-        panelMenuArriba.Controls.Add(btnOrdenes, 0, 4)
-        panelMenuArriba.Controls.Add(btnHistorial, 0, 5)
-        panelMenuArriba.Controls.Add(btnServicesPorVencer, 0, 6)
-        panelMenuArriba.Controls.Add(lblTituloReportes, 0, 7)
-        panelMenuArriba.Controls.Add(btnTableros, 0, 8)
+        panelMenuArriba.Controls.Add(btnTurnos, 0, 3)
+        panelMenuArriba.Controls.Add(btnRecepcion, 0, 4)
+        panelMenuArriba.Controls.Add(btnOrdenes, 0, 5)
+        panelMenuArriba.Controls.Add(btnHistorial, 0, 6)
+        panelMenuArriba.Controls.Add(btnServicesPorVencer, 0, 7)
+        panelMenuArriba.Controls.Add(lblTituloReportes, 0, 8)
+        panelMenuArriba.Controls.Add(btnTableros, 0, 9)
         panelMenuArriba.Dock = DockStyle.Top
         panelMenuArriba.Location = New Point(0, 76)
         panelMenuArriba.Name = "panelMenuArriba"
-        panelMenuArriba.RowCount = 9
+        panelMenuArriba.RowCount = 10
         panelMenuArriba.RowStyles.Add(New RowStyle())
         panelMenuArriba.RowStyles.Add(New RowStyle())
         panelMenuArriba.RowStyles.Add(New RowStyle())
@@ -312,7 +314,8 @@ Partial Class FrmPrincipal
         panelMenuArriba.RowStyles.Add(New RowStyle())
         panelMenuArriba.RowStyles.Add(New RowStyle())
         panelMenuArriba.RowStyles.Add(New RowStyle())
-        panelMenuArriba.Size = New Size(230, 312)
+        panelMenuArriba.RowStyles.Add(New RowStyle())
+        panelMenuArriba.Size = New Size(230, 352)
         panelMenuArriba.TabIndex = 1
         '
         ' lblTituloOperaciones
@@ -376,6 +379,30 @@ Partial Class FrmPrincipal
         btnMisOrdenes.TextImageRelation = TextImageRelation.ImageBeforeText
         btnMisOrdenes.UseVisualStyleBackColor = False
         btnMisOrdenes.Visible = False
+        '
+        ' btnTurnos
+        '
+        btnTurnos.Anchor = AnchorStyles.Left Or AnchorStyles.Right
+        btnTurnos.BackColor = Color.FromArgb(CByte(30), CByte(39), CByte(46))
+        btnTurnos.Cursor = Cursors.Hand
+        btnTurnos.FlatAppearance.BorderSize = 0
+        btnTurnos.FlatAppearance.MouseOverBackColor = Color.FromArgb(CByte(52), CByte(73), CByte(94))
+        btnTurnos.FlatStyle = FlatStyle.Flat
+        btnTurnos.Font = New Font("Segoe UI", 10F)
+        btnTurnos.ForeColor = Color.White
+        btnTurnos.ImageAlign = ContentAlignment.MiddleLeft
+        btnTurnos.Location = New Point(0, 116)
+        btnTurnos.Margin = New Padding(0)
+        btnTurnos.Name = "btnTurnos"
+        btnTurnos.Padding = New Padding(16, 0, 0, 0)
+        btnTurnos.Size = New Size(230, 40)
+        btnTurnos.TabIndex = 7
+        btnTurnos.Tag = "Turnos"
+        btnTurnos.Text = "  Turnos"
+        btnTurnos.TextAlign = ContentAlignment.MiddleLeft
+        btnTurnos.TextImageRelation = TextImageRelation.ImageBeforeText
+        btnTurnos.UseVisualStyleBackColor = False
+        btnTurnos.Visible = False
         '
         ' btnRecepcion
         '
@@ -690,6 +717,7 @@ Partial Class FrmPrincipal
     Friend WithEvents lblTituloOperaciones As Label
     Friend WithEvents btnInicio As Button
     Friend WithEvents btnMisOrdenes As Button
+    Friend WithEvents btnTurnos As Button
     Friend WithEvents btnRecepcion As Button
     Friend WithEvents btnOrdenes As Button
     Friend WithEvents btnHistorial As Button
