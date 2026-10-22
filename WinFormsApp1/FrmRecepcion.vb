@@ -14,6 +14,8 @@ Public Class FrmRecepcion
     Private kmMinimo As Integer = 0
     'turno de hoy del vehiculo encontrado, 0 si no tiene; al confirmar la recepcion queda atendido
     Private idTurno As Integer = 0
+    'motivo del turno que se copio al sintoma; si se cambia de vehiculo y nadie lo edito, se borra
+    Private sintomaDelTurno As String = ""
 
     'paso mas avanzado al que se llego, decide que datos ya figuran en el resumen
     Private pasoAlcanzado As Integer = 1
@@ -245,6 +247,9 @@ Public Class FrmRecepcion
         kmMinimo = 0
         idTurno = 0
         lblTurno.Visible = False
+        'el sintoma que vino del turno de este vehiculo no le corresponde al proximo
+        If sintomaDelTurno <> "" AndAlso txtSintoma.Text = sintomaDelTurno Then txtSintoma.Clear()
+        sintomaDelTurno = ""
         txtMarcaModelo.Clear()
         txtAnio.Clear()
         txtColor.Clear()
@@ -677,7 +682,10 @@ Public Class FrmRecepcion
                     lblTurno.Text = texto
                     lblTurno.Visible = True
 
-                    If motivo <> "" AndAlso txtSintoma.Text.Trim = "" Then txtSintoma.Text = motivo
+                    If motivo <> "" AndAlso txtSintoma.Text.Trim = "" Then
+                        txtSintoma.Text = motivo
+                        sintomaDelTurno = motivo
+                    End If
                 End Using
             End Using
         Catch ex As Exception

@@ -17,6 +17,8 @@ Public Class FrmTurnos
     Private hayCambios As Boolean = False
     'queda en True mientras el programa carga la agenda o los campos, para no tomarlo como un cambio del usuario
     Private cargando As Boolean = False
+    'queda en True cuando la ultima lectura de las horas libres fallo, para no confundirlo con un dia lleno
+    Private errorLeyendoHoras As Boolean = False
 
     Sub CargarAgenda()
         'armo la agenda del dia: por cada franja, sus turnos y una fila con los lugares que quedan libres
@@ -234,7 +236,8 @@ Public Class FrmTurnos
 
     Function CargarComboHoras(Optional horaElegida As Date = Nothing) As Boolean
         'cargo en el combo las franjas del dia que todavia no terminaron y tienen lugar
-        'devuelve False si no queda ninguna
+        'devuelve False si no queda ninguna, o si la base no respondio (en ese caso errorLeyendoHoras queda en True)
+        errorLeyendoHoras = False
         Dim tabla As New DataTable
         tabla.Columns.Add("fecha_hora", GetType(Date))
         tabla.Columns.Add("texto", GetType(String))
@@ -263,6 +266,7 @@ Public Class FrmTurnos
             End Using
         Catch ex As Exception
             MostrarError("No se pudieron leer los lugares libres.", ex)
+            errorLeyendoHoras = True
             Return False
         End Try
 
@@ -292,7 +296,8 @@ Public Class FrmTurnos
         cargando = True
         Try
             If Not CargarComboHoras(horaElegida) Then
-                MessageBox.Show("No quedan lugares libres en este día.")
+                'si la base no respondio, el mensaje del error ya se mostro: no digo que el dia esta lleno
+                If Not errorLeyendoHoras Then MessageBox.Show("No quedan lugares libres en este día.")
                 Exit Sub
             End If
 
@@ -758,6 +763,10 @@ Public Class FrmTurnos
 
                 Try
                     GuardarTurno(cn, franja, motivo, aviso, idNuevo)
+                Catch ex As MySqlException When ex.Number = 1213
+                    'error 1213: otro puesto daba un turno en otra franja al mismo tiempo y la base freno uno de los dos
+                    'no se guardo nada; el turno sigue cargado para volver a intentar
+                    aviso = "Otro puesto estaba dando un turno al mismo tiempo y no se guardó este. Presione ""Dar turno"" otra vez."
                 Finally
                     'libero el bloqueo de la franja pase lo que pase
                     Using cmd As New MySqlCommand("SELECT RELEASE_LOCK(@nombre);", cn)
