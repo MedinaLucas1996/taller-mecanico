@@ -104,20 +104,22 @@ Partial Class FrmTurnos
         btnDiaAnterior.FlatAppearance.BorderColor = Color.Silver
         btnDiaAnterior.FlatStyle = FlatStyle.Flat
         btnDiaAnterior.Font = New Font("Segoe UI", 10F)
-        btnDiaAnterior.Location = New Point(30, 106)
+        btnDiaAnterior.Location = New Point(30, 112)
         btnDiaAnterior.Name = "btnDiaAnterior"
-        btnDiaAnterior.Size = New Size(40, 32)
+        btnDiaAnterior.Padding = New Padding(0)
+        btnDiaAnterior.Size = New Size(40, 36)
         btnDiaAnterior.TabIndex = 3
         btnDiaAnterior.Text = "<"
         btnDiaAnterior.UseVisualStyleBackColor = False
         '
         ' dtpDia
         '
-        dtpDia.Font = New Font("Segoe UI", 10F)
-        dtpDia.Format = DateTimePickerFormat.Long
-        dtpDia.Location = New Point(76, 108)
+        dtpDia.CustomFormat = "dddd dd/MM/yyyy"
+        dtpDia.Font = New Font("Segoe UI", 11F)
+        dtpDia.Format = DateTimePickerFormat.Custom
+        dtpDia.Location = New Point(76, 114)
         dtpDia.Name = "dtpDia"
-        dtpDia.Size = New Size(280, 30)
+        dtpDia.Size = New Size(220, 32)
         dtpDia.TabIndex = 4
         '
         ' btnDiaSiguiente
@@ -127,9 +129,10 @@ Partial Class FrmTurnos
         btnDiaSiguiente.FlatAppearance.BorderColor = Color.Silver
         btnDiaSiguiente.FlatStyle = FlatStyle.Flat
         btnDiaSiguiente.Font = New Font("Segoe UI", 10F)
-        btnDiaSiguiente.Location = New Point(362, 106)
+        btnDiaSiguiente.Location = New Point(302, 112)
         btnDiaSiguiente.Name = "btnDiaSiguiente"
-        btnDiaSiguiente.Size = New Size(40, 32)
+        btnDiaSiguiente.Padding = New Padding(0)
+        btnDiaSiguiente.Size = New Size(40, 36)
         btnDiaSiguiente.TabIndex = 5
         btnDiaSiguiente.Text = ">"
         btnDiaSiguiente.UseVisualStyleBackColor = False
@@ -141,9 +144,10 @@ Partial Class FrmTurnos
         btnHoy.FlatAppearance.BorderColor = Color.Silver
         btnHoy.FlatStyle = FlatStyle.Flat
         btnHoy.Font = New Font("Segoe UI", 10F)
-        btnHoy.Location = New Point(408, 106)
+        btnHoy.Location = New Point(350, 112)
         btnHoy.Name = "btnHoy"
-        btnHoy.Size = New Size(70, 32)
+        btnHoy.Padding = New Padding(0)
+        btnHoy.Size = New Size(80, 36)
         btnHoy.TabIndex = 6
         btnHoy.Text = "Hoy"
         btnHoy.UseVisualStyleBackColor = False
@@ -154,9 +158,9 @@ Partial Class FrmTurnos
         pnlLista.BackColor = Color.White
         pnlLista.Controls.Add(lblCerrado)
         pnlLista.Controls.Add(dgvAgenda)
-        pnlLista.Location = New Point(30, 150)
+        pnlLista.Location = New Point(30, 162)
         pnlLista.Name = "pnlLista"
-        pnlLista.Size = New Size(470, 470)
+        pnlLista.Size = New Size(470, 458)
         pnlLista.TabIndex = 7
         '
         ' lblCerrado
@@ -193,7 +197,7 @@ Partial Class FrmTurnos
         dgvAgenda.ReadOnly = True
         dgvAgenda.RowHeadersVisible = False
         dgvAgenda.RowHeadersWidth = 51
-        dgvAgenda.RowTemplate.Height = 28
+        dgvAgenda.RowTemplate.Height = 34
         dgvAgenda.SelectionMode = DataGridViewSelectionMode.FullRowSelect
         dgvAgenda.Size = New Size(438, 438)
         dgvAgenda.TabIndex = 0
@@ -204,9 +208,9 @@ Partial Class FrmTurnos
         pnlFicha.BackColor = Color.White
         pnlFicha.Controls.Add(lblAyuda)
         pnlFicha.Controls.Add(pnlRegistro)
-        pnlFicha.Location = New Point(510, 150)
+        pnlFicha.Location = New Point(510, 162)
         pnlFicha.Name = "pnlFicha"
-        pnlFicha.Size = New Size(330, 470)
+        pnlFicha.Size = New Size(330, 458)
         pnlFicha.TabIndex = 8
         '
         ' lblAyuda
@@ -272,7 +276,7 @@ Partial Class FrmTurnos
         tlpCampos.Controls.Add(txtMotivo, 0, 6)
         tlpCampos.Location = New Point(16, 52)
         tlpCampos.Name = "tlpCampos"
-        tlpCampos.RowCount = 7
+        tlpCampos.RowCount = 8
         tlpCampos.RowStyles.Add(New RowStyle())
         tlpCampos.RowStyles.Add(New RowStyle())
         tlpCampos.RowStyles.Add(New RowStyle())
@@ -280,7 +284,8 @@ Partial Class FrmTurnos
         tlpCampos.RowStyles.Add(New RowStyle())
         tlpCampos.RowStyles.Add(New RowStyle())
         tlpCampos.RowStyles.Add(New RowStyle())
-        tlpCampos.Size = New Size(298, 330)
+        tlpCampos.RowStyles.Add(New RowStyle(SizeType.Percent, 100F))
+        tlpCampos.Size = New Size(298, 352)
         tlpCampos.TabIndex = 2
         tlpCampos.SetColumnSpan(lblPatente, 2)
         tlpCampos.SetColumnSpan(lblVehiculo, 2)
@@ -304,25 +309,29 @@ Partial Class FrmTurnos
         ' txtPatente
         '
         txtPatente.Anchor = AnchorStyles.Left Or AnchorStyles.Right
+        txtPatente.Font = New Font("Segoe UI", 12F, FontStyle.Bold)
         txtPatente.CharacterCasing = CharacterCasing.Upper
         txtPatente.Location = New Point(0, 0)
         txtPatente.Margin = New Padding(0, 0, 6, 0)
         txtPatente.MaxLength = 10
         txtPatente.Name = "txtPatente"
-        txtPatente.Size = New Size(196, 27)
+        txtPatente.Size = New Size(196, 34)
         txtPatente.TabIndex = 1
         '
         ' btnBuscarPatente
         '
-        btnBuscarPatente.Anchor = AnchorStyles.Left Or AnchorStyles.Right
-        btnBuscarPatente.BackColor = Color.White
+        btnBuscarPatente.Dock = DockStyle.Fill
+        btnBuscarPatente.BackColor = Color.FromArgb(CByte(30), CByte(39), CByte(46))
         btnBuscarPatente.Cursor = Cursors.Hand
-        btnBuscarPatente.FlatAppearance.BorderColor = Color.Silver
+        btnBuscarPatente.FlatAppearance.BorderSize = 0
+        btnBuscarPatente.FlatAppearance.MouseOverBackColor = Color.FromArgb(CByte(52), CByte(73), CByte(94))
         btnBuscarPatente.FlatStyle = FlatStyle.Flat
+        btnBuscarPatente.Font = New Font("Segoe UI", 9.75F, FontStyle.Bold)
+        btnBuscarPatente.ForeColor = Color.White
         btnBuscarPatente.Location = New Point(0, 0)
         btnBuscarPatente.Margin = New Padding(0)
         btnBuscarPatente.Name = "btnBuscarPatente"
-        btnBuscarPatente.Size = New Size(96, 30)
+        btnBuscarPatente.Size = New Size(96, 34)
         btnBuscarPatente.TabIndex = 2
         btnBuscarPatente.Text = " Buscar"
         btnBuscarPatente.TextImageRelation = TextImageRelation.ImageBeforeText
@@ -330,15 +339,17 @@ Partial Class FrmTurnos
         '
         ' lblVehiculo
         '
-        lblVehiculo.AutoSize = True
+        lblVehiculo.BackColor = Color.FromArgb(CByte(245), CByte(246), CByte(250))
+        lblVehiculo.Dock = DockStyle.Fill
         lblVehiculo.Font = New Font("Segoe UI", 9F)
         lblVehiculo.Location = New Point(0, 0)
-        lblVehiculo.Margin = New Padding(0, 6, 0, 0)
-        lblVehiculo.MaximumSize = New Size(298, 0)
+        lblVehiculo.Margin = New Padding(0, 8, 0, 0)
         lblVehiculo.Name = "lblVehiculo"
-        lblVehiculo.Size = New Size(100, 20)
+        lblVehiculo.Padding = New Padding(8, 0, 8, 0)
+        lblVehiculo.Size = New Size(298, 54)
         lblVehiculo.TabIndex = 3
         lblVehiculo.Text = "-"
+        lblVehiculo.TextAlign = ContentAlignment.MiddleLeft
         '
         ' lblHora
         '
@@ -376,14 +387,13 @@ Partial Class FrmTurnos
         '
         ' txtMotivo
         '
-        txtMotivo.Anchor = AnchorStyles.Left Or AnchorStyles.Right
+        txtMotivo.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         txtMotivo.Location = New Point(0, 0)
         txtMotivo.Margin = New Padding(0)
         txtMotivo.MaxLength = 200
         txtMotivo.Multiline = True
         txtMotivo.Name = "txtMotivo"
-        txtMotivo.ScrollBars = ScrollBars.Vertical
-        txtMotivo.Size = New Size(298, 80)
+        txtMotivo.Size = New Size(298, 90)
         txtMotivo.TabIndex = 7
         '
         ' lblDetalle

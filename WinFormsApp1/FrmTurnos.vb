@@ -94,10 +94,11 @@ Public Class FrmTurnos
                     fila("id_turno") = 0
                     fila("fecha_hora") = franja
                     fila("hora") = franja.ToString("HH:mm")
+                    'el texto invita a usar el lugar: un clic en la fila abre el turno nuevo a esa hora
                     If libres = 1 Then
-                        fila("vehiculo") = "1 lugar libre"
+                        fila("vehiculo") = "+ Dar turno (1 lugar libre)"
                     Else
-                        fila("vehiculo") = libres & " lugares libres"
+                        fila("vehiculo") = "+ Dar turno (" & libres & " lugares libres)"
                     End If
                     fila("estado") = "Libre"
                     agenda.Rows.Add(fila)
@@ -128,19 +129,24 @@ Public Class FrmTurnos
             dgvAgenda.Columns("motivo").HeaderText = "Motivo"
             dgvAgenda.Columns("estado").HeaderText = "Estado"
 
-            'la hora, la patente, el telefono y el estado se ajustan al contenido
-            dgvAgenda.Columns("hora").AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells
-            dgvAgenda.Columns("patente").AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells
-            dgvAgenda.Columns("telefono").AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells
-            dgvAgenda.Columns("estado").AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells
+            'la hora, la patente, el telefono y el estado tienen un ancho fijo, suficiente para su contenido
+            dgvAgenda.Columns("hora").AutoSizeMode = DataGridViewAutoSizeColumnMode.None
+            dgvAgenda.Columns("hora").Width = 64
+            dgvAgenda.Columns("hora").DefaultCellStyle.Font = New Font(dgvAgenda.Font, FontStyle.Bold)
+            dgvAgenda.Columns("patente").AutoSizeMode = DataGridViewAutoSizeColumnMode.None
+            dgvAgenda.Columns("patente").Width = 92
+            dgvAgenda.Columns("telefono").AutoSizeMode = DataGridViewAutoSizeColumnMode.None
+            dgvAgenda.Columns("telefono").Width = 110
+            dgvAgenda.Columns("estado").AutoSizeMode = DataGridViewAutoSizeColumnMode.None
+            dgvAgenda.Columns("estado").Width = 96
 
-            'el resto se reparte el ancho
-            dgvAgenda.Columns("vehiculo").FillWeight = 100
-            dgvAgenda.Columns("vehiculo").MinimumWidth = 90
+            'el vehiculo, el cliente y el motivo se reparten el resto del ancho
+            dgvAgenda.Columns("vehiculo").FillWeight = 110
+            dgvAgenda.Columns("vehiculo").MinimumWidth = 120
             dgvAgenda.Columns("cliente").FillWeight = 100
-            dgvAgenda.Columns("cliente").MinimumWidth = 80
+            dgvAgenda.Columns("cliente").MinimumWidth = 90
             dgvAgenda.Columns("motivo").FillWeight = 120
-            dgvAgenda.Columns("motivo").MinimumWidth = 80
+            dgvAgenda.Columns("motivo").MinimumWidth = 90
 
             'las filas no se ordenan por columna: el orden de la agenda es el de las franjas
             For Each columna As DataGridViewColumn In dgvAgenda.Columns
@@ -480,13 +486,20 @@ Public Class FrmTurnos
     Private Sub FrmTurnos_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         'iconos de los botones, si alguno falta ese boton queda solo con el texto
         btnNuevo.Image = LeerIcono("agregar.png")
-        btnBuscarPatente.Image = LeerIcono("buscar-oscuro.png")
+        btnBuscarPatente.Image = LeerIcono("buscar.png")
         btnCancelarAlta.Image = LeerIcono("cancelar-oscuro.png")
         btnGuardar.Image = LeerIcono("guardar.png")
         btnCancelarTurno.Image = LeerIcono("baja-rojo.png")
 
         'el encabezado de la agenda lleva solo una linea clara debajo, como las filas
         dgvAgenda.AdvancedColumnHeadersBorderStyle.Bottom = DataGridViewAdvancedCellBorderStyle.Single
+        'encabezado blanco con titulos grises en negrita, y un poco de aire a los costados de cada celda
+        dgvAgenda.ColumnHeadersDefaultCellStyle.BackColor = Color.White
+        dgvAgenda.ColumnHeadersDefaultCellStyle.ForeColor = Color.DimGray
+        dgvAgenda.ColumnHeadersDefaultCellStyle.Font = New Font(dgvAgenda.Font, FontStyle.Bold)
+        dgvAgenda.ColumnHeadersDefaultCellStyle.Padding = New Padding(4, 6, 4, 6)
+        dgvAgenda.DefaultCellStyle.Padding = New Padding(4, 0, 4, 0)
+        dgvAgenda.DefaultCellStyle.SelectionBackColor = Color.FromArgb(52, 73, 94)
 
         MostrarAyuda()
 
@@ -562,15 +575,22 @@ Public Class FrmTurnos
     End Sub
 
     Private Sub dgvAgenda_DataBindingComplete(sender As Object, e As DataGridViewBindingCompleteEventArgs) Handles dgvAgenda.DataBindingComplete
-        'pinto las filas segun su estado
+        'pinto las filas segun su estado; las franjas se alternan con un fondo apenas gris para separarlas
         If Not dgvAgenda.Columns.Contains("estado") Then Exit Sub
 
+        Dim franjaAnterior As Date = Nothing
+        Dim franjaPar As Boolean = True
         For Each fila As DataGridViewRow In dgvAgenda.Rows
+            Dim franja As Date = CDate(fila.Cells("fecha_hora").Value)
+            If franja <> franjaAnterior Then franjaPar = Not franjaPar
+            franjaAnterior = franja
+            If franjaPar Then fila.DefaultCellStyle.BackColor = Color.FromArgb(248, 249, 251)
+
             Dim estado As String = fila.Cells("estado").Value.ToString()
             If estado = "Libre" Then
-                'los lugares libres van en gris, como una invitacion a usarlos
-                fila.DefaultCellStyle.ForeColor = Color.Gray
-                fila.DefaultCellStyle.SelectionForeColor = Color.Gainsboro
+                'los lugares libres van en azul, como un enlace para dar el turno
+                fila.DefaultCellStyle.ForeColor = Color.FromArgb(0, 102, 204)
+                fila.DefaultCellStyle.SelectionForeColor = Color.White
             ElseIf estado = "Atendido" Then
                 fila.DefaultCellStyle.BackColor = Color.FromArgb(223, 240, 216)
             ElseIf estado = "Ausente" Then
@@ -582,6 +602,19 @@ Public Class FrmTurnos
         Next
 
         MarcarFila()
+    End Sub
+
+    Private Sub dgvAgenda_CellFormatting(sender As Object, e As DataGridViewCellFormattingEventArgs) Handles dgvAgenda.CellFormatting
+        'la hora se escribe solo en la primera fila de cada franja, como en una agenda de papel
+        If e.RowIndex <= 0 Then Exit Sub
+        If dgvAgenda.Columns(e.ColumnIndex).Name <> "hora" Then Exit Sub
+
+        Dim anterior As Object = dgvAgenda.Rows(e.RowIndex - 1).Cells("fecha_hora").Value
+        Dim actual As Object = dgvAgenda.Rows(e.RowIndex).Cells("fecha_hora").Value
+        If anterior IsNot Nothing AndAlso actual IsNot Nothing AndAlso CDate(anterior) = CDate(actual) Then
+            e.Value = ""
+            e.FormattingApplied = True
+        End If
     End Sub
 
     Private Sub dgvAgenda_CellClick(sender As Object, e As DataGridViewCellEventArgs) Handles dgvAgenda.CellClick
@@ -684,7 +717,9 @@ Public Class FrmTurnos
                             Dim telefono As String = lector("telefono").ToString()
                             If telefono = "" Then telefono = "sin teléfono"
                             idVehiculo = CInt(lector("id_vehiculo"))
-                            lblVehiculo.Text = lector("vehiculo").ToString() & " · " & lector("razon_social").ToString() & " · " & telefono
+                            'el vehiculo en la primera linea y su titular con el telefono en la segunda
+                            lblVehiculo.Text = lector("vehiculo").ToString() & vbCrLf &
+                                               lector("razon_social").ToString() & " · " & telefono
                             lblVehiculo.ForeColor = Color.Black
                         End If
                     End Using
