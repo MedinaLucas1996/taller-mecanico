@@ -43,6 +43,7 @@ Partial Class FrmRecepcion
         txtPatente = New TextBox()
         btnBuscar = New Button()
         lblAyudaPatente = New Label()
+        lblTurno = New Label()
         pnlNoRegistrada = New Panel()
         lblNoRegistrada = New Label()
         lblNoRegistradaAyuda = New Label()
@@ -391,6 +392,7 @@ Partial Class FrmRecepcion
         pnlPaso1.Controls.Add(txtPatente)
         pnlPaso1.Controls.Add(btnBuscar)
         pnlPaso1.Controls.Add(lblAyudaPatente)
+        pnlPaso1.Controls.Add(lblTurno)
         pnlPaso1.Controls.Add(pnlNoRegistrada)
         pnlPaso1.Controls.Add(pnlVehiculo)
         pnlPaso1.Controls.Add(lblAnteriores)
@@ -446,6 +448,22 @@ Partial Class FrmRecepcion
         lblAyudaPatente.Size = New Size(400, 44)
         lblAyudaPatente.TabIndex = 3
         lblAyudaPatente.Text = "Escriba la patente y presione Buscar. El vehículo tiene que estar registrado en Vehículos."
+        '
+        ' lblTurno
+        '
+        lblTurno.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
+        lblTurno.AutoEllipsis = True
+        lblTurno.BackColor = Color.LemonChiffon
+        lblTurno.Font = New Font("Segoe UI", 9.5F, FontStyle.Bold)
+        lblTurno.ForeColor = Color.DarkGoldenrod
+        lblTurno.Location = New Point(360, 40)
+        lblTurno.Name = "lblTurno"
+        lblTurno.Padding = New Padding(10, 0, 10, 0)
+        lblTurno.Size = New Size(60, 43)
+        lblTurno.TabIndex = 8
+        lblTurno.Text = "-"
+        lblTurno.TextAlign = ContentAlignment.MiddleLeft
+        lblTurno.Visible = False
         '
         ' pnlNoRegistrada
         '
@@ -1741,6 +1759,7 @@ Partial Class FrmRecepcion
     Friend WithEvents txtPatente As TextBox
     Friend WithEvents btnBuscar As Button
     Friend WithEvents lblAyudaPatente As Label
+    Friend WithEvents lblTurno As Label
     Friend WithEvents pnlNoRegistrada As Panel
     Friend WithEvents lblNoRegistrada As Label
     Friend WithEvents lblNoRegistradaAyuda As Label

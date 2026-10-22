@@ -12,6 +12,8 @@ Public Class FrmRecepcion
     Private idCliente As Integer = 0
     'kilometraje minimo que acepta la orden nueva
     Private kmMinimo As Integer = 0
+    'turno de hoy del vehiculo encontrado, 0 si no tiene; al confirmar la recepcion queda atendido
+    Private idTurno As Integer = 0
 
     'paso mas avanzado al que se llego, decide que datos ya figuran en el resumen
     Private pasoAlcanzado As Integer = 1
@@ -241,6 +243,8 @@ Public Class FrmRecepcion
         idVehiculo = 0
         idCliente = 0
         kmMinimo = 0
+        idTurno = 0
+        lblTurno.Visible = False
         txtMarcaModelo.Clear()
         txtAnio.Clear()
         txtColor.Clear()
@@ -632,6 +636,9 @@ Public Class FrmRecepcion
                 idCliente = idClienteEncontrado
                 idVehiculo = idVehiculoEncontrado
 
+                'si el vehiculo tiene turno hoy lo aviso al lado de la patente
+                BuscarTurnoDeHoy(cn)
+
                 'muestro la tarjeta del vehiculo con sus ordenes anteriores y lo paso al resumen
                 lblAyudaPatente.Visible = False
                 pnlVehiculo.Visible = True
@@ -643,6 +650,38 @@ Public Class FrmRecepcion
             'si algo fallo a mitad de camino no dejo un vehiculo a medio cargar
             LimpiarVehiculo()
             MessageBox.Show("Error al buscar el vehículo: " & ex.Message)
+        End Try
+    End Sub
+
+    Sub BuscarTurnoDeHoy(cn As MySqlConnection)
+        'busco el primer turno pendiente de hoy del vehiculo cargado y lo muestro al lado de la patente
+        'el motivo del turno completa el sintoma si todavia esta vacio
+        'va en su propio Try: con una base sin la tabla de turnos la recepcion sigue igual, sin el aviso
+        Try
+            Dim consulta As String =
+                "SELECT id_turno, fecha_hora, motivo FROM turno " &
+                "WHERE id_vehiculo = @id_vehiculo AND estado = 'PENDIENTE' " &
+                "AND fecha_hora >= @desde AND fecha_hora < @hasta " &
+                "ORDER BY fecha_hora LIMIT 1;"
+            Using cmd As New MySqlCommand(consulta, cn)
+                cmd.Parameters.AddWithValue("@id_vehiculo", idVehiculo)
+                cmd.Parameters.AddWithValue("@desde", Date.Today)
+                cmd.Parameters.AddWithValue("@hasta", Date.Today.AddDays(1))
+                Using lector As MySqlDataReader = cmd.ExecuteReader
+                    If Not lector.Read() Then Exit Sub
+
+                    idTurno = CInt(lector("id_turno"))
+                    Dim motivo As String = lector("motivo").ToString()
+                    Dim texto As String = "Tiene turno hoy a las " & CDate(lector("fecha_hora")).ToString("HH:mm")
+                    If motivo <> "" Then texto = texto & " (" & motivo & ")"
+                    lblTurno.Text = texto
+                    lblTurno.Visible = True
+
+                    If motivo <> "" AndAlso txtSintoma.Text.Trim = "" Then txtSintoma.Text = motivo
+                End Using
+            End Using
+        Catch ex As Exception
+            RegistrarError("No se pudo buscar el turno del vehículo en la recepción.", ex)
         End Try
     End Sub
 
@@ -835,6 +874,8 @@ Public Class FrmRecepcion
 
         Dim bytesFotos(4)() As Byte
         Dim nroOrden As Integer
+        'queda en True si la recepcion cerro el turno de hoy del vehiculo
+        Dim turnoAtendido As Boolean = False
 
         'mientras se guarda muestro el reloj de espera: si otro puesto tiene tomado el vehiculo, hay que esperarlo
         Cursor.Current = Cursors.WaitCursor
@@ -953,6 +994,19 @@ Public Class FrmRecepcion
                         End If
                     Next
 
+                    'si el vehiculo vino por un turno de hoy, el turno queda atendido con esta orden
+                    'si otro puesto lo cancelo mientras tanto, no se toca y la recepcion sigue igual
+                    If idTurno <> 0 Then
+                        consulta =
+                            "UPDATE turno SET estado = 'ATENDIDO', id_orden_trabajo = @id_orden_trabajo " &
+                            "WHERE id_turno = @id_turno AND estado = 'PENDIENTE';"
+                        Using cmd As New MySqlCommand(consulta, cn, transaccion)
+                            cmd.Parameters.AddWithValue("@id_orden_trabajo", idOrden)
+                            cmd.Parameters.AddWithValue("@id_turno", idTurno)
+                            turnoAtendido = cmd.ExecuteNonQuery() > 0
+                        End Using
+                    End If
+
                 Catch ex As Exception
                     'algo fallo: deshago todo y dejo que el error llegue a los mensajes de abajo
                     transaccion.Rollback()
@@ -982,7 +1036,12 @@ Public Class FrmRecepcion
             Cursor.Current = Cursors.Default
         End Try
 
-        MessageBox.Show("Recepción registrada. Orden de trabajo N.º " & nroOrden & ".")
+        If turnoAtendido Then
+            MessageBox.Show("Recepción registrada. Orden de trabajo N.º " & nroOrden & "." & vbCrLf &
+                            "El turno de hoy del vehículo quedó atendido.")
+        Else
+            MessageBox.Show("Recepción registrada. Orden de trabajo N.º " & nroOrden & ".")
+        End If
 
         'dejo el asistente vacio para recibir otro vehiculo
         ReiniciarAsistente()
