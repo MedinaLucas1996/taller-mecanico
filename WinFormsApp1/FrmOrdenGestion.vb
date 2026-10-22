@@ -1518,11 +1518,14 @@ Public Class FrmOrdenGestion
         End If
 
         If aviso <> "" Then
+            'la orden cambio de estado desde otro puesto: la vuelvo a cargar entera, como las demas acciones
             MessageBox.Show(aviso)
-        Else
-            'la descripcion ya quedo con su foto: el campo queda listo para la siguiente
-            txtDescripcionFoto.Clear()
+            CargarOrden()
+            Exit Sub
         End If
+
+        'la descripcion ya quedo con su foto: el campo queda listo para la siguiente
+        txtDescripcionFoto.Clear()
 
         'vuelvo a cargar solo las fotos: lo demas que este escrito y sin guardar sigue en pantalla
         CargarFotosTrabajo()
@@ -1549,6 +1552,8 @@ Public Class FrmOrdenGestion
         Dim aviso As String = ""
         'queda en True cuando la orden dejo de ser del mecanico que la tiene abierta
         Dim ordenAjena As Boolean = False
+        'queda en True cuando otro puesto cambio el estado y la pantalla ya no muestra la orden como esta
+        Dim estadoCambiado As Boolean = False
 
         Try
             Using cn As New MySqlConnection(CADENA)
@@ -1565,6 +1570,7 @@ Public Class FrmOrdenGestion
                         ordenAjena = True
                         aviso = "ajena"
                     ElseIf Not PermiteQuitarFotos(codigoActual) Then
+                        estadoCambiado = True
                         aviso = "El trabajo ya se finalizó o la orden está cerrada: sus fotos ya no se pueden quitar."
                     End If
 
@@ -1606,6 +1612,12 @@ Public Class FrmOrdenGestion
         End If
 
         If aviso <> "" Then MessageBox.Show(aviso)
+
+        'la orden cambio de estado desde otro puesto: la vuelvo a cargar entera, como las demas acciones
+        If estadoCambiado Then
+            CargarOrden()
+            Exit Sub
+        End If
 
         'vuelvo a cargar solo las fotos: lo demas que este escrito y sin guardar sigue en pantalla
         CargarFotosTrabajo()
