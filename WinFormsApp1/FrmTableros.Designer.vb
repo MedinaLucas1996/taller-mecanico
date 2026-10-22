@@ -30,6 +30,7 @@ Partial Class FrmTableros
         lblHasta = New Label()
         dtpHasta = New DateTimePicker()
         btnActualizar = New Button()
+        btnImprimirTiempos = New Button()
         tlpIndicadores = New TableLayoutPanel()
         pnlIngresadas = New Panel()
         lblNomIngresadas = New Label()
@@ -54,6 +55,17 @@ Partial Class FrmTableros
         fpServicios = New ScottPlot.WinForms.FormsPlot()
         fpHoras = New ScottPlot.WinForms.FormsPlot()
         fpEstados = New ScottPlot.WinForms.FormsPlot()
+        fpEtapas = New ScottPlot.WinForms.FormsPlot()
+        pnlEtapas = New Panel()
+        lblEtapas = New Label()
+        dgvEtapas = New DataGridView()
+        colEtapa = New DataGridViewTextBoxColumn()
+        colOrdenes = New DataGridViewTextBoxColumn()
+        colPromedio = New DataGridViewTextBoxColumn()
+        colMinimo = New DataGridViewTextBoxColumn()
+        colMaximo = New DataGridViewTextBoxColumn()
+        prdTiempos = New Printing.PrintDocument()
+        ppdVistaPrevia = New PrintPreviewDialog()
         pnlFiltros.SuspendLayout()
         tlpIndicadores.SuspendLayout()
         pnlIngresadas.SuspendLayout()
@@ -63,6 +75,8 @@ Partial Class FrmTableros
         pnlAprobacion.SuspendLayout()
         pnlDemoradas.SuspendLayout()
         tlpGraficos.SuspendLayout()
+        pnlEtapas.SuspendLayout()
+        CType(dgvEtapas, ComponentModel.ISupportInitialize).BeginInit()
         SuspendLayout()
         '
         ' lblTitulo
@@ -94,9 +108,10 @@ Partial Class FrmTableros
         pnlFiltros.Controls.Add(lblHasta)
         pnlFiltros.Controls.Add(dtpHasta)
         pnlFiltros.Controls.Add(btnActualizar)
-        pnlFiltros.Location = New Point(370, 22)
+        pnlFiltros.Controls.Add(btnImprimirTiempos)
+        pnlFiltros.Location = New Point(208, 22)
         pnlFiltros.Name = "pnlFiltros"
-        pnlFiltros.Size = New Size(470, 40)
+        pnlFiltros.Size = New Size(632, 40)
         pnlFiltros.TabIndex = 2
         '
         ' lblDesde
@@ -105,7 +120,7 @@ Partial Class FrmTableros
         lblDesde.ForeColor = Color.DimGray
         lblDesde.Location = New Point(0, 0)
         lblDesde.Name = "lblDesde"
-        lblDesde.Size = New Size(52, 40)
+        lblDesde.Size = New Size(58, 40)
         lblDesde.TabIndex = 0
         lblDesde.Text = "Desde"
         lblDesde.TextAlign = ContentAlignment.MiddleRight
@@ -114,7 +129,7 @@ Partial Class FrmTableros
         '
         dtpDesde.Font = New Font("Segoe UI", 10F)
         dtpDesde.Format = DateTimePickerFormat.Short
-        dtpDesde.Location = New Point(56, 6)
+        dtpDesde.Location = New Point(60, 6)
         dtpDesde.Name = "dtpDesde"
         dtpDesde.Size = New Size(120, 30)
         dtpDesde.TabIndex = 1
@@ -123,7 +138,7 @@ Partial Class FrmTableros
         '
         lblHasta.Font = New Font("Segoe UI", 10F)
         lblHasta.ForeColor = Color.DimGray
-        lblHasta.Location = New Point(180, 0)
+        lblHasta.Location = New Point(184, 0)
         lblHasta.Name = "lblHasta"
         lblHasta.Size = New Size(52, 40)
         lblHasta.TabIndex = 2
@@ -134,7 +149,7 @@ Partial Class FrmTableros
         '
         dtpHasta.Font = New Font("Segoe UI", 10F)
         dtpHasta.Format = DateTimePickerFormat.Short
-        dtpHasta.Location = New Point(236, 6)
+        dtpHasta.Location = New Point(240, 6)
         dtpHasta.Name = "dtpHasta"
         dtpHasta.Size = New Size(120, 30)
         dtpHasta.TabIndex = 3
@@ -154,6 +169,22 @@ Partial Class FrmTableros
         btnActualizar.TabIndex = 4
         btnActualizar.Text = "Actualizar"
         btnActualizar.UseVisualStyleBackColor = False
+        '
+        ' btnImprimirTiempos
+        '
+        btnImprimirTiempos.BackColor = Color.FromArgb(CByte(30), CByte(39), CByte(46))
+        btnImprimirTiempos.Cursor = Cursors.Hand
+        btnImprimirTiempos.FlatAppearance.BorderSize = 0
+        btnImprimirTiempos.FlatAppearance.MouseOverBackColor = Color.FromArgb(CByte(52), CByte(73), CByte(94))
+        btnImprimirTiempos.FlatStyle = FlatStyle.Flat
+        btnImprimirTiempos.Font = New Font("Segoe UI", 10F, FontStyle.Bold)
+        btnImprimirTiempos.ForeColor = Color.White
+        btnImprimirTiempos.Location = New Point(476, 2)
+        btnImprimirTiempos.Name = "btnImprimirTiempos"
+        btnImprimirTiempos.Size = New Size(156, 36)
+        btnImprimirTiempos.TabIndex = 5
+        btnImprimirTiempos.Text = "Imprimir tiempos"
+        btnImprimirTiempos.UseVisualStyleBackColor = False
         '
         ' tlpIndicadores
         '
@@ -391,13 +422,16 @@ Partial Class FrmTableros
         ' tlpGraficos
         '
         tlpGraficos.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
-        tlpGraficos.ColumnCount = 2
-        tlpGraficos.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 50F))
-        tlpGraficos.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 50F))
+        tlpGraficos.ColumnCount = 3
+        tlpGraficos.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 33.33F))
+        tlpGraficos.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 33.33F))
+        tlpGraficos.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 33.34F))
         tlpGraficos.Controls.Add(fpFacturacion, 0, 0)
         tlpGraficos.Controls.Add(fpServicios, 1, 0)
+        tlpGraficos.Controls.Add(fpEtapas, 2, 0)
         tlpGraficos.Controls.Add(fpHoras, 0, 1)
         tlpGraficos.Controls.Add(fpEstados, 1, 1)
+        tlpGraficos.Controls.Add(pnlEtapas, 2, 1)
         tlpGraficos.Location = New Point(30, 190)
         tlpGraficos.Name = "tlpGraficos"
         tlpGraficos.RowCount = 2
@@ -412,35 +446,154 @@ Partial Class FrmTableros
         fpFacturacion.Location = New Point(0, 0)
         fpFacturacion.Margin = New Padding(0, 0, 5, 5)
         fpFacturacion.Name = "fpFacturacion"
-        fpFacturacion.Size = New Size(400, 213)
+        fpFacturacion.Size = New Size(265, 209)
         fpFacturacion.TabIndex = 0
         '
         ' fpServicios
         '
         fpServicios.Dock = DockStyle.Fill
-        fpServicios.Location = New Point(410, 0)
-        fpServicios.Margin = New Padding(5, 0, 0, 5)
+        fpServicios.Location = New Point(275, 0)
+        fpServicios.Margin = New Padding(5, 0, 5, 5)
         fpServicios.Name = "fpServicios"
-        fpServicios.Size = New Size(400, 213)
+        fpServicios.Size = New Size(259, 209)
         fpServicios.TabIndex = 1
+        '
+        ' fpEtapas
+        '
+        fpEtapas.Dock = DockStyle.Fill
+        fpEtapas.Location = New Point(544, 0)
+        fpEtapas.Margin = New Padding(5, 0, 0, 5)
+        fpEtapas.Name = "fpEtapas"
+        fpEtapas.Size = New Size(266, 209)
+        fpEtapas.TabIndex = 2
         '
         ' fpHoras
         '
         fpHoras.Dock = DockStyle.Fill
-        fpHoras.Location = New Point(0, 223)
+        fpHoras.Location = New Point(0, 219)
         fpHoras.Margin = New Padding(0, 5, 5, 0)
         fpHoras.Name = "fpHoras"
-        fpHoras.Size = New Size(400, 213)
-        fpHoras.TabIndex = 2
+        fpHoras.Size = New Size(265, 209)
+        fpHoras.TabIndex = 3
         '
         ' fpEstados
         '
         fpEstados.Dock = DockStyle.Fill
-        fpEstados.Location = New Point(410, 223)
-        fpEstados.Margin = New Padding(5, 5, 0, 0)
+        fpEstados.Location = New Point(275, 219)
+        fpEstados.Margin = New Padding(5, 5, 5, 0)
         fpEstados.Name = "fpEstados"
-        fpEstados.Size = New Size(400, 213)
-        fpEstados.TabIndex = 3
+        fpEstados.Size = New Size(259, 209)
+        fpEstados.TabIndex = 4
+        '
+        ' pnlEtapas
+        '
+        pnlEtapas.BackColor = Color.White
+        pnlEtapas.Controls.Add(dgvEtapas)
+        pnlEtapas.Controls.Add(lblEtapas)
+        pnlEtapas.Dock = DockStyle.Fill
+        pnlEtapas.Location = New Point(544, 219)
+        pnlEtapas.Margin = New Padding(5, 5, 0, 0)
+        pnlEtapas.Name = "pnlEtapas"
+        pnlEtapas.Padding = New Padding(0, 0, 0, 4)
+        pnlEtapas.Size = New Size(266, 209)
+        pnlEtapas.TabIndex = 5
+        '
+        ' lblEtapas
+        '
+        lblEtapas.Dock = DockStyle.Top
+        lblEtapas.Font = New Font("Segoe UI", 10F, FontStyle.Bold)
+        lblEtapas.Location = New Point(0, 0)
+        lblEtapas.Name = "lblEtapas"
+        lblEtapas.Size = New Size(266, 32)
+        lblEtapas.TabIndex = 0
+        lblEtapas.Text = "Detalle por etapa"
+        lblEtapas.TextAlign = ContentAlignment.MiddleCenter
+        '
+        ' dgvEtapas
+        '
+        dgvEtapas.AllowUserToAddRows = False
+        dgvEtapas.AllowUserToDeleteRows = False
+        dgvEtapas.AllowUserToResizeRows = False
+        dgvEtapas.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill
+        dgvEtapas.BackgroundColor = Color.White
+        dgvEtapas.BorderStyle = BorderStyle.None
+        dgvEtapas.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize
+        dgvEtapas.Columns.AddRange(New DataGridViewColumn() {colEtapa, colOrdenes, colPromedio, colMinimo, colMaximo})
+        dgvEtapas.Dock = DockStyle.Fill
+        dgvEtapas.Font = New Font("Segoe UI", 7.5F)
+        dgvEtapas.Location = New Point(0, 32)
+        dgvEtapas.MultiSelect = False
+        dgvEtapas.Name = "dgvEtapas"
+        dgvEtapas.ReadOnly = True
+        dgvEtapas.RowHeadersVisible = False
+        dgvEtapas.RowHeadersWidth = 51
+        dgvEtapas.RowTemplate.Height = 24
+        dgvEtapas.SelectionMode = DataGridViewSelectionMode.FullRowSelect
+        dgvEtapas.Size = New Size(266, 173)
+        dgvEtapas.TabIndex = 1
+        '
+        ' colEtapa
+        '
+        colEtapa.HeaderText = "Etapa"
+        colEtapa.MinimumWidth = 6
+        colEtapa.Name = "colEtapa"
+        colEtapa.ReadOnly = True
+        colEtapa.SortMode = DataGridViewColumnSortMode.NotSortable
+        '
+        ' colOrdenes
+        '
+        colOrdenes.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells
+        colOrdenes.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight
+        colOrdenes.HeaderText = "Órdenes"
+        colOrdenes.MinimumWidth = 6
+        colOrdenes.Name = "colOrdenes"
+        colOrdenes.ReadOnly = True
+        colOrdenes.SortMode = DataGridViewColumnSortMode.NotSortable
+        '
+        ' colPromedio
+        '
+        colPromedio.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells
+        colPromedio.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight
+        colPromedio.HeaderText = "Promedio"
+        colPromedio.MinimumWidth = 6
+        colPromedio.Name = "colPromedio"
+        colPromedio.ReadOnly = True
+        colPromedio.SortMode = DataGridViewColumnSortMode.NotSortable
+        '
+        ' colMinimo
+        '
+        colMinimo.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells
+        colMinimo.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight
+        colMinimo.HeaderText = "Mínimo"
+        colMinimo.MinimumWidth = 6
+        colMinimo.Name = "colMinimo"
+        colMinimo.ReadOnly = True
+        colMinimo.SortMode = DataGridViewColumnSortMode.NotSortable
+        '
+        ' colMaximo
+        '
+        colMaximo.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells
+        colMaximo.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight
+        colMaximo.HeaderText = "Máximo"
+        colMaximo.MinimumWidth = 6
+        colMaximo.Name = "colMaximo"
+        colMaximo.ReadOnly = True
+        colMaximo.SortMode = DataGridViewColumnSortMode.NotSortable
+        '
+        ' prdTiempos
+        '
+        prdTiempos.DocumentName = "Tiempos por etapa"
+        '
+        ' ppdVistaPrevia
+        '
+        ppdVistaPrevia.AutoScrollMargin = New Size(0, 0)
+        ppdVistaPrevia.AutoScrollMinSize = New Size(0, 0)
+        ppdVistaPrevia.ClientSize = New Size(400, 300)
+        ppdVistaPrevia.Enabled = True
+        ppdVistaPrevia.Name = "ppdVistaPrevia"
+        ppdVistaPrevia.ShowIcon = False
+        ppdVistaPrevia.UseAntiAlias = True
+        ppdVistaPrevia.Visible = False
         '
         ' FrmTableros
         '
@@ -464,6 +617,8 @@ Partial Class FrmTableros
         pnlAprobacion.ResumeLayout(False)
         pnlDemoradas.ResumeLayout(False)
         tlpGraficos.ResumeLayout(False)
+        pnlEtapas.ResumeLayout(False)
+        CType(dgvEtapas, ComponentModel.ISupportInitialize).EndInit()
         ResumeLayout(False)
         PerformLayout()
     End Sub
@@ -500,4 +655,16 @@ Partial Class FrmTableros
     Friend WithEvents fpServicios As ScottPlot.WinForms.FormsPlot
     Friend WithEvents fpHoras As ScottPlot.WinForms.FormsPlot
     Friend WithEvents fpEstados As ScottPlot.WinForms.FormsPlot
+    Friend WithEvents fpEtapas As ScottPlot.WinForms.FormsPlot
+    Friend WithEvents pnlEtapas As Panel
+    Friend WithEvents lblEtapas As Label
+    Friend WithEvents dgvEtapas As DataGridView
+    Friend WithEvents colEtapa As DataGridViewTextBoxColumn
+    Friend WithEvents colOrdenes As DataGridViewTextBoxColumn
+    Friend WithEvents colPromedio As DataGridViewTextBoxColumn
+    Friend WithEvents colMinimo As DataGridViewTextBoxColumn
+    Friend WithEvents colMaximo As DataGridViewTextBoxColumn
+    Friend WithEvents btnImprimirTiempos As Button
+    Friend WithEvents prdTiempos As Printing.PrintDocument
+    Friend WithEvents ppdVistaPrevia As PrintPreviewDialog
 End Class

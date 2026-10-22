@@ -325,8 +325,9 @@ Public Class FrmHistorial
         idOrden = 0
         pnlVehiculo.Visible = False
         lblAyuda.Visible = True
-        'sin vehiculo no hay ordenes que exportar
+        'sin vehiculo no hay ordenes que exportar ni historial que imprimir
         btnExportar.Enabled = False
+        btnImprimir.Enabled = False
     End Sub
 
     Sub MostrarVehiculo(fila As DataGridViewRow)
@@ -354,8 +355,9 @@ Public Class FrmHistorial
         'la tarjeta se muestra antes de cargar las grillas que tiene adentro
         lblAyuda.Visible = False
         pnlVehiculo.Visible = True
-        'con un vehiculo elegido ya se pueden exportar sus ordenes
+        'con un vehiculo elegido ya se pueden exportar sus ordenes e imprimir su historial
         btnExportar.Enabled = True
+        btnImprimir.Enabled = True
 
         CargarOrdenes()
     End Sub
@@ -482,6 +484,347 @@ Public Class FrmHistorial
         Dim fila As DataGridViewRow = dgvOrdenes.Rows(e.RowIndex)
         If CInt(fila.Cells("id_orden_trabajo").Value) = idOrden Then Exit Sub
         MostrarOrden(fila)
+    End Sub
+
+    '----- historial del vehiculo impreso -----
+
+    'datos de la hoja: se leen de la base al pedir la impresion, no de las grillas, y el evento PrintPage solo dibuja
+    Private vehiculoHoja As DataRow
+    Private ordenesHoja As DataTable
+    Private serviciosHoja As DataTable
+    Private fechaHoja As DateTime
+
+    'bloques de la hoja en el orden en que se imprimen
+    'un numero >= 0 es una parte de una orden: la orden es paso \ 3 (su fila en ordenesHoja) y la parte es paso Mod 3
+    Const PASO_VEHICULO As Integer = -1
+    Const PASO_TITULAR As Integer = -2
+    Const PASO_ORDENES As Integer = -3
+    Const PARTE_CABECERA As Integer = 0
+    Const PARTE_SERVICIOS As Integer = 1
+    Const PARTE_OBSERVACIONES As Integer = 2
+    Private pasosHoja As New List(Of Integer)
+
+    'por donde va la impresion: hoja, bloque y fila de la tabla; se reinician en BeginPrint
+    Private hojaHistorial As Integer = 0
+    Private pasoHistorial As Integer = 0
+    Private filaHistorial As Integer = 0
+    Private errorHistorial As Boolean = False
+
+    Private Sub btnImprimir_Click(sender As Object, e As EventArgs) Handles btnImprimir.Click
+        'imprimo el historial del vehiculo que se esta viendo
+        If idVehiculo = 0 Then Exit Sub
+
+        If Not CargarDatosHistorial() Then Exit Sub
+
+        'abro la vista previa maximizada; desde su boton de impresora se imprime
+        'esta pantalla va dentro de la ventana principal: la vista previa se abre sobre esa ventana
+        Try
+            prdHistorial.DefaultPageSettings.Margins = New Printing.Margins(MARGEN_HOJA, MARGEN_HOJA, MARGEN_HOJA, MARGEN_HOJA)
+            ppdVistaPrevia.Document = prdHistorial
+            ppdVistaPrevia.WindowState = FormWindowState.Maximized
+            ppdVistaPrevia.ShowDialog(Me.TopLevelControl)
+        Catch ex As Exception
+            MessageBox.Show("No se pudo preparar la impresión: " & ex.Message)
+        End Try
+    End Sub
+
+    Function CargarDatosHistorial() As Boolean
+        'leo el vehiculo con su titular actual, todas sus ordenes y sus servicios aprobados; armo la lista de bloques
+        Dim consultaVehiculo As String =
+            "SELECT v.patente, CONCAT(ma.descripcion, ' ', mo.descripcion) AS vehiculo, " &
+            "v.anio, v.color, v.km_actual, v.activo, c.razon_social, c.documento, c.telefono " &
+            "FROM vehiculo AS v " &
+            "JOIN cliente AS c ON c.id_cliente = v.id_cliente " &
+            "JOIN modelo AS mo ON mo.id_modelo = v.id_modelo " &
+            "JOIN marca AS ma ON ma.id_marca = mo.id_marca " &
+            "WHERE v.id_vehiculo = @id_vehiculo;"
+
+        'ordenes en cualquier estado, la mas reciente primero; el mecanico no trae ningun importe
+        Dim consultaOrdenes As String =
+            "SELECT ot.id_orden_trabajo, ot.nro_orden, ot.fecha_recepcion, e.descripcion AS estado, ot.km_ingreso, " &
+            "COALESCE(m.nombre_completo, 'Sin asignar') AS mecanico, ot.fecha_entrega, " &
+            "ot.sintoma_reportado, ot.observaciones_mecanico "
+        If Not esMecanico Then consultaOrdenes = consultaOrdenes & ", ot.total_aprobado "
+        consultaOrdenes = consultaOrdenes &
+            "FROM orden_trabajo AS ot " &
+            "JOIN estado_ot AS e ON e.id_estado_ot = ot.id_estado_ot " &
+            "LEFT JOIN mecanico AS m ON m.id_mecanico = ot.id_mecanico " &
+            "WHERE ot.id_vehiculo = @id_vehiculo " &
+            "ORDER BY ot.fecha_recepcion DESC, ot.nro_orden DESC;"
+
+        'solo las lineas que el cliente aprobo, sin precios
+        Dim consultaServicios As String =
+            "SELECT d.id_orden_trabajo, d.descripcion, d.cantidad, d.horas_reales " &
+            "FROM ot_detalle AS d " &
+            "JOIN orden_trabajo AS ot ON ot.id_orden_trabajo = d.id_orden_trabajo " &
+            "WHERE ot.id_vehiculo = @id_vehiculo AND d.aprobado = 1 " &
+            "ORDER BY d.id_orden_trabajo, d.id_ot_detalle;"
+
+        Try
+            Using cn As New MySqlConnection(CADENA)
+                cn.Open()
+                Dim vehiculo As DataTable = LeerTablaHistorial(cn, consultaVehiculo)
+                If vehiculo.Rows.Count = 0 Then
+                    MessageBox.Show("No se encontró el vehículo para imprimir su historial.")
+                    Return False
+                End If
+                vehiculoHoja = vehiculo.Rows(0)
+                ordenesHoja = LeerTablaHistorial(cn, consultaOrdenes)
+                serviciosHoja = LeerTablaHistorial(cn, consultaServicios)
+            End Using
+        Catch ex As Exception
+            MessageBox.Show("Error al leer los datos del historial: " & ex.Message)
+            Return False
+        End Try
+
+        ArmarPasosHistorial()
+        fechaHoja = DateTime.Now
+        Return True
+    End Function
+
+    Function LeerTablaHistorial(cn As MySqlConnection, consulta As String) As DataTable
+        'ejecuto una consulta del vehiculo y devuelvo sus filas
+        Using cmd As New MySqlCommand(consulta, cn)
+            cmd.Parameters.AddWithValue("@id_vehiculo", idVehiculo)
+            Dim tabla As New DataTable
+            Using lector As MySqlDataReader = cmd.ExecuteReader
+                tabla.Load(lector)
+            End Using
+            Return tabla
+        End Using
+    End Function
+
+    Sub ArmarPasosHistorial()
+        'orden de la hoja: vehiculo, titular, tabla de ordenes y despues cada orden con sus partes
+        pasosHoja.Clear()
+        pasosHoja.Add(PASO_VEHICULO)
+        pasosHoja.Add(PASO_TITULAR)
+        pasosHoja.Add(PASO_ORDENES)
+
+        For i As Integer = 0 To ordenesHoja.Rows.Count - 1
+            pasosHoja.Add(i * 3 + PARTE_CABECERA)
+            pasosHoja.Add(i * 3 + PARTE_SERVICIOS)
+            'las observaciones del mecanico salen solo cuando estan cargadas
+            If ordenesHoja.Rows(i)("observaciones_mecanico").ToString().Trim <> "" Then pasosHoja.Add(i * 3 + PARTE_OBSERVACIONES)
+        Next
+    End Sub
+
+    Function ServiciosDeOrden(indice As Integer) As DataRow()
+        'servicios aprobados de la orden que esta en esa fila de ordenesHoja
+        Dim idOrdenHoja As Integer = CInt(ordenesHoja.Rows(indice)("id_orden_trabajo"))
+        Return serviciosHoja.Select("id_orden_trabajo = " & idOrdenHoja.ToString())
+    End Function
+
+    Private Sub prdHistorial_BeginPrint(sender As Object, e As Printing.PrintEventArgs) Handles prdHistorial.BeginPrint
+        'la vista previa y la impresion real recorren las hojas cada una desde el principio
+        hojaHistorial = 0
+        pasoHistorial = 0
+        filaHistorial = 0
+        errorHistorial = False
+    End Sub
+
+    Private Sub prdHistorial_PrintPage(sender As Object, e As Printing.PrintPageEventArgs) Handles prdHistorial.PrintPage
+        'un error al dibujar corta el historial con un aviso, sin cerrar el sistema
+        Try
+            DibujarHojaHistorial(e)
+        Catch ex As Exception
+            e.HasMorePages = False
+            If Not errorHistorial Then
+                errorHistorial = True
+                MessageBox.Show("No se pudo dibujar el historial: " & ex.Message)
+            End If
+        End Try
+    End Sub
+
+    Sub DibujarHojaHistorial(e As Printing.PrintPageEventArgs)
+        'dibujo los bloques que entran en la hoja; lo que no entra sigue en la siguiente
+        Dim g As Graphics = e.Graphics
+        Dim area As Rectangle = e.MarginBounds
+        Dim x As Integer = area.Left
+        Dim ancho As Integer = area.Width
+        Dim limite As Integer = area.Bottom - ALTO_PIE
+        Dim patente As String = vehiculoHoja("patente").ToString()
+
+        hojaHistorial += 1
+
+        Dim y As Integer = DibujarCabecera(g, x, area.Top, ancho, "Historial del vehículo", patente)
+        Dim inicioHoja As Integer = y
+
+        Do While pasoHistorial < pasosHoja.Count
+            Dim paso As Integer = pasosHoja(pasoHistorial)
+            Dim termino As Boolean
+
+            If paso = PASO_ORDENES AndAlso ordenesHoja.Rows.Count > 0 Then
+                'tabla de ordenes: se puede partir entre hojas
+                termino = ImprimirTablaOrdenes(g, x, y, ancho, limite, y = inicioHoja)
+            ElseIf paso >= 0 AndAlso paso Mod 3 = PARTE_SERVICIOS AndAlso ServiciosDeOrden(paso \ 3).Length > 0 Then
+                'servicios de una orden: tabla que tambien se puede partir
+                termino = ImprimirServiciosOrden(g, paso \ 3, x, y, ancho, limite, y = inicioHoja)
+            Else
+                'los demas bloques no se parten: si no entran pasan enteros a la hoja siguiente
+                Dim fin As Integer = DibujarBloqueHistorial(g, paso, x, y, ancho, False)
+                termino = (fin <= limite OrElse y = inicioHoja)
+                If termino Then y = DibujarBloqueHistorial(g, paso, x, y, ancho, True)
+            End If
+
+            If Not termino Then Exit Do
+            pasoHistorial += 1
+            filaHistorial = 0
+        Loop
+
+        DibujarPie(g, area, "Historial del vehículo · " & patente & " · Impreso el " & fechaHoja.ToString("dd/MM/yyyy HH:mm"), hojaHistorial)
+        e.HasMorePages = (pasoHistorial < pasosHoja.Count)
+    End Sub
+
+    Function DibujarBloqueHistorial(g As Graphics, paso As Integer, x As Integer, y As Integer, ancho As Integer,
+                                    dibujar As Boolean) As Integer
+        'dibujo (o solo mido, con dibujar en False) un bloque de la hoja y devuelvo el y donde termina
+        Const ANCHO_ETIQUETA_ORDEN As Integer = 190
+
+        Select Case paso
+            Case PASO_VEHICULO
+                Return DibujarCajaVehiculo(g, x, y, ancho, dibujar)
+
+            Case PASO_TITULAR
+                Return DibujarCajaTitular(g, x, y, ancho, dibujar)
+
+            Case PASO_ORDENES
+                'vehiculo sin ordenes: el titulo de la tabla y un aviso
+                y = DibujarTituloSeccion(g, "Órdenes de trabajo", x, y, ancho, dibujar)
+                Return DibujarParrafo(g, "Sin órdenes de trabajo registradas.", x, y, ancho, dibujar) + 14
+        End Select
+
+        Dim orden As DataRow = ordenesHoja.Rows(paso \ 3)
+
+        Select Case paso Mod 3
+            Case PARTE_CABECERA
+                'franja con el numero y el estado de la orden, y lo que dijo el cliente
+                Dim titulo As String = "Orden N.º " & orden("nro_orden").ToString() & " · " & orden("estado").ToString()
+                Dim yFin As Integer = DibujarTituloCaja(g, titulo, x, y, ancho, dibujar)
+                yFin = DibujarDato(g, "Síntoma", orden("sintoma_reportado").ToString(), x + 8, yFin, ancho - 16, ANCHO_ETIQUETA_ORDEN, dibujar) + 6
+                'al medir reservo lugar para el comienzo de los servicios, asi la franja no queda sola al pie de la hoja
+                If Not dibujar Then Return yFin + 80
+                Return yFin
+
+            Case PARTE_SERVICIOS
+                'orden sin servicios aprobados
+                Return DibujarParrafo(g, "Sin servicios aprobados.", x + 8, y, ancho - 16, dibujar) + 16
+
+            Case Else
+                Return DibujarDato(g, "Observaciones del mecánico", orden("observaciones_mecanico").ToString().Trim,
+                                   x + 8, y, ancho - 16, ANCHO_ETIQUETA_ORDEN, dibujar) + 16
+        End Select
+    End Function
+
+    Function DibujarCajaVehiculo(g As Graphics, x As Integer, y As Integer, ancho As Integer, dibujar As Boolean) As Integer
+        'caja con los datos del vehiculo en dos columnas
+        Const ANCHO_ETIQUETA As Integer = 130
+        Dim fila As DataRow = vehiculoHoja
+        Dim anchoColumna As Integer = (ancho - 32) \ 2
+        Dim xDerecha As Integer = x + 16 + anchoColumna + 16
+
+        Dim yInicio As Integer = DibujarTituloCaja(g, "Vehículo", x, y, ancho, dibujar)
+
+        Dim yIzquierda As Integer = yInicio
+        yIzquierda = DibujarDato(g, "Patente", fila("patente").ToString(), x + 8, yIzquierda, anchoColumna, ANCHO_ETIQUETA, dibujar)
+        yIzquierda = DibujarDato(g, "Marca y modelo", fila("vehiculo").ToString(), x + 8, yIzquierda, anchoColumna, ANCHO_ETIQUETA, dibujar)
+        yIzquierda = DibujarDato(g, "Año", fila("anio").ToString(), x + 8, yIzquierda, anchoColumna, ANCHO_ETIQUETA, dibujar)
+
+        Dim yDerecha As Integer = yInicio
+        yDerecha = DibujarDato(g, "Color", fila("color").ToString(), xDerecha, yDerecha, anchoColumna, ANCHO_ETIQUETA, dibujar)
+        yDerecha = DibujarDato(g, "Kilometraje actual", CInt(fila("km_actual")).ToString("N0") & " km", xDerecha, yDerecha, anchoColumna, ANCHO_ETIQUETA, dibujar)
+        'el estado sale solo cuando el vehiculo esta dado de baja
+        If Not Convert.ToBoolean(fila("activo")) Then
+            yDerecha = DibujarDato(g, "Estado", "Dado de baja", xDerecha, yDerecha, anchoColumna, ANCHO_ETIQUETA, dibujar)
+        End If
+
+        Dim yFin As Integer = Math.Max(yIzquierda, yDerecha) + 4
+        If dibujar Then DibujarBordeCaja(g, x, y, ancho, yFin)
+        Return yFin + 14
+    End Function
+
+    Function DibujarCajaTitular(g As Graphics, x As Integer, y As Integer, ancho As Integer, dibujar As Boolean) As Integer
+        'caja con el titular actual del vehiculo
+        Const ANCHO_ETIQUETA As Integer = 130
+        Dim fila As DataRow = vehiculoHoja
+        Dim anchoColumna As Integer = (ancho - 32) \ 2
+        Dim xDerecha As Integer = x + 16 + anchoColumna + 16
+
+        Dim yInicio As Integer = DibujarTituloCaja(g, "Titular actual", x, y, ancho, dibujar)
+
+        Dim yIzquierda As Integer = yInicio
+        yIzquierda = DibujarDato(g, "Razón social", fila("razon_social").ToString(), x + 8, yIzquierda, anchoColumna, ANCHO_ETIQUETA, dibujar)
+        yIzquierda = DibujarDato(g, "Documento", fila("documento").ToString(), x + 8, yIzquierda, anchoColumna, ANCHO_ETIQUETA, dibujar)
+
+        Dim yDerecha As Integer = yInicio
+        yDerecha = DibujarDato(g, "Teléfono", fila("telefono").ToString(), xDerecha, yDerecha, anchoColumna, ANCHO_ETIQUETA, dibujar)
+
+        Dim yFin As Integer = Math.Max(yIzquierda, yDerecha) + 4
+        If dibujar Then DibujarBordeCaja(g, x, y, ancho, yFin)
+        Return yFin + 18
+    End Function
+
+    Function ImprimirTablaOrdenes(g As Graphics, x As Integer, ByRef y As Integer, ancho As Integer,
+                                  limite As Integer, inicioHoja As Boolean) As Boolean
+        'tabla con todas las ordenes del vehiculo; el mecanico la ve sin la columna del total
+        Dim columnas() As String = {"N.º", "Recepción", "Estado", "Km ingreso", "Mecánico", "Entrega", "Total aprobado"}
+        Dim pesos() As Single = {0.8F, 1.3F, 1.6F, 1.3F, 2.3F, 1.3F, 1.6F}
+        Dim alineaciones() As StringAlignment = {StringAlignment.Near, StringAlignment.Near, StringAlignment.Near,
+                                                 StringAlignment.Far, StringAlignment.Near, StringAlignment.Near,
+                                                 StringAlignment.Far}
+        If esMecanico Then
+            ReDim Preserve columnas(5)
+            ReDim Preserve pesos(5)
+            ReDim Preserve alineaciones(5)
+        End If
+
+        Dim filas As New List(Of String())
+        For Each orden As DataRow In ordenesHoja.Rows
+            Dim valores() As String = {orden("nro_orden").ToString(),
+                                       CDate(orden("fecha_recepcion")).ToString("dd/MM/yyyy"),
+                                       orden("estado").ToString(),
+                                       CInt(orden("km_ingreso")).ToString("N0"),
+                                       orden("mecanico").ToString(),
+                                       TextoFecha(orden("fecha_entrega"), "dd/MM/yyyy")}
+            If Not esMecanico Then
+                ReDim Preserve valores(6)
+                valores(6) = CDec(orden("total_aprobado")).ToString("C2")
+            End If
+            filas.Add(valores)
+        Next
+
+        Return DibujarTabla(g, "Órdenes de trabajo", columnas, pesos, alineaciones, filas,
+                            x, y, ancho, limite, filaHistorial, inicioHoja)
+    End Function
+
+    Function ImprimirServiciosOrden(g As Graphics, indice As Integer, x As Integer, ByRef y As Integer, ancho As Integer,
+                                    limite As Integer, inicioHoja As Boolean) As Boolean
+        'tabla con los servicios aprobados de una orden, sin precios; las horas pueden no estar cargadas
+        Dim columnas() As String = {"Servicio", "Cantidad", "Horas trabajadas"}
+        Dim pesos() As Single = {5.0F, 1.3F, 1.7F}
+        Dim alineaciones() As StringAlignment = {StringAlignment.Near, StringAlignment.Far, StringAlignment.Far}
+
+        Dim filas As New List(Of String())
+        For Each servicio As DataRow In ServiciosDeOrden(indice)
+            Dim horas As String = "-"
+            If Not IsDBNull(servicio("horas_reales")) Then horas = CDec(servicio("horas_reales")).ToString("0.00")
+            filas.Add({servicio("descripcion").ToString(),
+                       CDec(servicio("cantidad")).ToString("0.##"),
+                       horas})
+        Next
+
+        Dim titulo As String = "Servicios aprobados de la orden N.º " & ordenesHoja.Rows(indice)("nro_orden").ToString()
+        Dim termino As Boolean = DibujarTabla(g, titulo, columnas, pesos, alineaciones, filas,
+                                              x, y, ancho, limite, filaHistorial, inicioHoja)
+        'separo la orden siguiente un poco mas que una tabla comun
+        If termino Then y += 4
+        Return termino
+    End Function
+
+    Private Sub FrmHistorial_FormClosed(sender As Object, e As FormClosedEventArgs) Handles MyBase.FormClosed
+        'la vista previa y el documento de impresion no estan en components: los libero al cerrar
+        ppdVistaPrevia.Dispose()
+        prdHistorial.Dispose()
     End Sub
 
 End Class

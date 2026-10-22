@@ -54,6 +54,9 @@ Partial Class FrmHistorial
         txtSintoma = New TextBox()
         txtObservaciones = New TextBox()
         btnExportar = New Button()
+        btnImprimir = New Button()
+        prdHistorial = New Printing.PrintDocument()
+        ppdVistaPrevia = New PrintPreviewDialog()
         pnlLista.SuspendLayout()
         pnlDetalle.SuspendLayout()
         pnlVehiculo.SuspendLayout()
@@ -73,7 +76,7 @@ Partial Class FrmHistorial
         lblTitulo.Font = New Font("Segoe UI", 24F, FontStyle.Bold)
         lblTitulo.Location = New Point(30, 10)
         lblTitulo.Name = "lblTitulo"
-        lblTitulo.Size = New Size(660, 60)
+        lblTitulo.Size = New Size(500, 60)
         lblTitulo.TabIndex = 2
         lblTitulo.Text = "Historial por patente"
         '
@@ -493,10 +496,42 @@ Partial Class FrmHistorial
         btnExportar.Location = New Point(700, 34)
         btnExportar.Name = "btnExportar"
         btnExportar.Size = New Size(140, 40)
-        btnExportar.TabIndex = 4
+        btnExportar.TabIndex = 5
         btnExportar.Text = " Exportar"
         btnExportar.TextImageRelation = TextImageRelation.ImageBeforeText
         btnExportar.UseVisualStyleBackColor = False
+        '
+        ' btnImprimir
+        '
+        btnImprimir.Anchor = AnchorStyles.Top Or AnchorStyles.Right
+        btnImprimir.BackColor = Color.White
+        btnImprimir.Cursor = Cursors.Hand
+        btnImprimir.Enabled = False
+        btnImprimir.FlatAppearance.BorderColor = Color.Silver
+        btnImprimir.FlatStyle = FlatStyle.Flat
+        btnImprimir.Font = New Font("Segoe UI", 10F)
+        btnImprimir.Location = New Point(550, 34)
+        btnImprimir.Name = "btnImprimir"
+        btnImprimir.Size = New Size(140, 40)
+        btnImprimir.TabIndex = 4
+        btnImprimir.Text = " Imprimir"
+        btnImprimir.TextImageRelation = TextImageRelation.ImageBeforeText
+        btnImprimir.UseVisualStyleBackColor = False
+        '
+        ' prdHistorial
+        '
+        prdHistorial.DocumentName = "Historial del vehículo"
+        '
+        ' ppdVistaPrevia
+        '
+        ppdVistaPrevia.AutoScrollMargin = New Size(0, 0)
+        ppdVistaPrevia.AutoScrollMinSize = New Size(0, 0)
+        ppdVistaPrevia.ClientSize = New Size(400, 300)
+        ppdVistaPrevia.Enabled = True
+        ppdVistaPrevia.Name = "ppdVistaPrevia"
+        ppdVistaPrevia.ShowIcon = False
+        ppdVistaPrevia.UseAntiAlias = True
+        ppdVistaPrevia.Visible = False
         '
         ' FrmHistorial
         '
@@ -504,6 +539,7 @@ Partial Class FrmHistorial
         AutoScaleMode = AutoScaleMode.Font
         BackColor = Color.FromArgb(CByte(245), CByte(246), CByte(250))
         ClientSize = New Size(870, 630)
+        Controls.Add(btnImprimir)
         Controls.Add(btnExportar)
         Controls.Add(pnlDetalle)
         Controls.Add(pnlLista)
@@ -559,4 +595,7 @@ Partial Class FrmHistorial
     Friend WithEvents txtSintoma As TextBox
     Friend WithEvents txtObservaciones As TextBox
     Friend WithEvents btnExportar As Button
+    Friend WithEvents btnImprimir As Button
+    Friend WithEvents prdHistorial As Printing.PrintDocument
+    Friend WithEvents ppdVistaPrevia As PrintPreviewDialog
 End Class
