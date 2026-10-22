@@ -7,6 +7,11 @@ Public Class FrmTurnos
 
     'dia que muestra la agenda
     Private dia As Date = Date.Today
+
+    'vehiculo y motivo de un turno pedido desde otra pantalla (por ejemplo, Services por vencer)
+    'se cargan antes de mostrar la pantalla; vacios, la pantalla abre normal
+    Public PatenteInicial As String = ""
+    Public MotivoInicial As String = ""
     'turno que se ve en la tarjeta, 0 mientras no haya uno elegido
     Private idTurno As Integer = 0
     'indica que la tarjeta esta cargando un turno nuevo
@@ -327,6 +332,7 @@ Public Class FrmTurnos
         btnGuardar.Visible = True
         btnCancelarTurno.Visible = False
         btnAusente.Visible = False
+        btnConfirmacion.Visible = False
 
         lblAyuda.Visible = False
         pnlRegistro.Visible = True
@@ -404,6 +410,8 @@ Public Class FrmTurnos
                         'solo un turno pendiente se cancela; se marca ausente recien cuando su franja empezo
                         btnCancelarTurno.Visible = (estado = "PENDIENTE")
                         btnAusente.Visible = (estado = "PENDIENTE" AndAlso fechaHora <= Date.Now)
+                        'la confirmacion se puede volver a copiar mientras el turno sigue pendiente
+                        btnConfirmacion.Visible = (estado = "PENDIENTE")
                     End Using
                 End Using
             End Using
@@ -490,6 +498,7 @@ Public Class FrmTurnos
         btnCancelarAlta.Image = LeerIcono("cancelar-oscuro.png")
         btnGuardar.Image = LeerIcono("guardar.png")
         btnCancelarTurno.Image = LeerIcono("baja-rojo.png")
+        btnConfirmacion.Image = LeerIcono("check-oscuro.png")
 
         'el encabezado de la agenda lleva solo una linea clara debajo, como las filas
         dgvAgenda.AdvancedColumnHeadersBorderStyle.Bottom = DataGridViewAdvancedCellBorderStyle.Single
@@ -530,6 +539,9 @@ Public Class FrmTurnos
 
         'cargo la agenda recien ahora, cuando la pantalla ya tiene su tamaño final dentro de la ventana
         CargarAgenda()
+
+        'si otra pantalla pidio un turno para un vehiculo, lo dejo listo para guardar
+        If PatenteInicial <> "" Then IniciarTurnoPedido()
     End Sub
 
     Private Sub FrmTurnos_FormClosing(sender As Object, e As FormClosingEventArgs) Handles MyBase.FormClosing
@@ -829,14 +841,150 @@ Public Class FrmTurnos
             Exit Sub
         End If
 
-        MessageBox.Show("Turno dado para el " & franja.ToString("dd/MM/yyyy 'a las' HH:mm") & ".")
-
         'el turno guardado queda como el que se esta viendo
         hayCambios = False
         creando = False
         idTurno = idNuevo
         CargarAgenda()
         MostrarTurno(idNuevo)
+
+        'ofrezco la confirmacion para WhatsApp en el mismo momento, que es cuando se le avisa al cliente
+        Dim respuesta As DialogResult = MessageBox.Show(
+            "Turno dado para el " & franja.ToString("dd/MM/yyyy 'a las' HH:mm") & "." & vbCrLf &
+            "¿Copiar la confirmación para enviarla por WhatsApp?",
+            "Turno dado", MessageBoxButtons.YesNo, MessageBoxIcon.Information)
+        If respuesta = DialogResult.Yes Then CopiarConfirmacion(idNuevo)
+    End Sub
+
+    Function ArmarConfirmacion(id As Integer, ByRef telefono As String) As String
+        'armo el mensaje de confirmacion del turno para WhatsApp; devuelve "" si el turno no se pudo leer
+        Dim cultura As New Globalization.CultureInfo("es-AR")
+        Dim mano As String = Char.ConvertFromUtf32(&H1F44B)
+        Try
+            Using cn As New MySqlConnection(CADENA)
+                cn.Open()
+                Dim consulta As String =
+                    "SELECT t.fecha_hora, t.motivo, v.patente, " &
+                    "CONCAT(ma.descripcion, ' ', mo.descripcion) AS vehiculo, " &
+                    "c.razon_social AS cliente, c.telefono " &
+                    "FROM turno AS t " &
+                    "JOIN vehiculo AS v ON v.id_vehiculo = t.id_vehiculo " &
+                    "JOIN modelo AS mo ON mo.id_modelo = v.id_modelo " &
+                    "JOIN marca AS ma ON ma.id_marca = mo.id_marca " &
+                    "JOIN cliente AS c ON c.id_cliente = v.id_cliente " &
+                    "WHERE t.id_turno = @id_turno;"
+                Using cmd As New MySqlCommand(consulta, cn)
+                    cmd.Parameters.AddWithValue("@id_turno", id)
+                    Using lector As MySqlDataReader = cmd.ExecuteReader
+                        If Not lector.Read() Then Return ""
+
+                        telefono = lector("telefono").ToString()
+                        Dim fechaHora As Date = CDate(lector("fecha_hora"))
+                        Dim texto As String =
+                            "¡Hola " & lector("cliente").ToString() & "! " & mano &
+                            " Le escribimos de " & NOMBRE_TALLER & " para confirmar su turno del " &
+                            fechaHora.ToString("dddd d 'de' MMMM", cultura) & " a las " & fechaHora.ToString("HH:mm") &
+                            " para su " & lector("vehiculo").ToString() & " (patente " & lector("patente").ToString() & ")."
+                        Dim motivo As String = lector("motivo").ToString()
+                        If motivo <> "" Then texto = texto & vbCrLf & "Motivo: " & motivo & "."
+                        texto = texto & vbCrLf &
+                            "Le pedimos llegar unos minutos antes. Si no puede venir, avísenos por este medio así le damos el lugar a otro cliente." & vbCrLf &
+                            "¡Lo esperamos! Saludos cordiales, el equipo de " & NOMBRE_TALLER & "."
+                        Return texto
+                    End Using
+                End Using
+            End Using
+        Catch ex As Exception
+            MostrarError("No se pudo leer el turno para la confirmación.", ex)
+            Return ""
+        End Try
+    End Function
+
+    Sub CopiarConfirmacion(id As Integer)
+        'copio la confirmacion del turno al portapapeles: desde ahi se pega en WhatsApp
+        Dim telefono As String = ""
+        Dim mensaje As String = ArmarConfirmacion(id, telefono)
+        If mensaje = "" Then Exit Sub
+
+        Try
+            Clipboard.SetText(mensaje)
+        Catch ex As Exception
+            MessageBox.Show("No se pudo copiar la confirmación al portapapeles: " & ex.Message)
+            Exit Sub
+        End Try
+
+        Dim destino As String = "al " & telefono
+        If telefono = "" Then destino = "al cliente (no tiene teléfono cargado)"
+        MessageBox.Show("La confirmación quedó copiada. Péguela en WhatsApp y envíela " & destino & ".",
+                        "Confirmación del turno", MessageBoxButtons.OK, MessageBoxIcon.Information)
+    End Sub
+
+    Function PrimerDiaConLugar() As Date
+        'busco desde hoy, por los proximos 30 dias, el primer dia con una franja libre que no termino
+        'devuelve Nothing si no hay ninguno
+        Try
+            Using cn As New MySqlConnection(CADENA)
+                cn.Open()
+                For i As Integer = 0 To 30
+                    Dim candidato As Date = Date.Today.AddDays(i)
+                    Dim franjas As List(Of Date) = FranjasDelDia(candidato)
+                    If franjas.Count = 0 Then Continue For
+
+                    'turnos que ocupan lugar en cada franja del dia
+                    Dim ocupados As New Dictionary(Of Date, Integer)
+                    Dim consulta As String =
+                        "SELECT fecha_hora, COUNT(*) AS cantidad FROM turno " &
+                        "WHERE fecha_hora >= @desde AND fecha_hora < @hasta AND estado <> 'CANCELADO' " &
+                        "GROUP BY fecha_hora;"
+                    Using cmd As New MySqlCommand(consulta, cn)
+                        cmd.Parameters.AddWithValue("@desde", candidato)
+                        cmd.Parameters.AddWithValue("@hasta", candidato.AddDays(1))
+                        Using lector As MySqlDataReader = cmd.ExecuteReader
+                            While lector.Read()
+                                ocupados(CDate(lector("fecha_hora"))) = Convert.ToInt32(lector("cantidad"))
+                            End While
+                        End Using
+                    End Using
+
+                    For Each franja As Date In franjas
+                        If franja.AddHours(1) <= Date.Now Then Continue For
+                        Dim cantidad As Integer = 0
+                        If ocupados.ContainsKey(franja) Then cantidad = ocupados(franja)
+                        If cantidad < CUPO_POR_FRANJA Then Return candidato
+                    Next
+                Next
+            End Using
+        Catch ex As Exception
+            MostrarError("No se pudieron buscar los lugares libres.", ex)
+        End Try
+        Return Nothing
+    End Function
+
+    Sub IniciarTurnoPedido()
+        'otra pantalla pidio un turno para un vehiculo: abro el turno nuevo en el primer dia con lugar,
+        'con la patente buscada y el motivo cargado
+        Dim patente As String = PatenteInicial
+        Dim motivo As String = MotivoInicial
+        PatenteInicial = ""
+        MotivoInicial = ""
+
+        Dim diaLibre As Date = PrimerDiaConLugar()
+        If diaLibre = Nothing Then
+            MessageBox.Show("No hay lugares libres en los próximos 30 días.")
+            Exit Sub
+        End If
+
+        If diaLibre <> dia Then CambiarDia(diaLibre)
+        NuevoTurno()
+        If Not creando Then Exit Sub
+
+        txtPatente.Text = patente
+        btnBuscarPatente.PerformClick()
+        txtMotivo.Text = motivo
+    End Sub
+
+    Private Sub btnConfirmacion_Click(sender As Object, e As EventArgs) Handles btnConfirmacion.Click
+        CopiarConfirmacion(idTurno)
     End Sub
 
     Sub GuardarTurno(cn As MySqlConnection, franja As Date, motivo As Object, ByRef aviso As String, ByRef idNuevo As Integer)

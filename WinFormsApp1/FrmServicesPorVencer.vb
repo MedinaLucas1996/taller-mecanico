@@ -25,7 +25,7 @@ Public Class FrmServicesPorVencer
                 cn.Open()
                 'primero los que no se avisaron hace poco, por fecha de vencimiento
                 Dim consulta As String = ConsultaServices() &
-                    "ORDER BY avisado_reciente, vence, v.patente, s.descripcion;"
+                    "ORDER BY (avisado_reciente = 1 OR turno IS NOT NULL), vence, v.patente, s.descripcion;"
 
                 Using cmd As New MySqlCommand(consulta, cn)
                     'evito SQL Injection usando parametros
@@ -67,6 +67,10 @@ Public Class FrmServicesPorVencer
                     dgvServicios.Columns("vence").HeaderText = "Vence"
                     dgvServicios.Columns("vence").DefaultCellStyle.Format = "dd/MM/yyyy"
                     dgvServicios.Columns("aviso").HeaderText = "Aviso"
+                    'el proximo turno del vehiculo: si ya tiene uno, no hace falta escribirle
+                    dgvServicios.Columns("turno").HeaderText = "Turno"
+                    dgvServicios.Columns("turno").DefaultCellStyle.Format = "dd/MM HH:mm"
+                    dgvServicios.Columns("turno").AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells
 
                     'las columnas de datos cortos se ajustan al contenido
                     dgvServicios.Columns("telefono").AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells
@@ -175,6 +179,7 @@ Public Class FrmServicesPorVencer
     Private Sub FrmServicesPorVencer_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         'iconos de los botones, si alguno falta ese boton queda solo con el texto
         btnExportar.Image = LeerIcono("exportar.png")
+        btnDarTurno.Image = LeerIcono("calendario-oscuro.png")
 
         'el encabezado de la lista lleva solo una linea clara debajo, como las filas
         dgvServicios.AdvancedColumnHeadersBorderStyle.Bottom = DataGridViewAdvancedCellBorderStyle.Single
@@ -185,6 +190,7 @@ Public Class FrmServicesPorVencer
             rdbVencidos.Enabled = False
             rdbProximos.Enabled = False
             btnCopiar.Enabled = False
+            btnDarTurno.Enabled = False
             btnExportar.Enabled = False
             dgvServicios.Visible = False
             lblSubtitulo.Text = ""
@@ -218,12 +224,43 @@ Public Class FrmServicesPorVencer
         dgvServicios.ClearSelection()
 
         For Each fila As DataGridViewRow In dgvServicios.Rows
-            'los services avisados hace poco van en gris, tambien cuando la fila esta seleccionada
-            If CInt(fila.Cells("avisado_reciente").Value) = 1 Then
+            'los services avisados hace poco, o de un vehiculo que ya tiene turno, van en gris,
+            'tambien cuando la fila esta seleccionada
+            If CInt(fila.Cells("avisado_reciente").Value) = 1 OrElse Not IsDBNull(fila.Cells("turno").Value) Then
                 fila.DefaultCellStyle.ForeColor = Color.Gray
                 fila.DefaultCellStyle.SelectionForeColor = Color.Gainsboro
             End If
         Next
+    End Sub
+
+    Private Sub btnDarTurno_Click(sender As Object, e As EventArgs) Handles btnDarTurno.Click
+        'abro Turnos con un turno nuevo para el vehiculo elegido; el motivo son sus services de la lista
+        If dgvServicios.SelectedRows.Count = 0 Then
+            MessageBox.Show("Elija un service de la lista.")
+            Exit Sub
+        End If
+
+        Dim elegida As DataGridViewRow = dgvServicios.SelectedRows(0)
+        Dim idVehiculo As Integer = CInt(elegida.Cells("id_vehiculo").Value)
+
+        'si el vehiculo ya tiene turno no se da otro: se avisa cuando es
+        If Not IsDBNull(elegida.Cells("turno").Value) Then
+            MessageBox.Show("El vehículo ya tiene turno el " &
+                            CDate(elegida.Cells("turno").Value).ToString("dd/MM/yyyy 'a las' HH:mm") & ".")
+            Exit Sub
+        End If
+
+        Dim servicios As New List(Of String)
+        For Each fila As DataGridViewRow In dgvServicios.Rows
+            If CInt(fila.Cells("id_vehiculo").Value) = idVehiculo Then servicios.Add(fila.Cells("servicio").Value.ToString())
+        Next
+        Dim motivo As String = "Service: " & String.Join(", ", servicios)
+        If motivo.Length > 200 Then motivo = motivo.Substring(0, 200)
+
+        'la pantalla de turnos se abre en el menu principal, que cierra esta
+        Dim principal As FrmPrincipal = TryCast(Me.ParentForm, FrmPrincipal)
+        If principal Is Nothing Then Exit Sub
+        principal.AbrirTurnosPara(elegida.Cells("patente").Value.ToString(), motivo)
     End Sub
 
     Private Sub dgvServicios_CellDoubleClick(sender As Object, e As DataGridViewCellEventArgs) Handles dgvServicios.CellDoubleClick

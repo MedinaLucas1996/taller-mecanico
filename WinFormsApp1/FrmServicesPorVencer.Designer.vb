@@ -31,6 +31,7 @@ Partial Class FrmServicesPorVencer
         lblVacio = New Label()
         lblAyuda = New Label()
         btnCopiar = New Button()
+        btnDarTurno = New Button()
         CType(dgvServicios, ComponentModel.ISupportInitialize).BeginInit()
         SuspendLayout()
         '
@@ -139,10 +140,26 @@ Partial Class FrmServicesPorVencer
         lblAyuda.ForeColor = Color.DimGray
         lblAyuda.Location = New Point(30, 568)
         lblAyuda.Name = "lblAyuda"
-        lblAyuda.Size = New Size(560, 48)
+        lblAyuda.Size = New Size(410, 48)
         lblAyuda.TabIndex = 7
-        lblAyuda.Text = "Elija un service y copie el mensaje para pegarlo en WhatsApp. Si el vehículo tiene otros services en la lista, van en el mismo mensaje."
+        lblAyuda.Text = "Elija un service y copie el mensaje para WhatsApp, o dele un turno. Los services del mismo vehículo van juntos."
         lblAyuda.TextAlign = ContentAlignment.MiddleLeft
+        '
+        ' btnDarTurno
+        '
+        btnDarTurno.Anchor = AnchorStyles.Bottom Or AnchorStyles.Right
+        btnDarTurno.BackColor = Color.White
+        btnDarTurno.Cursor = Cursors.Hand
+        btnDarTurno.FlatAppearance.BorderColor = Color.Silver
+        btnDarTurno.FlatStyle = FlatStyle.Flat
+        btnDarTurno.Font = New Font("Segoe UI", 10F)
+        btnDarTurno.Location = New Point(450, 572)
+        btnDarTurno.Name = "btnDarTurno"
+        btnDarTurno.Size = New Size(150, 40)
+        btnDarTurno.TabIndex = 9
+        btnDarTurno.Text = " Dar turno"
+        btnDarTurno.TextImageRelation = TextImageRelation.ImageBeforeText
+        btnDarTurno.UseVisualStyleBackColor = False
         '
         ' btnCopiar
         '
@@ -168,6 +185,7 @@ Partial Class FrmServicesPorVencer
         BackColor = Color.FromArgb(CByte(245), CByte(246), CByte(250))
         ClientSize = New Size(870, 630)
         Controls.Add(btnCopiar)
+        Controls.Add(btnDarTurno)
         Controls.Add(lblAyuda)
         Controls.Add(lblVacio)
         Controls.Add(dgvServicios)
@@ -192,4 +210,5 @@ Partial Class FrmServicesPorVencer
     Friend WithEvents lblVacio As Label
     Friend WithEvents lblAyuda As Label
     Friend WithEvents btnCopiar As Button
+    Friend WithEvents btnDarTurno As Button
 End Class

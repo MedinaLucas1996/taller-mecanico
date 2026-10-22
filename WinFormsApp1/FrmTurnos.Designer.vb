@@ -51,6 +51,7 @@ Partial Class FrmTurnos
         btnGuardar = New Button()
         btnCancelarTurno = New Button()
         btnAusente = New Button()
+        btnConfirmacion = New Button()
         pnlLista.SuspendLayout()
         CType(dgvAgenda, ComponentModel.ISupportInitialize).BeginInit()
         pnlFicha.SuspendLayout()
@@ -234,6 +235,7 @@ Partial Class FrmTurnos
         pnlRegistro.Controls.Add(btnGuardar)
         pnlRegistro.Controls.Add(btnCancelarTurno)
         pnlRegistro.Controls.Add(btnAusente)
+        pnlRegistro.Controls.Add(btnConfirmacion)
         pnlRegistro.Location = New Point(0, 0)
         pnlRegistro.Name = "pnlRegistro"
         pnlRegistro.Size = New Size(330, 470)
@@ -402,7 +404,7 @@ Partial Class FrmTurnos
         lblDetalle.Font = New Font("Segoe UI", 10F)
         lblDetalle.Location = New Point(16, 84)
         lblDetalle.Name = "lblDetalle"
-        lblDetalle.Size = New Size(298, 310)
+        lblDetalle.Size = New Size(298, 270)
         lblDetalle.TabIndex = 3
         lblDetalle.Text = "-"
         lblDetalle.Visible = False
@@ -457,6 +459,23 @@ Partial Class FrmTurnos
         btnCancelarTurno.Text = " Cancelar turno"
         btnCancelarTurno.TextImageRelation = TextImageRelation.ImageBeforeText
         btnCancelarTurno.UseVisualStyleBackColor = False
+        '
+        ' btnConfirmacion
+        '
+        btnConfirmacion.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
+        btnConfirmacion.BackColor = Color.White
+        btnConfirmacion.Cursor = Cursors.Hand
+        btnConfirmacion.FlatAppearance.BorderColor = Color.Silver
+        btnConfirmacion.FlatStyle = FlatStyle.Flat
+        btnConfirmacion.Font = New Font("Segoe UI", 10F)
+        btnConfirmacion.Location = New Point(16, 366)
+        btnConfirmacion.Name = "btnConfirmacion"
+        btnConfirmacion.Size = New Size(298, 40)
+        btnConfirmacion.TabIndex = 8
+        btnConfirmacion.Text = " Copiar confirmación para WhatsApp"
+        btnConfirmacion.TextImageRelation = TextImageRelation.ImageBeforeText
+        btnConfirmacion.UseVisualStyleBackColor = False
+        btnConfirmacion.Visible = False
         '
         ' btnAusente
         '
@@ -530,4 +549,5 @@ Partial Class FrmTurnos
     Friend WithEvents btnGuardar As Button
     Friend WithEvents btnCancelarTurno As Button
     Friend WithEvents btnAusente As Button
+    Friend WithEvents btnConfirmacion As Button
 End Class
