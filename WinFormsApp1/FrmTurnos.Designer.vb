@@ -450,14 +450,17 @@ Partial Class FrmTurnos
         btnCancelarTurno.Cursor = Cursors.Hand
         btnCancelarTurno.FlatAppearance.BorderColor = Color.Silver
         btnCancelarTurno.FlatStyle = FlatStyle.Flat
+        btnCancelarTurno.ImageAlign = ContentAlignment.MiddleLeft
         btnCancelarTurno.Font = New Font("Segoe UI", 10F)
         btnCancelarTurno.ForeColor = Color.Firebrick
         btnCancelarTurno.Location = New Point(16, 414)
         btnCancelarTurno.Name = "btnCancelarTurno"
+        btnCancelarTurno.Padding = New Padding(12, 0, 0, 0)
         btnCancelarTurno.Size = New Size(298, 40)
         btnCancelarTurno.TabIndex = 6
-        btnCancelarTurno.Text = " Cancelar turno"
+        btnCancelarTurno.Text = "  Cancelar turno"
         btnCancelarTurno.TextImageRelation = TextImageRelation.ImageBeforeText
+        btnCancelarTurno.TextAlign = ContentAlignment.MiddleLeft
         btnCancelarTurno.UseVisualStyleBackColor = False
         '
         ' btnConfirmacion
@@ -467,13 +470,16 @@ Partial Class FrmTurnos
         btnConfirmacion.Cursor = Cursors.Hand
         btnConfirmacion.FlatAppearance.BorderColor = Color.Silver
         btnConfirmacion.FlatStyle = FlatStyle.Flat
+        btnConfirmacion.ImageAlign = ContentAlignment.MiddleLeft
         btnConfirmacion.Font = New Font("Segoe UI", 10F)
         btnConfirmacion.Location = New Point(16, 318)
         btnConfirmacion.Name = "btnConfirmacion"
+        btnConfirmacion.Padding = New Padding(12, 0, 0, 0)
         btnConfirmacion.Size = New Size(298, 40)
         btnConfirmacion.TabIndex = 8
-        btnConfirmacion.Text = " Copiar confirmación para WhatsApp"
+        btnConfirmacion.Text = "  Confirmación por WhatsApp"
         btnConfirmacion.TextImageRelation = TextImageRelation.ImageBeforeText
+        btnConfirmacion.TextAlign = ContentAlignment.MiddleLeft
         btnConfirmacion.UseVisualStyleBackColor = False
         btnConfirmacion.Visible = False
         '
@@ -484,12 +490,16 @@ Partial Class FrmTurnos
         btnAusente.Cursor = Cursors.Hand
         btnAusente.FlatAppearance.BorderColor = Color.Silver
         btnAusente.FlatStyle = FlatStyle.Flat
+        btnAusente.ImageAlign = ContentAlignment.MiddleLeft
         btnAusente.Font = New Font("Segoe UI", 10F)
         btnAusente.Location = New Point(16, 366)
         btnAusente.Name = "btnAusente"
+        btnAusente.Padding = New Padding(12, 0, 0, 0)
         btnAusente.Size = New Size(298, 40)
         btnAusente.TabIndex = 7
-        btnAusente.Text = "Marcar ausente"
+        btnAusente.Text = "  Marcar ausente"
+        btnAusente.TextImageRelation = TextImageRelation.ImageBeforeText
+        btnAusente.TextAlign = ContentAlignment.MiddleLeft
         btnAusente.UseVisualStyleBackColor = False
         '
         ' FrmTurnos

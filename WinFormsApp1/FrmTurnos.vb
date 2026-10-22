@@ -499,6 +499,7 @@ Public Class FrmTurnos
         btnGuardar.Image = LeerIcono("guardar.png")
         btnCancelarTurno.Image = LeerIcono("baja-rojo.png")
         btnConfirmacion.Image = LeerIcono("check-oscuro.png")
+        btnAusente.Image = LeerIcono("reloj-oscuro.png")
 
         'el encabezado de la agenda lleva solo una linea clara debajo, como las filas
         dgvAgenda.AdvancedColumnHeadersBorderStyle.Bottom = DataGridViewAdvancedCellBorderStyle.Single
