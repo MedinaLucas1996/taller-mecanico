@@ -23,7 +23,8 @@ Module Exportar
 
         'escribo primero un archivo temporal al lado y recien al terminar lo paso al nombre elegido:
         'si la escritura falla a mitad de camino, el archivo que ya existia no queda reemplazado por uno cortado
-        Dim temporal As String = ruta & ".tmp"
+        'el temporal tiene un nombre al azar en la misma carpeta, asi nunca pisa otro archivo del usuario
+        Dim temporal As String = Path.Combine(Path.GetDirectoryName(ruta), Path.GetRandomFileName())
         Try
             Dim filas As Integer = EscribirCsv(grilla, temporal)
             File.Move(temporal, ruta, True)
@@ -93,9 +94,10 @@ Module Exportar
 
     Function Campo(texto As String) As String
         'cada campo va entre comillas; una comilla adentro del texto se escribe doble, como pide el formato CSV
-        'un texto que empieza con = + - o @ se antepone con un apostrofo: Excel lo tomaria como formula y lo ejecutaria
+        'un texto que empieza con = + - @, tabulador o retorno se antepone con un apostrofo:
+        'Excel lo tomaria como formula y lo ejecutaria (algunas planillas ignoran el tabulador o el retorno inicial)
         Dim seguro As String = texto
-        If seguro <> "" AndAlso "=+-@".Contains(seguro(0)) Then seguro = "'" & seguro
+        If seguro <> "" AndAlso ("=+-@" & vbTab & vbCr).Contains(seguro(0)) Then seguro = "'" & seguro
         Return """" & seguro.Replace("""", """""") & """"
     End Function
 
