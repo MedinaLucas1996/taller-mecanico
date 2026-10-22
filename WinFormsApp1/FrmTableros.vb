@@ -41,6 +41,9 @@ Public Class FrmTableros
         grafico.Plot.FigureBackground.Color = ScottPlot.Colors.White
         'el tablero solo se mira: sin zoom ni arrastre con el mouse
         grafico.UserInputProcessor.Disable()
+        'el titulo centrado en todo el grafico y no solo sobre las barras,
+        'asi no se corta cuando las etiquetas de la izquierda son largas
+        grafico.Plot.Axes.Title.FullFigureCenter = True
     End Sub
 
     Sub AgregarParametros(cmd As MySqlCommand)
@@ -150,7 +153,8 @@ Public Class FrmTableros
             Dim posiciones(5) As Double
             For i As Integer = 0 To 5
                 Dim mes As Date = primerMes.AddMonths(i)
-                etiquetas(i) = nombresMes(mes.Month - 1) & " " & mes.ToString("yy")
+                'el mes arriba y el año abajo, para que entren en el grafico angosto
+                etiquetas(i) = nombresMes(mes.Month - 1) & vbLf & mes.ToString("yy")
                 posiciones(i) = i
             Next
 
@@ -259,7 +263,8 @@ Public Class FrmTableros
             'barras horizontales con el nombre del servicio a la izquierda
             grafico.Horizontal = True
             fpServicios.Plot.Axes.Left.SetTicks(posiciones.ToArray(), nombres.ToArray())
-            fpServicios.Plot.Axes.Margins(left:=0)
+            'lugar a la derecha para el numero de la barra mas larga
+            fpServicios.Plot.Axes.Margins(left:=0, right:=0.25)
             fpServicios.Plot.Title(titulo, 13)
             fpServicios.Plot.HideGrid()
             fpServicios.Refresh()
@@ -295,7 +300,8 @@ Public Class FrmTableros
                     AgregarParametros(cmd)
                     Using rd = cmd.ExecuteReader()
                         While rd.Read()
-                            nombres.Add(rd("nombre_completo").ToString())
+                            'nombre y apellido en renglones separados, para que no se pisen
+                            nombres.Add(rd("nombre_completo").ToString().Replace(" ", vbLf))
                             estimadas.Add(CDbl(rd("estimadas")))
                             reales.Add(CDbl(rd("reales")))
                         End While
@@ -403,6 +409,131 @@ Public Class FrmTableros
         End Try
     End Sub
 
+    'tiempos por etapa del periodo: los usan el grafico, la grilla y la hoja impresa
+    Private tablaEtapas As DataTable = Nothing
+    'periodo con el que se leyo la tabla, para imprimirlo aunque despues cambien las fechas
+    Private desdeEtapas As Date
+    Private hastaEtapas As Date
+    'fecha de impresion de la hoja y aviso de error una sola vez
+    Private fechaTiempos As DateTime
+    Private errorTiempos As Boolean = False
+
+    Function TextoDuracion(minutos As Double) As String
+        'menos de una hora se muestra en minutos, menos de un dia en horas, si no en dias con un decimal
+        'asi una etapa corta no aparece como "0 h"
+        If minutos < 60 Then Return Math.Round(minutos).ToString("0") & " min"
+        If minutos < 1440 Then Return Math.Round(minutos / 60).ToString("0") & " h"
+        Return (minutos / 1440).ToString("0.0") & " días"
+    End Function
+
+    Sub TiemposPorEtapa()
+        'una etapa empieza cuando la orden entra a un estado distinto del anterior
+        'y termina en el siguiente cambio de estado; las etapas en curso no se cuentan
+        Try
+            Dim sql As String = "WITH marcadas AS (" &
+                "SELECT h.id_ot_historial, h.id_orden_trabajo, h.id_estado_ot, h.fecha_hora, " &
+                "LAG(h.id_estado_ot) OVER (PARTITION BY h.id_orden_trabajo " &
+                "ORDER BY h.fecha_hora, h.id_ot_historial) AS estado_anterior " &
+                "FROM ot_historial_estado AS h), " &
+                "etapas AS (" &
+                "SELECT id_orden_trabajo, id_estado_ot, fecha_hora AS inicio, " &
+                "LEAD(fecha_hora) OVER (PARTITION BY id_orden_trabajo " &
+                "ORDER BY fecha_hora, id_ot_historial) AS fin " &
+                "FROM marcadas " &
+                "WHERE estado_anterior IS NULL OR estado_anterior <> id_estado_ot) " &
+                "SELECT e.codigo, e.descripcion, COUNT(*) AS ordenes, " &
+                "AVG(TIMESTAMPDIFF(MINUTE, t.inicio, t.fin)) AS promedio, " &
+                "MIN(TIMESTAMPDIFF(MINUTE, t.inicio, t.fin)) AS minimo, " &
+                "MAX(TIMESTAMPDIFF(MINUTE, t.inicio, t.fin)) AS maximo " &
+                "FROM etapas AS t " &
+                "JOIN estado_ot AS e ON e.id_estado_ot = t.id_estado_ot " &
+                "WHERE t.fin IS NOT NULL AND e.es_estado_final = 0 " &
+                "AND t.inicio >= @desde AND t.inicio < @hasta " &
+                "GROUP BY e.id_estado_ot, e.codigo, e.descripcion, e.orden_flujo " &
+                "ORDER BY e.orden_flujo;"
+
+            Dim tabla As New DataTable
+            Using cn As New MySqlConnection(CADENA)
+                cn.Open()
+                Using cmd As New MySqlCommand(sql, cn)
+                    AgregarParametros(cmd)
+                    Using rd = cmd.ExecuteReader()
+                        tabla.Load(rd)
+                    End Using
+                End Using
+            End Using
+
+            tablaEtapas = tabla
+            desdeEtapas = dtpDesde.Value.Date
+            hastaEtapas = dtpHasta.Value.Date
+        Catch ex As Exception
+            tablaEtapas = Nothing
+            MessageBox.Show("No se pudieron calcular los tiempos por etapa." & vbCrLf & "Detalle: " & ex.Message)
+        End Try
+
+        GraficoEtapas()
+        GrillaEtapas()
+    End Sub
+
+    Sub GraficoEtapas()
+        'dias promedio de cada etapa, en el orden del flujo de la orden
+        Dim titulo As String = "Días promedio por etapa"
+        Try
+            PrepararGrafico(fpEtapas)
+
+            If tablaEtapas Is Nothing OrElse tablaEtapas.Rows.Count = 0 Then
+                MostrarSinDatos(fpEtapas, titulo)
+                Exit Sub
+            End If
+
+            'la primera etapa del flujo arriba: invierto las posiciones
+            Dim barras As New List(Of ScottPlot.Bar)
+            Dim posiciones As New List(Of Double)
+            Dim nombres As New List(Of String)
+            Dim cantidad As Integer = tablaEtapas.Rows.Count
+            For i As Integer = 0 To cantidad - 1
+                Dim fila As DataRow = tablaEtapas.Rows(i)
+                Dim dias As Double = CDbl(fila("promedio")) / 1440
+                Dim posicion As Double = cantidad - 1 - i
+                barras.Add(New ScottPlot.Bar With {
+                    .Position = posicion,
+                    .Value = dias,
+                    .FillColor = ColorEstado(fila("codigo").ToString()),
+                    .Label = dias.ToString("0.0")
+                })
+                posiciones.Add(posicion)
+                nombres.Add(fila("descripcion").ToString())
+            Next
+
+            Dim grafico = fpEtapas.Plot.Add.Bars(barras)
+            'barras horizontales con el nombre de la etapa a la izquierda
+            grafico.Horizontal = True
+            fpEtapas.Plot.Axes.Left.SetTicks(posiciones.ToArray(), nombres.ToArray())
+            'lugar a la derecha para el numero de la barra mas larga
+            fpEtapas.Plot.Axes.Margins(left:=0, right:=0.2)
+            fpEtapas.Plot.Title(titulo, 13)
+            fpEtapas.Plot.HideGrid()
+            fpEtapas.Refresh()
+        Catch ex As Exception
+            MessageBox.Show("No se pudo armar el gráfico de tiempos por etapa." & vbCrLf & "Detalle: " & ex.Message)
+        End Try
+    End Sub
+
+    Sub GrillaEtapas()
+        'un renglon por etapa con la cantidad y los tiempos promedio, minimo y maximo
+        dgvEtapas.Rows.Clear()
+        If tablaEtapas Is Nothing Then Exit Sub
+
+        For Each fila As DataRow In tablaEtapas.Rows
+            dgvEtapas.Rows.Add(fila("descripcion").ToString(),
+                               CInt(fila("ordenes")).ToString(),
+                               TextoDuracion(CDbl(fila("promedio"))),
+                               TextoDuracion(CDbl(fila("minimo"))),
+                               TextoDuracion(CDbl(fila("maximo"))))
+        Next
+        dgvEtapas.ClearSelection()
+    End Sub
+
     Sub Actualizar()
         'recalculo todo el tablero con el periodo elegido
         lblSubtitulo.Text = "Período del " & dtpDesde.Value.ToString("dd/MM/yyyy") &
@@ -426,6 +557,7 @@ Public Class FrmTableros
             GraficoServicios()
             GraficoHoras()
             GraficoEstados()
+            TiemposPorEtapa()
         Finally
             Cursor.Current = Cursors.Default
         End Try
@@ -453,6 +585,137 @@ Public Class FrmTableros
         End If
 
         Actualizar()
+    End Sub
+
+    Private Sub btnImprimirTiempos_Click(sender As Object, e As EventArgs) Handles btnImprimirTiempos.Click
+        'la hoja sale de los tiempos que se ven en el tablero
+        If tablaEtapas Is Nothing Then
+            MessageBox.Show("No hay tiempos por etapa para imprimir. Actualice el tablero y vuelva a intentar.")
+            Exit Sub
+        End If
+
+        fechaTiempos = DateTime.Now
+
+        'abro la vista previa maximizada; desde su boton de impresora se imprime
+        'esta pantalla va dentro de la ventana principal: la vista previa se abre sobre esa ventana
+        Try
+            prdTiempos.DefaultPageSettings.Margins = New Printing.Margins(MARGEN_HOJA, MARGEN_HOJA, MARGEN_HOJA, MARGEN_HOJA)
+            ppdVistaPrevia.Document = prdTiempos
+            ppdVistaPrevia.WindowState = FormWindowState.Maximized
+            ppdVistaPrevia.ShowDialog(Me.TopLevelControl)
+        Catch ex As Exception
+            MessageBox.Show("No se pudo preparar la impresión: " & ex.Message)
+        End Try
+    End Sub
+
+    Private Sub prdTiempos_BeginPrint(sender As Object, e As Printing.PrintEventArgs) Handles prdTiempos.BeginPrint
+        'la vista previa y la impresion real avisan cada una de su propio error
+        errorTiempos = False
+    End Sub
+
+    Private Sub prdTiempos_PrintPage(sender As Object, e As Printing.PrintPageEventArgs) Handles prdTiempos.PrintPage
+        'un error al dibujar corta la hoja con un aviso, sin cerrar el sistema
+        Try
+            DibujarHojaTiempos(e)
+        Catch ex As Exception
+            If Not errorTiempos Then
+                errorTiempos = True
+                MessageBox.Show("No se pudo dibujar la hoja de tiempos: " & ex.Message)
+            End If
+        End Try
+        'la hoja es una sola
+        e.HasMorePages = False
+    End Sub
+
+    Sub DibujarHojaTiempos(e As Printing.PrintPageEventArgs)
+        'cabecera con el periodo, la tabla de etapas, las barras y la nota
+        Dim g As Graphics = e.Graphics
+        Dim area As Rectangle = e.MarginBounds
+        Dim x As Integer = area.Left
+        Dim ancho As Integer = area.Width
+        Dim limite As Integer = area.Bottom - ALTO_PIE
+        Dim periodo As String = "Período del " & desdeEtapas.ToString("dd/MM/yyyy") &
+                                " al " & hastaEtapas.ToString("dd/MM/yyyy")
+
+        Dim y As Integer = DibujarCabecera(g, x, area.Top, ancho, "Tiempos por etapa", periodo)
+
+        If tablaEtapas.Rows.Count = 0 Then
+            DibujarParrafo(g, "No hay etapas terminadas en el período.", x, y, ancho)
+        Else
+            'tabla con un renglon por etapa
+            Dim columnas() As String = {"Etapa", "Órdenes", "Promedio", "Mínimo", "Máximo"}
+            Dim pesos() As Single = {2.4F, 1.2F, 1.5F, 1.5F, 1.5F}
+            Dim alineaciones() As StringAlignment = {StringAlignment.Near, StringAlignment.Far, StringAlignment.Far,
+                                                     StringAlignment.Far, StringAlignment.Far}
+            Dim filas As New List(Of String())
+            For Each fila As DataRow In tablaEtapas.Rows
+                filas.Add({fila("descripcion").ToString(),
+                           CInt(fila("ordenes")).ToString(),
+                           TextoDuracion(CDbl(fila("promedio"))),
+                           TextoDuracion(CDbl(fila("minimo"))),
+                           TextoDuracion(CDbl(fila("maximo")))})
+            Next
+            Dim filaActual As Integer = 0
+            DibujarTabla(g, "Detalle por etapa", columnas, pesos, alineaciones, filas,
+                         x, y, ancho, limite, filaActual, True)
+
+            y = DibujarBarrasTiempos(g, x, y + 6, ancho)
+
+            DibujarParrafo(g, "Cada etapa se mide desde que la orden entra al estado hasta que pasa al siguiente. " &
+                              "No se cuentan las etapas en curso.", x, y, ancho)
+        End If
+
+        DibujarPie(g, area, "Tiempos por etapa · Impreso el " & fechaTiempos.ToString("dd/MM/yyyy HH:mm"), 1)
+    End Sub
+
+    Function DibujarBarrasTiempos(g As Graphics, x As Integer, y As Integer, ancho As Integer) As Integer
+        'una barra por etapa, larga en proporcion al mayor promedio, con el nombre y el promedio
+        Const ANCHO_NOMBRE As Integer = 150
+        Const ANCHO_VALOR As Integer = 90
+        Const ALTO_BARRA As Integer = 20
+
+        y = DibujarTituloSeccion(g, "Días promedio por etapa", x, y, ancho)
+
+        Dim mayor As Double = 0
+        For Each fila As DataRow In tablaEtapas.Rows
+            mayor = Math.Max(mayor, CDbl(fila("promedio")))
+        Next
+
+        Dim anchoBarras As Integer = ancho - ANCHO_NOMBRE - ANCHO_VALOR
+
+        Using fuente As New Font("Segoe UI", 9),
+              borde As New Pen(Color.Gray),
+              centrado As New StringFormat()
+
+            centrado.LineAlignment = StringAlignment.Center
+            For Each fila As DataRow In tablaEtapas.Rows
+                Dim promedio As Double = CDbl(fila("promedio"))
+                'una etapa de pocos minutos igual deja ver una barra finita
+                Dim largo As Integer = 2
+                If mayor > 0 Then largo = Math.Max(2, CInt(anchoBarras * promedio / mayor))
+
+                'el color de la etapa, el mismo del grafico
+                Dim colorEtapa As ScottPlot.Color = ColorEstado(fila("codigo").ToString())
+
+                g.DrawString(fila("descripcion").ToString(), fuente, Brushes.Black,
+                             New RectangleF(x, y, ANCHO_NOMBRE, ALTO_BARRA), centrado)
+                Using relleno As New SolidBrush(Color.FromArgb(colorEtapa.Alpha, colorEtapa.Red, colorEtapa.Green, colorEtapa.Blue))
+                    g.FillRectangle(relleno, x + ANCHO_NOMBRE, y, largo, ALTO_BARRA)
+                End Using
+                g.DrawRectangle(borde, x + ANCHO_NOMBRE, y, largo, ALTO_BARRA)
+                g.DrawString(TextoDuracion(promedio), fuente, Brushes.Black,
+                             New RectangleF(x + ANCHO_NOMBRE + largo + 6, y, ANCHO_VALOR, ALTO_BARRA), centrado)
+                y += ALTO_BARRA + 8
+            Next
+        End Using
+
+        Return y + 8
+    End Function
+
+    Private Sub FrmTableros_FormClosed(sender As Object, e As FormClosedEventArgs) Handles MyBase.FormClosed
+        'la vista previa y el documento de impresion no estan en components: los libero al cerrar
+        ppdVistaPrevia.Dispose()
+        prdTiempos.Dispose()
     End Sub
 
 End Class
