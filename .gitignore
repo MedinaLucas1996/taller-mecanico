@@ -6,3 +6,6 @@ packages/
 *.suo
 .claude/
 .atl/
+.codegraph/
+# cadena de conexion de cada puesto (ver WinFormsApp1/conexion.ejemplo.txt)
+WinFormsApp1/conexion.txt

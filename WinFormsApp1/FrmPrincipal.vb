@@ -20,6 +20,32 @@ Public Class FrmPrincipal
     Private iconoContraer As Image
     Private iconoExpandir As Image
 
+    'colores de las opciones del menu: el fondo normal y el de la opcion de la pantalla abierta
+    Private ReadOnly colorMenu As Color = Color.FromArgb(30, 39, 46)
+    Private ReadOnly colorOpcionActiva As Color = Color.FromArgb(52, 73, 94)
+
+    'boton de la pantalla que esta abierta, para que se vea resaltado en el menu
+    Private botonActivo As Button
+
+    'las dos fuentes de las opciones del menu, creadas una sola vez al abrir y liberadas al cerrar
+    Private fuenteOpcion As Font
+    Private fuenteOpcionActiva As Font
+
+    Sub MarcarOpcionActiva(boton As Button)
+        'resalto en el menu la opcion de la pantalla abierta y vuelvo a la normalidad la anterior
+        If botonActivo IsNot Nothing Then
+            botonActivo.BackColor = colorMenu
+            botonActivo.Font = fuenteOpcion
+        End If
+
+        botonActivo = boton
+
+        If botonActivo IsNot Nothing Then
+            botonActivo.BackColor = colorOpcionActiva
+            botonActivo.Font = fuenteOpcionActiva
+        End If
+    End Sub
+
     Function LeerIcono(archivo As String) As Image
         'leo un icono de la carpeta Recursos\iconos que esta junto al ejecutable
         Try
@@ -98,10 +124,15 @@ Public Class FrmPrincipal
         lblUsuario.Text = "Usuario: " & Sesion.NombreCompleto & " (" & Sesion.Rol & ")"
 
         'junto los botones del menu en el orden en que se ven
-        botonesMenu = {btnMisOrdenes, btnRecepcion, btnOrdenes, btnHistorial, btnTableros, btnClientes, btnVehiculos,
+        botonesMenu = {btnInicio, btnMisOrdenes, btnRecepcion, btnOrdenes, btnHistorial, btnTableros, btnClientes, btnVehiculos,
                        btnMarcasModelos, btnServicios, btnCategorias, btnMecanicos, btnUsuarios}
 
+        'la fuente normal es la del diseñador; la de la opcion activa es la misma en negrita
+        fuenteOpcion = btnClientes.Font
+        fuenteOpcionActiva = New Font(fuenteOpcion, FontStyle.Bold)
+
         'cargo el icono de cada opcion, si alguno falta ese boton queda sin icono
+        btnInicio.Image = LeerIcono("inicio.png")
         btnMisOrdenes.Image = LeerIcono("mis-ordenes.png")
         btnRecepcion.Image = LeerIcono("recepcion.png")
         btnOrdenes.Image = LeerIcono("ordenes.png")
@@ -114,6 +145,7 @@ Public Class FrmPrincipal
         btnCategorias.Image = LeerIcono("categorias.png")
         btnMecanicos.Image = LeerIcono("mecanicos.png")
         btnUsuarios.Image = LeerIcono("usuarios.png")
+        btnCambiarClave.Image = LeerIcono("cambiar-clave.png")
         btnCerrarSesion.Image = LeerIcono("cerrar-sesion.png")
         iconoContraer = LeerIcono("menu-contraer.png")
         iconoExpandir = LeerIcono("menu-expandir.png")
@@ -121,8 +153,9 @@ Public Class FrmPrincipal
         'las opciones del menu arrancan ocultas, muestro las que corresponden a cada rol
 
         'el administrador ve todo el menu
-        If Sesion.Rol = "ADMINISTRADOR" Then
+        If Sesion.Rol = ROL_ADMINISTRADOR Then
             verOperaciones = True
+            btnInicio.Visible = True
             btnRecepcion.Visible = True
             btnOrdenes.Visible = True
             btnHistorial.Visible = True
@@ -139,8 +172,9 @@ Public Class FrmPrincipal
         End If
 
         'el operador ve las operaciones y los datos de clientes y vehiculos
-        If Sesion.Rol = "OPERADOR" Then
+        If Sesion.Rol = ROL_OPERADOR Then
             verOperaciones = True
+            btnInicio.Visible = True
             btnRecepcion.Visible = True
             btnOrdenes.Visible = True
             btnHistorial.Visible = True
@@ -151,7 +185,7 @@ Public Class FrmPrincipal
         End If
 
         'el mecanico ve sus ordenes asignadas y el historial
-        If Sesion.Rol = "MECANICO" Then
+        If Sesion.Rol = ROL_MECANICO Then
             verOperaciones = True
             btnMisOrdenes.Visible = True
             btnHistorial.Visible = True
@@ -159,6 +193,12 @@ Public Class FrmPrincipal
 
         'muestro los titulos de las secciones del rol y dejo el menu expandido
         AplicarMenu()
+
+        'el administrador y el operador arrancan en la pantalla de inicio, con las ordenes que piden atencion hoy
+        'el mecanico se queda con el texto de bienvenida del panel
+        If Sesion.Rol = ROL_ADMINISTRADOR OrElse Sesion.Rol = ROL_OPERADOR Then
+            AbrirFormulario(New FrmInicio(), btnInicio)
+        End If
     End Sub
 
     Private Sub btnMenu_Click(sender As Object, e As EventArgs) Handles btnMenu.Click
@@ -194,8 +234,9 @@ Public Class FrmPrincipal
         Return True
     End Function
 
-    Private Sub AbrirFormulario(formulario As Form)
+    Private Sub AbrirFormulario(formulario As Form, boton As Button)
         'abro el formulario dentro del panel de contenido, despues de cerrar la pantalla que estaba abierta
+        'el boton es la opcion del menu que lo abrio, que queda resaltada
         If Not CerrarPantallaActual() Then
             'la pantalla actual se queda: descarto la que se iba a abrir
             formulario.Dispose()
@@ -209,54 +250,69 @@ Public Class FrmPrincipal
         panelContenido.Controls.Add(formulario)
 
         formulario.Show()
+
+        'el menu y el titulo de la ventana muestran que pantalla esta abierta
+        MarcarOpcionActiva(boton)
+        Me.Text = "Taller Mecánico - " & formulario.Text
+    End Sub
+
+    Private Sub btnInicio_Click(sender As Object, e As EventArgs) Handles btnInicio.Click
+        AbrirFormulario(New FrmInicio(), CType(sender, Button))
     End Sub
 
     Private Sub btnMisOrdenes_Click(sender As Object, e As EventArgs) Handles btnMisOrdenes.Click
-        AbrirFormulario(New FrmMisOrdenes())
+        AbrirFormulario(New FrmMisOrdenes(), CType(sender, Button))
     End Sub
 
     Private Sub btnRecepcion_Click(sender As Object, e As EventArgs) Handles btnRecepcion.Click
-        AbrirFormulario(New FrmRecepcion())
+        AbrirFormulario(New FrmRecepcion(), CType(sender, Button))
     End Sub
 
     Private Sub btnOrdenes_Click(sender As Object, e As EventArgs) Handles btnOrdenes.Click
-        AbrirFormulario(New FrmOrdenes())
+        AbrirFormulario(New FrmOrdenes(), CType(sender, Button))
     End Sub
 
     Private Sub btnHistorial_Click(sender As Object, e As EventArgs) Handles btnHistorial.Click
-        AbrirFormulario(New FrmHistorial())
+        AbrirFormulario(New FrmHistorial(), CType(sender, Button))
     End Sub
 
     Private Sub btnTableros_Click(sender As Object, e As EventArgs) Handles btnTableros.Click
-        AbrirFormulario(New FrmTableros())
+        AbrirFormulario(New FrmTableros(), CType(sender, Button))
     End Sub
 
     Private Sub btnClientes_Click(sender As Object, e As EventArgs) Handles btnClientes.Click
-        AbrirFormulario(New FrmClientes())
+        AbrirFormulario(New FrmClientes(), CType(sender, Button))
     End Sub
 
     Private Sub btnVehiculos_Click(sender As Object, e As EventArgs) Handles btnVehiculos.Click
-        AbrirFormulario(New FrmVehiculos())
+        AbrirFormulario(New FrmVehiculos(), CType(sender, Button))
     End Sub
 
     Private Sub btnMarcasModelos_Click(sender As Object, e As EventArgs) Handles btnMarcasModelos.Click
-        AbrirFormulario(New FrmMarcasModelos())
+        AbrirFormulario(New FrmMarcasModelos(), CType(sender, Button))
     End Sub
 
     Private Sub btnServicios_Click(sender As Object, e As EventArgs) Handles btnServicios.Click
-        AbrirFormulario(New FrmServicios())
+        AbrirFormulario(New FrmServicios(), CType(sender, Button))
     End Sub
 
     Private Sub btnCategorias_Click(sender As Object, e As EventArgs) Handles btnCategorias.Click
-        AbrirFormulario(New FrmCategorias())
+        AbrirFormulario(New FrmCategorias(), CType(sender, Button))
     End Sub
 
     Private Sub btnMecanicos_Click(sender As Object, e As EventArgs) Handles btnMecanicos.Click
-        AbrirFormulario(New FrmMecanicos())
+        AbrirFormulario(New FrmMecanicos(), CType(sender, Button))
     End Sub
 
     Private Sub btnUsuarios_Click(sender As Object, e As EventArgs) Handles btnUsuarios.Click
-        AbrirFormulario(New FrmUsuarios())
+        AbrirFormulario(New FrmUsuarios(), CType(sender, Button))
+    End Sub
+
+    Private Sub btnCambiarClave_Click(sender As Object, e As EventArgs) Handles btnCambiarClave.Click
+        'el usuario cambia su propia contraseña en una ventana aparte; la pantalla abierta no se toca
+        Using formulario As New FrmCambiarClave
+            formulario.ShowDialog()
+        End Using
     End Sub
 
     Private Sub btnCerrarSesion_Click(sender As Object, e As EventArgs) Handles btnCerrarSesion.Click
@@ -283,12 +339,26 @@ Public Class FrmPrincipal
     End Sub
 
     Private Sub FrmPrincipal_FormClosing(sender As Object, e As FormClosingEventArgs) Handles MyBase.FormClosing
+        'si Windows se esta apagando, o el manejador de errores decidio cerrar, no pregunto nada:
+        'un dialogo solo demoraria el cierre y lo cargado se pierde igual
+        'las pantallas del panel se cierran junto con esta ventana (un Close aca les llega como UserClosing, no como apagado)
+        If e.CloseReason = CloseReason.WindowsShutDown OrElse CierreForzado Then Exit Sub
+
         'antes de cerrar la ventana principal cierro la pantalla abierta, que puede pedir que no se cierre
         'al cerrar sesion la pantalla ya se cerro, asi que aca no se vuelve a preguntar
         If Not CerrarPantallaActual() Then e.Cancel = True
     End Sub
 
     Private Sub FrmPrincipal_FormClosed(sender As Object, e As FormClosedEventArgs) Handles MyBase.FormClosed
+        'libero la fuente en negrita que cree para la opcion activa (la normal es del diseñador y la libera el formulario)
+        If fuenteOpcionActiva IsNot Nothing Then
+            For Each boton As Button In botonesMenu
+                If boton.Font Is fuenteOpcionActiva Then boton.Font = fuenteOpcion
+            Next
+            fuenteOpcionActiva.Dispose()
+            fuenteOpcionActiva = Nothing
+        End If
+
         'si se esta cerrando la sesion, el login ya quedo a la vista y la aplicacion sigue
         If cerrandoSesion Then Exit Sub
 

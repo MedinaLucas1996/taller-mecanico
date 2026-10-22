@@ -433,4 +433,89 @@ Module Impresion
         g.DrawImage(imagen, x, y, ancho, alto)
     End Sub
 
+    Sub DibujarMarcasCorte(g As Graphics, caja As Rectangle)
+        'marcas de corte en las cuatro esquinas de una etiqueta, por fuera de la caja
+        Const LARGO As Integer = 12
+        Const SEPARACION As Integer = 3
+
+        Using lapiz As New Pen(Color.Black, 1)
+            'horizontales, a la izquierda y a la derecha de cada borde
+            g.DrawLine(lapiz, caja.Left - SEPARACION - LARGO, caja.Top, caja.Left - SEPARACION, caja.Top)
+            g.DrawLine(lapiz, caja.Right + SEPARACION, caja.Top, caja.Right + SEPARACION + LARGO, caja.Top)
+            g.DrawLine(lapiz, caja.Left - SEPARACION - LARGO, caja.Bottom, caja.Left - SEPARACION, caja.Bottom)
+            g.DrawLine(lapiz, caja.Right + SEPARACION, caja.Bottom, caja.Right + SEPARACION + LARGO, caja.Bottom)
+            'verticales, arriba y abajo de cada borde
+            g.DrawLine(lapiz, caja.Left, caja.Top - SEPARACION - LARGO, caja.Left, caja.Top - SEPARACION)
+            g.DrawLine(lapiz, caja.Right, caja.Top - SEPARACION - LARGO, caja.Right, caja.Top - SEPARACION)
+            g.DrawLine(lapiz, caja.Left, caja.Bottom + SEPARACION, caja.Left, caja.Bottom + SEPARACION + LARGO)
+            g.DrawLine(lapiz, caja.Right, caja.Bottom + SEPARACION, caja.Right, caja.Bottom + SEPARACION + LARGO)
+        End Using
+    End Sub
+
+    Sub DibujarColgante(g As Graphics, caja As Rectangle, patente As String, numero As String, vehiculo As String,
+                        cliente As String, recepcion As String, prometida As String)
+        'colgante de llaves: la patente bien grande y debajo los datos minimos para ubicar la orden
+        'la caja es la etiqueta ya recortada; las marcas de corte quedan por fuera
+        DibujarMarcasCorte(g, caja)
+
+        Using borde As New Pen(colorLinea)
+            borde.DashStyle = DashStyle.Dash
+            g.DrawRectangle(borde, caja)
+        End Using
+
+        Dim x As Integer = caja.Left + RELLENO * 2
+        Dim ancho As Integer = caja.Width - RELLENO * 4
+        Dim y As Integer = caja.Top + RELLENO * 2
+
+        'renglon de arriba: el taller a la izquierda y el numero de orden a la derecha
+        Using fuenteChica As New Font("Segoe UI", 8.5F),
+              fuenteNumero As New Font("Segoe UI", 10, FontStyle.Bold),
+              gris As New SolidBrush(colorEtiqueta),
+              derecha As New StringFormat()
+            derecha.Alignment = StringAlignment.Far
+            g.DrawString(NOMBRE_TALLER, fuenteChica, gris, x, y + 2)
+            g.DrawString(numero, fuenteNumero, Brushes.Black, x + ancho, y, derecha)
+            y += CInt(Math.Ceiling(fuenteNumero.GetHeight(g))) + 2
+        End Using
+
+        'la patente ocupa el centro, tan grande como entre en el ancho
+        Dim tamanio As Single = 40
+        Dim fuentePatente As New Font("Segoe UI", tamanio, FontStyle.Bold)
+        Do While tamanio > 12 AndAlso g.MeasureString(patente, fuentePatente).Width > ancho
+            fuentePatente.Dispose()
+            tamanio -= 2
+            fuentePatente = New Font("Segoe UI", tamanio, FontStyle.Bold)
+        Loop
+        Dim altoPatente As Integer = CInt(Math.Ceiling(fuentePatente.GetHeight(g)))
+        Using oscuro As New SolidBrush(colorOscuro),
+              centrado As New StringFormat()
+            centrado.Alignment = StringAlignment.Center
+            centrado.LineAlignment = StringAlignment.Center
+            g.DrawString(patente, fuentePatente, oscuro, New RectangleF(x, y, ancho, altoPatente), centrado)
+        End Using
+        fuentePatente.Dispose()
+        y += altoPatente + 2
+
+        'debajo, un renglon por dato; lo que no entra se corta con puntos suspensivos
+        Using fuenteVehiculo As New Font("Segoe UI", 10, FontStyle.Bold),
+              fuenteDato As New Font("Segoe UI", 9.5F),
+              fuenteChica As New Font("Segoe UI", 8.5F),
+              gris As New SolidBrush(colorEtiqueta),
+              unRenglon As New StringFormat(StringFormatFlags.NoWrap)
+            unRenglon.Trimming = StringTrimming.EllipsisCharacter
+
+            Dim alto As Integer = CInt(Math.Ceiling(fuenteVehiculo.GetHeight(g)))
+            g.DrawString(vehiculo, fuenteVehiculo, Brushes.Black, New RectangleF(x, y, ancho, alto), unRenglon)
+            y += alto
+
+            alto = CInt(Math.Ceiling(fuenteDato.GetHeight(g)))
+            g.DrawString(cliente, fuenteDato, Brushes.Black, New RectangleF(x, y, ancho, alto), unRenglon)
+            y += alto + 2
+
+            alto = CInt(Math.Ceiling(fuenteChica.GetHeight(g)))
+            g.DrawString("Recepción: " & recepcion & " · Entrega prometida: " & prometida, fuenteChica, gris,
+                         New RectangleF(x, y, ancho, alto), unRenglon)
+        End Using
+    End Sub
+
 End Module

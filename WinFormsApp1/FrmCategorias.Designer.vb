@@ -338,6 +338,7 @@ Partial Class FrmCategorias
         AutoScaleDimensions = New SizeF(8F, 20F)
         AutoScaleMode = AutoScaleMode.Font
         BackColor = Color.FromArgb(CByte(245), CByte(246), CByte(250))
+        CancelButton = btnCancelar
         ClientSize = New Size(870, 630)
         Controls.Add(pnlFicha)
         Controls.Add(pnlLista)

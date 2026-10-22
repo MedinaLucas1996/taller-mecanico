@@ -325,6 +325,8 @@ Public Class FrmHistorial
         idOrden = 0
         pnlVehiculo.Visible = False
         lblAyuda.Visible = True
+        'sin vehiculo no hay ordenes que exportar
+        btnExportar.Enabled = False
     End Sub
 
     Sub MostrarVehiculo(fila As DataGridViewRow)
@@ -352,6 +354,8 @@ Public Class FrmHistorial
         'la tarjeta se muestra antes de cargar las grillas que tiene adentro
         lblAyuda.Visible = False
         pnlVehiculo.Visible = True
+        'con un vehiculo elegido ya se pueden exportar sus ordenes
+        btnExportar.Enabled = True
 
         CargarOrdenes()
     End Sub
@@ -376,6 +380,7 @@ Public Class FrmHistorial
         picVehiculo.Image = LeerIcono("vehiculo-oscuro.png")
         picCliente.Image = LeerIcono("cliente-oscuro.png")
         picKm.Image = LeerIcono("km-oscuro.png")
+        btnExportar.Image = LeerIcono("exportar.png")
 
         'los encabezados de las listas llevan solo una linea clara debajo, como las filas
         dgvVehiculos.AdvancedColumnHeadersBorderStyle.Bottom = DataGridViewAdvancedCellBorderStyle.Single
@@ -383,7 +388,7 @@ Public Class FrmHistorial
         dgvServicios.AdvancedColumnHeadersBorderStyle.Bottom = DataGridViewAdvancedCellBorderStyle.Single
 
         'los tres roles abren esta pantalla; el rol solo decide si se ven los importes
-        esMecanico = (Sesion.Rol = "MECANICO")
+        esMecanico = (Sesion.Rol = ROL_MECANICO)
 
         MostrarAyuda()
         CargarVehiculos()
@@ -398,6 +403,11 @@ Public Class FrmHistorial
         'vuelvo a cargar la lista con lo escrito; la tarjeta no se toca, solo se vuelve a marcar su fila
         If cargando Then Exit Sub
         CargarVehiculos()
+    End Sub
+
+    Private Sub btnExportar_Click(sender As Object, e As EventArgs) Handles btnExportar.Click
+        'guardo en un CSV las ordenes del vehiculo que se esta viendo
+        ExportarGrilla(dgvOrdenes, "historial-" & lblPatente.Text)
     End Sub
 
     Private Sub dgvVehiculos_DataBindingComplete(sender As Object, e As DataGridViewBindingCompleteEventArgs) Handles dgvVehiculos.DataBindingComplete

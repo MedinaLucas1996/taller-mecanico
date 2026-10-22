@@ -479,6 +479,16 @@ Public Class FrmVehiculos
         'el encabezado de la lista lleva solo una linea clara debajo, como las filas
         dgvVehiculos.AdvancedColumnHeadersBorderStyle.Bottom = DataGridViewAdvancedCellBorderStyle.Single
 
+        'solo el administrador y el operador gestionan vehiculos (el menu ya oculta el boton)
+        If Sesion.Rol <> ROL_ADMINISTRADOR AndAlso Sesion.Rol <> ROL_OPERADOR Then
+            MessageBox.Show("Solo el administrador y el operador pueden gestionar vehículos.")
+            btnNuevo.Enabled = False
+            pnlLista.Enabled = False
+            pnlFicha.Enabled = False
+            MostrarAyuda()
+            Exit Sub
+        End If
+
         'cargo los combos al abrir el formulario, la tarjeta arranca con la ayuda
         cargando = True
         Try
@@ -493,6 +503,9 @@ Public Class FrmVehiculos
     End Sub
 
     Private Sub FrmVehiculos_Shown(sender As Object, e As EventArgs) Handles MyBase.Shown
+        'sin permiso la lista quedo deshabilitada en Load y no se carga
+        If Not pnlLista.Enabled Then Exit Sub
+
         'cargo la grilla de vehiculos recien ahora, cuando la pantalla ya tiene su tamaño final dentro de la ventana:
         'cargada en Load se repartia el ancho con la grilla mas angosta y las columnas se movian en la primera recarga
         CargarVehiculos()

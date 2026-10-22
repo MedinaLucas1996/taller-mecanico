@@ -90,6 +90,7 @@ Partial Class FrmOrdenes
         lblTablero = New Label()
         btnGestionar = New Button()
         dlgFoto = New OpenFileDialog()
+        btnExportar = New Button()
         tlpEstados.SuspendLayout()
         pnlEstado1.SuspendLayout()
         pnlEstado2.SuspendLayout()
@@ -125,7 +126,7 @@ Partial Class FrmOrdenes
         lblSubtitulo.AutoSize = True
         lblSubtitulo.Font = New Font("Segoe UI", 11F)
         lblSubtitulo.ForeColor = Color.DimGray
-        lblSubtitulo.Location = New Point(33, 62)
+        lblSubtitulo.Location = New Point(33, 70)
         lblSubtitulo.Name = "lblSubtitulo"
         lblSubtitulo.Size = New Size(220, 25)
         lblSubtitulo.TabIndex = 1
@@ -917,6 +918,22 @@ Partial Class FrmOrdenes
         btnGestionar.Text = "Gestionar orden"
         btnGestionar.UseVisualStyleBackColor = False
         '
+        ' btnExportar
+        '
+        btnExportar.Anchor = AnchorStyles.Top Or AnchorStyles.Right
+        btnExportar.BackColor = Color.White
+        btnExportar.Cursor = Cursors.Hand
+        btnExportar.FlatAppearance.BorderColor = Color.Silver
+        btnExportar.FlatStyle = FlatStyle.Flat
+        btnExportar.Font = New Font("Segoe UI", 10F)
+        btnExportar.Location = New Point(700, 34)
+        btnExportar.Name = "btnExportar"
+        btnExportar.Size = New Size(140, 40)
+        btnExportar.TabIndex = 6
+        btnExportar.Text = " Exportar"
+        btnExportar.TextImageRelation = TextImageRelation.ImageBeforeText
+        btnExportar.UseVisualStyleBackColor = False
+        '
         ' dlgFoto
         '
         dlgFoto.Filter = "Imágenes (*.jpg;*.jpeg;*.png)|*.jpg;*.jpeg;*.png"
@@ -928,6 +945,7 @@ Partial Class FrmOrdenes
         AutoScaleMode = AutoScaleMode.Font
         BackColor = Color.FromArgb(CByte(245), CByte(246), CByte(250))
         ClientSize = New Size(870, 630)
+        Controls.Add(btnExportar)
         Controls.Add(pnlDetalle)
         Controls.Add(dgvOrdenes)
         Controls.Add(pnlFiltros)
@@ -1028,4 +1046,5 @@ Partial Class FrmOrdenes
     Friend WithEvents lblTablero As Label
     Friend WithEvents btnGestionar As Button
     Friend WithEvents dlgFoto As OpenFileDialog
+    Friend WithEvents btnExportar As Button
 End Class

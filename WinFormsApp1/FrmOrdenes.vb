@@ -536,12 +536,16 @@ Public Class FrmOrdenes
         etiquetasCantidad = {lblCant1, lblCant2, lblCant3, lblCant4, lblCant5, lblCant6, lblCant7, lblCant8}
         etiquetasNombre = {lblNom1, lblNom2, lblNom3, lblNom4, lblNom5, lblNom6, lblNom7, lblNom8}
 
+        'icono del boton de exportar, si falta el boton queda solo con el texto
+        btnExportar.Image = LeerIcono("exportar.png")
+
         'solo el administrador y el operador consultan las ordenes (el menu ya oculta el boton)
-        If Sesion.Rol <> "ADMINISTRADOR" AndAlso Sesion.Rol <> "OPERADOR" Then
+        If Sesion.Rol <> ROL_ADMINISTRADOR AndAlso Sesion.Rol <> ROL_OPERADOR Then
             MessageBox.Show("Solo el administrador y el operador pueden consultar las órdenes de trabajo.")
             tlpEstados.Enabled = False
             pnlFiltros.Enabled = False
             dgvOrdenes.Enabled = False
+            btnExportar.Enabled = False
             Exit Sub
         End If
 
@@ -609,6 +613,11 @@ Public Class FrmOrdenes
         CargarTarjetas()
         CargarOrdenes()
         txtTexto.Focus()
+    End Sub
+
+    Private Sub btnExportar_Click(sender As Object, e As EventArgs) Handles btnExportar.Click
+        'guardo en un CSV las ordenes que se ven en la grilla, con los filtros aplicados
+        ExportarGrilla(dgvOrdenes, "ordenes-de-trabajo")
     End Sub
 
     Private Sub dgvOrdenes_DataBindingComplete(sender As Object, e As DataGridViewBindingCompleteEventArgs) Handles dgvOrdenes.DataBindingComplete
@@ -757,6 +766,24 @@ Public Class FrmOrdenes
         'la orden queda seleccionada si sigue en la lista
         CargarTarjetas()
         CargarOrdenes()
+    End Sub
+
+    Private Sub dgvOrdenes_CellDoubleClick(sender As Object, e As DataGridViewCellEventArgs) Handles dgvOrdenes.CellDoubleClick
+        'doble click sobre una fila: abro la gestion de esa orden, igual que el boton
+        If e.RowIndex < 0 Then Exit Sub
+        If cargandoOrdenes Then Exit Sub
+        If idOrdenSeleccionada = 0 Then Exit Sub
+
+        btnGestionar.PerformClick()
+    End Sub
+
+    Private Sub FrmOrdenes_FormClosed(sender As Object, e As FormClosedEventArgs) Handles MyBase.FormClosed
+        'libero la memoria de las fotos de la orden que quedaron en los cuadros
+        VaciarCuadro(picFrente, lblSinFrente, False)
+        VaciarCuadro(picTrasera, lblSinTrasera, False)
+        VaciarCuadro(picLateralIzq, lblSinLateralIzq, False)
+        VaciarCuadro(picLateralDer, lblSinLateralDer, False)
+        VaciarCuadro(picTablero, lblSinTablero, False)
     End Sub
 
 End Class

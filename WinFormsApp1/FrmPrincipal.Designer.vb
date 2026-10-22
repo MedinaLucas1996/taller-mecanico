@@ -35,6 +35,7 @@ Partial Class FrmPrincipal
         btnUsuarios = New Button()
         panelMenuArriba = New TableLayoutPanel()
         lblTituloOperaciones = New Label()
+        btnInicio = New Button()
         btnMisOrdenes = New Button()
         btnRecepcion = New Button()
         btnOrdenes = New Button()
@@ -47,6 +48,7 @@ Partial Class FrmPrincipal
         panelSuperior = New Panel()
         lblSistema = New Label()
         lblUsuario = New Label()
+        btnCambiarClave = New Button()
         btnCerrarSesion = New Button()
         panelContenido = New Panel()
         lblBienvenida = New Label()
@@ -288,16 +290,17 @@ Partial Class FrmPrincipal
         panelMenuArriba.ColumnCount = 1
         panelMenuArriba.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 100F))
         panelMenuArriba.Controls.Add(lblTituloOperaciones, 0, 0)
-        panelMenuArriba.Controls.Add(btnMisOrdenes, 0, 1)
-        panelMenuArriba.Controls.Add(btnRecepcion, 0, 2)
-        panelMenuArriba.Controls.Add(btnOrdenes, 0, 3)
-        panelMenuArriba.Controls.Add(btnHistorial, 0, 4)
-        panelMenuArriba.Controls.Add(lblTituloReportes, 0, 5)
-        panelMenuArriba.Controls.Add(btnTableros, 0, 6)
+        panelMenuArriba.Controls.Add(btnInicio, 0, 1)
+        panelMenuArriba.Controls.Add(btnMisOrdenes, 0, 2)
+        panelMenuArriba.Controls.Add(btnRecepcion, 0, 3)
+        panelMenuArriba.Controls.Add(btnOrdenes, 0, 4)
+        panelMenuArriba.Controls.Add(btnHistorial, 0, 5)
+        panelMenuArriba.Controls.Add(lblTituloReportes, 0, 6)
+        panelMenuArriba.Controls.Add(btnTableros, 0, 7)
         panelMenuArriba.Dock = DockStyle.Top
         panelMenuArriba.Location = New Point(0, 76)
         panelMenuArriba.Name = "panelMenuArriba"
-        panelMenuArriba.RowCount = 7
+        panelMenuArriba.RowCount = 8
         panelMenuArriba.RowStyles.Add(New RowStyle())
         panelMenuArriba.RowStyles.Add(New RowStyle())
         panelMenuArriba.RowStyles.Add(New RowStyle())
@@ -305,7 +308,8 @@ Partial Class FrmPrincipal
         panelMenuArriba.RowStyles.Add(New RowStyle())
         panelMenuArriba.RowStyles.Add(New RowStyle())
         panelMenuArriba.RowStyles.Add(New RowStyle())
-        panelMenuArriba.Size = New Size(230, 232)
+        panelMenuArriba.RowStyles.Add(New RowStyle())
+        panelMenuArriba.Size = New Size(230, 272)
         panelMenuArriba.TabIndex = 1
         '
         ' lblTituloOperaciones
@@ -322,6 +326,30 @@ Partial Class FrmPrincipal
         lblTituloOperaciones.Text = "OPERACIONES"
         lblTituloOperaciones.Visible = False
         '
+        ' btnInicio
+        '
+        btnInicio.Anchor = AnchorStyles.Left Or AnchorStyles.Right
+        btnInicio.BackColor = Color.FromArgb(CByte(30), CByte(39), CByte(46))
+        btnInicio.Cursor = Cursors.Hand
+        btnInicio.FlatAppearance.BorderSize = 0
+        btnInicio.FlatAppearance.MouseOverBackColor = Color.FromArgb(CByte(52), CByte(73), CByte(94))
+        btnInicio.FlatStyle = FlatStyle.Flat
+        btnInicio.Font = New Font("Segoe UI", 10F)
+        btnInicio.ForeColor = Color.White
+        btnInicio.ImageAlign = ContentAlignment.MiddleLeft
+        btnInicio.Location = New Point(0, 36)
+        btnInicio.Margin = New Padding(0)
+        btnInicio.Name = "btnInicio"
+        btnInicio.Padding = New Padding(16, 0, 0, 0)
+        btnInicio.Size = New Size(230, 40)
+        btnInicio.TabIndex = 8
+        btnInicio.Tag = "Inicio"
+        btnInicio.Text = "  Inicio"
+        btnInicio.TextAlign = ContentAlignment.MiddleLeft
+        btnInicio.TextImageRelation = TextImageRelation.ImageBeforeText
+        btnInicio.UseVisualStyleBackColor = False
+        btnInicio.Visible = False
+        '
         ' btnMisOrdenes
         '
         btnMisOrdenes.Anchor = AnchorStyles.Left Or AnchorStyles.Right
@@ -333,7 +361,7 @@ Partial Class FrmPrincipal
         btnMisOrdenes.Font = New Font("Segoe UI", 10F)
         btnMisOrdenes.ForeColor = Color.White
         btnMisOrdenes.ImageAlign = ContentAlignment.MiddleLeft
-        btnMisOrdenes.Location = New Point(0, 36)
+        btnMisOrdenes.Location = New Point(0, 76)
         btnMisOrdenes.Margin = New Padding(0)
         btnMisOrdenes.Name = "btnMisOrdenes"
         btnMisOrdenes.Padding = New Padding(16, 0, 0, 0)
@@ -357,7 +385,7 @@ Partial Class FrmPrincipal
         btnRecepcion.Font = New Font("Segoe UI", 10F)
         btnRecepcion.ForeColor = Color.White
         btnRecepcion.ImageAlign = ContentAlignment.MiddleLeft
-        btnRecepcion.Location = New Point(0, 36)
+        btnRecepcion.Location = New Point(0, 116)
         btnRecepcion.Margin = New Padding(0)
         btnRecepcion.Name = "btnRecepcion"
         btnRecepcion.Padding = New Padding(16, 0, 0, 0)
@@ -381,7 +409,7 @@ Partial Class FrmPrincipal
         btnOrdenes.Font = New Font("Segoe UI", 10F)
         btnOrdenes.ForeColor = Color.White
         btnOrdenes.ImageAlign = ContentAlignment.MiddleLeft
-        btnOrdenes.Location = New Point(0, 76)
+        btnOrdenes.Location = New Point(0, 156)
         btnOrdenes.Margin = New Padding(0)
         btnOrdenes.Name = "btnOrdenes"
         btnOrdenes.Padding = New Padding(16, 0, 0, 0)
@@ -405,7 +433,7 @@ Partial Class FrmPrincipal
         btnHistorial.Font = New Font("Segoe UI", 10F)
         btnHistorial.ForeColor = Color.White
         btnHistorial.ImageAlign = ContentAlignment.MiddleLeft
-        btnHistorial.Location = New Point(0, 116)
+        btnHistorial.Location = New Point(0, 196)
         btnHistorial.Margin = New Padding(0)
         btnHistorial.Name = "btnHistorial"
         btnHistorial.Padding = New Padding(16, 0, 0, 0)
@@ -423,7 +451,7 @@ Partial Class FrmPrincipal
         lblTituloReportes.Anchor = AnchorStyles.Left Or AnchorStyles.Right
         lblTituloReportes.Font = New Font("Segoe UI", 9F, FontStyle.Bold)
         lblTituloReportes.ForeColor = Color.FromArgb(CByte(150), CByte(160), CByte(170))
-        lblTituloReportes.Location = New Point(0, 156)
+        lblTituloReportes.Location = New Point(0, 236)
         lblTituloReportes.Margin = New Padding(0)
         lblTituloReportes.Name = "lblTituloReportes"
         lblTituloReportes.Padding = New Padding(20, 13, 0, 0)
@@ -443,7 +471,7 @@ Partial Class FrmPrincipal
         btnTableros.Font = New Font("Segoe UI", 10F)
         btnTableros.ForeColor = Color.White
         btnTableros.ImageAlign = ContentAlignment.MiddleLeft
-        btnTableros.Location = New Point(0, 192)
+        btnTableros.Location = New Point(0, 272)
         btnTableros.Margin = New Padding(0)
         btnTableros.Name = "btnTableros"
         btnTableros.Padding = New Padding(16, 0, 0, 0)
@@ -499,6 +527,7 @@ Partial Class FrmPrincipal
         panelSuperior.BackColor = Color.White
         panelSuperior.Controls.Add(lblSistema)
         panelSuperior.Controls.Add(lblUsuario)
+        panelSuperior.Controls.Add(btnCambiarClave)
         panelSuperior.Controls.Add(btnCerrarSesion)
         panelSuperior.Dock = DockStyle.Top
         panelSuperior.Location = New Point(230, 0)
@@ -521,13 +550,30 @@ Partial Class FrmPrincipal
         '
         lblUsuario.Dock = DockStyle.Right
         lblUsuario.Font = New Font("Segoe UI", 10F)
-        lblUsuario.Location = New Point(354, 14)
+        lblUsuario.Location = New Point(294, 14)
         lblUsuario.Name = "lblUsuario"
         lblUsuario.Padding = New Padding(0, 0, 15, 0)
-        lblUsuario.Size = New Size(420, 37)
+        lblUsuario.Size = New Size(320, 37)
         lblUsuario.TabIndex = 1
         lblUsuario.Text = "Usuario:"
         lblUsuario.TextAlign = ContentAlignment.MiddleRight
+        '
+        ' btnCambiarClave
+        '
+        btnCambiarClave.BackColor = Color.FromArgb(CByte(30), CByte(39), CByte(46))
+        btnCambiarClave.Cursor = Cursors.Hand
+        btnCambiarClave.Dock = DockStyle.Right
+        btnCambiarClave.FlatAppearance.BorderSize = 0
+        btnCambiarClave.FlatStyle = FlatStyle.Flat
+        btnCambiarClave.Font = New Font("Segoe UI", 10F)
+        btnCambiarClave.ForeColor = Color.White
+        btnCambiarClave.Location = New Point(614, 14)
+        btnCambiarClave.Name = "btnCambiarClave"
+        btnCambiarClave.Size = New Size(160, 37)
+        btnCambiarClave.TabIndex = 3
+        btnCambiarClave.Text = " Cambiar contraseña"
+        btnCambiarClave.TextImageRelation = TextImageRelation.ImageBeforeText
+        btnCambiarClave.UseVisualStyleBackColor = False
         '
         ' btnCerrarSesion
         '
@@ -615,6 +661,7 @@ Partial Class FrmPrincipal
     Friend WithEvents btnUsuarios As Button
     Friend WithEvents panelMenuArriba As TableLayoutPanel
     Friend WithEvents lblTituloOperaciones As Label
+    Friend WithEvents btnInicio As Button
     Friend WithEvents btnMisOrdenes As Button
     Friend WithEvents btnRecepcion As Button
     Friend WithEvents btnOrdenes As Button
@@ -627,6 +674,7 @@ Partial Class FrmPrincipal
     Friend WithEvents panelSuperior As Panel
     Friend WithEvents lblSistema As Label
     Friend WithEvents lblUsuario As Label
+    Friend WithEvents btnCambiarClave As Button
     Friend WithEvents btnCerrarSesion As Button
     Friend WithEvents panelContenido As Panel
     Friend WithEvents lblBienvenida As Label

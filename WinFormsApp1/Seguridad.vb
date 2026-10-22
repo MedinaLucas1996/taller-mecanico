@@ -6,6 +6,10 @@ Module Seguridad
     Private Const LARGO_HASH As Integer = 32
     Private Const LARGO_SALT As Integer = 16
 
+    'largo minimo de una clave nueva o cambiada (las de prueba tienen 8)
+    'lo usan el alta de usuarios y el cambio de clave propio, por eso vive aca y no en una pantalla
+    Public Const LARGO_MINIMO_CLAVE As Integer = 6
+
     'genero un salt aleatorio y lo devuelvo en Base64
     Public Function GenerarSalt() As String
         Dim bytesSalt As Byte() = RandomNumberGenerator.GetBytes(LARGO_SALT)

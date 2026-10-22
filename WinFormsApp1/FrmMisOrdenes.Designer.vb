@@ -64,6 +64,7 @@ Partial Class FrmMisOrdenes
         lblSinTablero = New Label()
         picTablero = New PictureBox()
         btnAbrir = New Button()
+        btnExportar = New Button()
         tlpGrupos.SuspendLayout()
         pnlGrupo1.SuspendLayout()
         pnlGrupo2.SuspendLayout()
@@ -88,7 +89,7 @@ Partial Class FrmMisOrdenes
         lblTitulo.Font = New Font("Segoe UI", 24F, FontStyle.Bold)
         lblTitulo.Location = New Point(30, 10)
         lblTitulo.Name = "lblTitulo"
-        lblTitulo.Size = New Size(700, 60)
+        lblTitulo.Size = New Size(660, 60)
         lblTitulo.TabIndex = 3
         lblTitulo.Text = "Mis órdenes asignadas"
         '
@@ -636,12 +637,29 @@ Partial Class FrmMisOrdenes
         btnAbrir.TextImageRelation = TextImageRelation.ImageBeforeText
         btnAbrir.UseVisualStyleBackColor = False
         '
+        ' btnExportar
+        '
+        btnExportar.Anchor = AnchorStyles.Top Or AnchorStyles.Right
+        btnExportar.BackColor = Color.White
+        btnExportar.Cursor = Cursors.Hand
+        btnExportar.FlatAppearance.BorderColor = Color.Silver
+        btnExportar.FlatStyle = FlatStyle.Flat
+        btnExportar.Font = New Font("Segoe UI", 10F)
+        btnExportar.Location = New Point(700, 34)
+        btnExportar.Name = "btnExportar"
+        btnExportar.Size = New Size(140, 40)
+        btnExportar.TabIndex = 5
+        btnExportar.Text = " Exportar"
+        btnExportar.TextImageRelation = TextImageRelation.ImageBeforeText
+        btnExportar.UseVisualStyleBackColor = False
+        '
         ' FrmMisOrdenes
         '
         AutoScaleDimensions = New SizeF(8F, 20F)
         AutoScaleMode = AutoScaleMode.Font
         BackColor = Color.FromArgb(CByte(245), CByte(246), CByte(250))
         ClientSize = New Size(870, 630)
+        Controls.Add(btnExportar)
         Controls.Add(pnlResumen)
         Controls.Add(pnlLista)
         Controls.Add(tlpGrupos)
@@ -712,4 +730,5 @@ Partial Class FrmMisOrdenes
     Friend WithEvents lblSinTablero As Label
     Friend WithEvents picTablero As PictureBox
     Friend WithEvents btnAbrir As Button
+    Friend WithEvents btnExportar As Button
 End Class

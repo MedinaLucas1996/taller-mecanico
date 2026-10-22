@@ -53,6 +53,7 @@ Partial Class FrmHistorial
         lblObsTit = New Label()
         txtSintoma = New TextBox()
         txtObservaciones = New TextBox()
+        btnExportar = New Button()
         pnlLista.SuspendLayout()
         pnlDetalle.SuspendLayout()
         pnlVehiculo.SuspendLayout()
@@ -72,7 +73,7 @@ Partial Class FrmHistorial
         lblTitulo.Font = New Font("Segoe UI", 24F, FontStyle.Bold)
         lblTitulo.Location = New Point(30, 10)
         lblTitulo.Name = "lblTitulo"
-        lblTitulo.Size = New Size(700, 60)
+        lblTitulo.Size = New Size(660, 60)
         lblTitulo.TabIndex = 2
         lblTitulo.Text = "Historial por patente"
         '
@@ -480,12 +481,30 @@ Partial Class FrmHistorial
         txtObservaciones.TabIndex = 1
         txtObservaciones.TabStop = False
         '
+        ' btnExportar
+        '
+        btnExportar.Anchor = AnchorStyles.Top Or AnchorStyles.Right
+        btnExportar.BackColor = Color.White
+        btnExportar.Cursor = Cursors.Hand
+        btnExportar.Enabled = False
+        btnExportar.FlatAppearance.BorderColor = Color.Silver
+        btnExportar.FlatStyle = FlatStyle.Flat
+        btnExportar.Font = New Font("Segoe UI", 10F)
+        btnExportar.Location = New Point(700, 34)
+        btnExportar.Name = "btnExportar"
+        btnExportar.Size = New Size(140, 40)
+        btnExportar.TabIndex = 4
+        btnExportar.Text = " Exportar"
+        btnExportar.TextImageRelation = TextImageRelation.ImageBeforeText
+        btnExportar.UseVisualStyleBackColor = False
+        '
         ' FrmHistorial
         '
         AutoScaleDimensions = New SizeF(8F, 20F)
         AutoScaleMode = AutoScaleMode.Font
         BackColor = Color.FromArgb(CByte(245), CByte(246), CByte(250))
         ClientSize = New Size(870, 630)
+        Controls.Add(btnExportar)
         Controls.Add(pnlDetalle)
         Controls.Add(pnlLista)
         Controls.Add(lblSubtitulo)
@@ -539,4 +558,5 @@ Partial Class FrmHistorial
     Friend WithEvents lblObsTit As Label
     Friend WithEvents txtSintoma As TextBox
     Friend WithEvents txtObservaciones As TextBox
+    Friend WithEvents btnExportar As Button
 End Class

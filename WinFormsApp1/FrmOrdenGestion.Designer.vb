@@ -111,13 +111,16 @@ Partial Class FrmOrdenGestion
         btnSecundario = New Button()
         btnPrimario = New Button()
         btnImprimir = New Button()
+        btnAvisar = New Button()
         cmsImprimir = New ContextMenuStrip(components)
         mnuOrdenTrabajo = New ToolStripMenuItem()
         mnuPresupuesto = New ToolStripMenuItem()
         mnuActa = New ToolStripMenuItem()
+        mnuColgante = New ToolStripMenuItem()
         prdOrdenTrabajo = New Printing.PrintDocument()
         prdPresupuesto = New Printing.PrintDocument()
         prdActa = New Printing.PrintDocument()
+        prdColgante = New Printing.PrintDocument()
         ppdVistaPrevia = New PrintPreviewDialog()
         tlpEtapas.SuspendLayout()
         pnlEtapa1.SuspendLayout()
@@ -1201,13 +1204,31 @@ Partial Class FrmOrdenGestion
         btnImprimir.TextImageRelation = TextImageRelation.ImageBeforeText
         btnImprimir.UseVisualStyleBackColor = False
         '
+        ' btnAvisar
+        '
+        btnAvisar.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left
+        btnAvisar.BackColor = Color.White
+        btnAvisar.Cursor = Cursors.Hand
+        btnAvisar.FlatAppearance.BorderColor = Color.Silver
+        btnAvisar.FlatStyle = FlatStyle.Flat
+        btnAvisar.Font = New Font("Segoe UI", 10F)
+        btnAvisar.ForeColor = Color.FromArgb(CByte(30), CByte(39), CByte(46))
+        btnAvisar.Location = New Point(182, 800)
+        btnAvisar.Name = "btnAvisar"
+        btnAvisar.Size = New Size(180, 42)
+        btnAvisar.TabIndex = 13
+        btnAvisar.Text = " Avisar al cliente"
+        btnAvisar.TextImageRelation = TextImageRelation.ImageBeforeText
+        btnAvisar.UseVisualStyleBackColor = False
+        btnAvisar.Visible = False
+        '
         ' cmsImprimir
         '
         cmsImprimir.Font = New Font("Segoe UI", 10F)
         cmsImprimir.ImageScalingSize = New Size(20, 20)
-        cmsImprimir.Items.AddRange(New ToolStripItem() {mnuOrdenTrabajo, mnuPresupuesto, mnuActa})
+        cmsImprimir.Items.AddRange(New ToolStripItem() {mnuOrdenTrabajo, mnuPresupuesto, mnuActa, mnuColgante})
         cmsImprimir.Name = "cmsImprimir"
-        cmsImprimir.Size = New Size(221, 82)
+        cmsImprimir.Size = New Size(221, 108)
         '
         ' mnuOrdenTrabajo
         '
@@ -1227,6 +1248,12 @@ Partial Class FrmOrdenGestion
         mnuActa.Size = New Size(220, 26)
         mnuActa.Text = "Acta de recepción"
         '
+        ' mnuColgante
+        '
+        mnuColgante.Name = "mnuColgante"
+        mnuColgante.Size = New Size(220, 26)
+        mnuColgante.Text = "Colgante de llaves"
+        '
         ' prdOrdenTrabajo
         '
         prdOrdenTrabajo.DocumentName = "Orden de trabajo"
@@ -1238,6 +1265,10 @@ Partial Class FrmOrdenGestion
         ' prdActa
         '
         prdActa.DocumentName = "Acta de recepción"
+        '
+        ' prdColgante
+        '
+        prdColgante.DocumentName = "Colgante de llaves"
         '
         ' ppdVistaPrevia
         '
@@ -1261,6 +1292,7 @@ Partial Class FrmOrdenGestion
         Controls.Add(lblProximo)
         Controls.Add(btnAnular)
         Controls.Add(btnImprimir)
+        Controls.Add(btnAvisar)
         Controls.Add(pnlHistorial)
         Controls.Add(pnlDatos)
         Controls.Add(pnlTrabajo)
@@ -1398,12 +1430,15 @@ Partial Class FrmOrdenGestion
     Friend WithEvents btnSecundario As Button
     Friend WithEvents btnPrimario As Button
     Friend WithEvents btnImprimir As Button
+    Friend WithEvents btnAvisar As Button
     Friend WithEvents cmsImprimir As ContextMenuStrip
     Friend WithEvents mnuOrdenTrabajo As ToolStripMenuItem
     Friend WithEvents mnuPresupuesto As ToolStripMenuItem
     Friend WithEvents mnuActa As ToolStripMenuItem
+    Friend WithEvents mnuColgante As ToolStripMenuItem
     Friend WithEvents prdOrdenTrabajo As Printing.PrintDocument
     Friend WithEvents prdPresupuesto As Printing.PrintDocument
     Friend WithEvents prdActa As Printing.PrintDocument
+    Friend WithEvents prdColgante As Printing.PrintDocument
     Friend WithEvents ppdVistaPrevia As PrintPreviewDialog
 End Class

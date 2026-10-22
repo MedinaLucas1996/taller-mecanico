@@ -41,12 +41,18 @@ Module Fotos
 
                     'dibujo la foto en un bitmap nuevo, que ya no depende del archivo
                     Dim reducida As New Bitmap(ancho, alto, PixelFormat.Format24bppRgb)
-                    Using dibujo As Graphics = Graphics.FromImage(reducida)
-                        'fondo blanco para los PNG con transparencia
-                        dibujo.Clear(Color.White)
-                        dibujo.InterpolationMode = InterpolationMode.HighQualityBicubic
-                        dibujo.DrawImage(original, 0, 0, ancho, alto)
-                    End Using
+                    Try
+                        Using dibujo As Graphics = Graphics.FromImage(reducida)
+                            'fondo blanco para los PNG con transparencia
+                            dibujo.Clear(Color.White)
+                            dibujo.InterpolationMode = InterpolationMode.HighQualityBicubic
+                            dibujo.DrawImage(original, 0, 0, ancho, alto)
+                        End Using
+                    Catch ex As Exception
+                        'no se pudo dibujar: libero el bitmap nuevo antes de informar la falla
+                        reducida.Dispose()
+                        Throw
+                    End Try
 
                     Return reducida
                 End Using

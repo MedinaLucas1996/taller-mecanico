@@ -158,7 +158,7 @@ Public Class FrmAltaRapida
 
     Private Sub FrmAltaRapida_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         'registran clientes y vehiculos el administrador y el operador, igual que en la recepcion
-        If Sesion.Rol <> "ADMINISTRADOR" AndAlso Sesion.Rol <> "OPERADOR" Then
+        If Sesion.Rol <> ROL_ADMINISTRADOR AndAlso Sesion.Rol <> ROL_OPERADOR Then
             MessageBox.Show("Solo el administrador y el operador pueden registrar clientes y vehículos.")
             Me.Close()
             Exit Sub
