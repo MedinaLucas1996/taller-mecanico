@@ -4,7 +4,7 @@
 
 Aplicación de escritorio en dos capas — Windows Forms (.NET) + MariaDB
 
-*Versión alineada al alcance acordado con la cátedra el 27/08*
+*Versión alineada al alcance acordado con la cátedra el 27/08, actualizada con las funciones incorporadas durante el desarrollo. Donde una decisión reemplazó lo escrito originalmente se deja una nota "(decisión tomada)".*
 
 ---
 
@@ -31,6 +31,11 @@ El dominio genera de forma natural las relaciones que justifican un modelo relac
 - Registro de la ejecución real del trabajo
 - Emisión del presupuesto impreso y reportes de gestión
 - Autenticación de usuarios con tres niveles de permisos
+- Agenda de turnos del taller, vinculada a la recepción
+- Avisos de service a los clientes según el intervalo de cada servicio
+- Fotos del vehículo en la recepción y fotos del trabajo realizado
+- Pantalla de inicio con las órdenes que requieren atención en el día
+- Tableros de gestión con indicadores y gráficos por período
 
 ### 2.2 Excluido
 
@@ -44,7 +49,9 @@ Queda fuera del alcance:
 - Portal web o acceso remoto para clientes
 - Gestión contable, de compras o de proveedores
 
-El documento imprimible del sistema es el **presupuesto**. Los precios de los servicios se manejan como importe final, sin desglose de impuestos.
+El documento imprimible exigido por la consigna es el **presupuesto**; los demás documentos que el sistema imprime se describen en la sección 10. Los precios de los servicios se manejan como importe final, sin desglose de impuestos.
+
+Los mensajes al cliente (confirmación de turno, aviso de service, aviso de vehículo listo) no se envían desde el sistema: se copian al portapapeles para pegarlos en WhatsApp o leerlos por teléfono.
 
 ---
 
@@ -63,15 +70,19 @@ Todas las estaciones ejecutan el mismo binario y se conectan a una única base d
 
 ### 3.2 Organización de la solución
 
-Aunque la arquitectura de despliegue sea de dos capas, internamente el código se separa en dos proyectos dentro de la misma solución:
+La solución tiene un único proyecto Windows Forms. Cada formulario escribe y ejecuta sus propias consultas SQL, y el código que comparten varias pantallas vive en módulos:
 
 ```
 TallerMecanico.sln
-├── TallerMecanico.UI          → Windows Forms (formularios, reportes)
-└── TallerMecanico.Datos       → Class Library (clases de acceso a datos)
+└── WinFormsApp1               → Windows Forms (formularios, reportes y módulos compartidos)
+    ├── Frm*.vb                → una pantalla por formulario, con sus consultas SQL
+    └── Módulos                → conexión, sesión, seguridad, errores, fotos, impresión,
+                                 exportación, turnos y recordatorios
 ```
 
-**Regla de diseño:** el proyecto de interfaz nunca instancia un objeto de conexión ni escribe SQL. Toda consulta se canaliza a través de las clases de acceso a datos (`ClienteDAO`, `VehiculoDAO`, `OrdenTrabajoDAO`, etc.).
+**Regla de diseño:** las consultas se escriben con parámetros, nunca concatenando valores; las operaciones que tocan más de una tabla van dentro de una transacción; y lo que dos pantallas necesitan por igual (abrir la conexión, verificar una contraseña, reducir una foto, exportar una grilla, armar la consulta de services) se escribe una sola vez en un módulo.
+
+> **Nota (decisión tomada).** La versión original preveía dos proyectos (interfaz y una biblioteca de clases de acceso a datos con objetos `DAO`). Se descartó por indicación de la cátedra, que pide el enfoque orientado a eventos visto en clase: formularios construidos en el diseñador, lógica en los manejadores de eventos y SQL dentro de los formularios. Los módulos reemplazan a la capa de acceso a datos para el código compartido.
 
 ---
 
@@ -85,17 +96,30 @@ El sistema define tres roles.
 | ABM de servicios y categorías | ✅ | ❌ | ❌ |
 | ABM de mecánicos | ✅ | ❌ | ❌ |
 | ABM de clientes y vehículos | ✅ | ✅ | ❌ |
+| ABM de marcas y modelos | ✅ | ✅ | ❌ |
+| Agenda de turnos (dar, cancelar, marcar ausente) | ✅ | ✅ | ❌ |
 | Recepcionar vehículo (abrir OT) | ✅ | ✅ | ❌ |
+| Cargar el diagnóstico del mecánico (orden recepcionada) | ❌ | ❌ | ✅ (solo en sus órdenes) |
 | Cargar el detalle del presupuesto | ✅ | ✅ | ❌ |
 | Registrar la aprobación del cliente | ✅ | ✅ | ❌ |
 | Ver todas las órdenes (tablero) | ✅ | ✅ | ❌ |
 | Ver las órdenes propias asignadas ("Mis órdenes") | — | — | ✅ |
 | Ver precios, subtotales y totales de una orden | ✅ | ✅ | ❌ |
 | Iniciar el trabajo, registrar horas trabajadas y cierre técnico | ✅ | ✅ | ✅ (solo en sus órdenes) |
+| Cargar y quitar fotos del trabajo | ✅ | ✅ | ✅ (solo en sus órdenes) |
 | Cambiar el mecánico asignado | ✅ | ✅ | ❌ |
+| Avisar al cliente que el vehículo está listo | ✅ | ✅ | ❌ |
 | Entregar el vehículo | ✅ | ✅ | ❌ |
-| Reportes de gestión | ✅ | ❌ | ❌ |
+| Consultar el historial por patente | ✅ | ✅ | ✅ (sin importes) |
+| Avisos de service a los clientes | ✅ | ✅ | ❌ |
+| Pantalla de inicio | ✅ | ✅ | ❌ |
+| Tableros de gestión | ✅ | ❌ | ❌ |
 | Anular órdenes | ✅ | ❌ | ❌ |
+| Cambiar la propia contraseña | ✅ | ✅ | ✅ |
+
+> **Nota (decisión tomada).** La matriz original no preveía que el mecánico escribiera en la orden antes del presupuesto. Se agregó el diagnóstico del mecánico como paso opcional de la orden recepcionada (ver 5.9); lo carga únicamente el mecánico asignado, desde "Mis órdenes".
+
+Cada pantalla vuelve a comprobar el rol al abrirse, además de que el menú principal solo muestra las opciones del rol que inició sesión.
 
 ### 4.1 Vínculo entre usuario y mecánico
 
@@ -112,7 +136,11 @@ Un mecánico puede existir como dato maestro sin usuario asociado. Esto cubre do
 
 El inicio de sesión responde a dos necesidades: la **auditoría** —cada orden y cada cambio de estado registran el usuario responsable— y la **separación de permisos**, que habilita menús y acciones según el rol.
 
-Las contraseñas se almacenan mediante función de hash, nunca en texto plano.
+Las contraseñas se almacenan mediante función de hash con una sal propia por usuario, nunca en texto plano (ver 11.4).
+
+Tras cinco intentos fallidos seguidos, el inicio de sesión se bloquea durante treinta segundos con una cuenta regresiva visible; el mensaje de error es el mismo cuando el usuario no existe y cuando la contraseña es incorrecta. Un usuario dado de baja no puede ingresar.
+
+Todo usuario puede cambiar su propia contraseña desde el menú principal: debe escribir la actual y la nueva, que tiene un largo mínimo de seis caracteres. El cambio genera una sal nueva.
 
 ---
 
@@ -144,11 +172,15 @@ Se abre la orden de trabajo registrando:
 | Fecha prometida de entrega | Opcional; no puede ser anterior al día de la recepción |
 | Fotos del vehículo | Cinco ángulos: frente, trasera, lateral izquierdo, lateral derecho y tablero. Son opcionales |
 
-**Estado resultante:** `RECEPCIONADA` · **Salida:** comanda de taller
+Si el vehículo tiene un turno pendiente para el día de hoy, la recepción lo muestra junto a la patente y propone el motivo del turno como síntoma, mientras no se haya escrito otro. Al confirmar la recepción, el turno queda **atendido** y vinculado a la orden creada (ver 5.7).
+
+**Estado resultante:** `RECEPCIONADA` · **Salida:** comanda de taller (orden de trabajo), acta de recepción y colgante de llaves
 
 ### 5.2 Diagnóstico y presupuesto
 
-El mecánico revisa el vehículo. El operador carga las líneas de detalle, eligiendo servicios del catálogo.
+El mecánico revisa el vehículo y puede dejar registrado su diagnóstico mientras la orden está `RECEPCIONADA` (ver 5.9). El administrador o el operador cargan las líneas de detalle, eligiendo servicios del catálogo; el diagnóstico se lee encima de las líneas mientras se arma el presupuesto.
+
+> **Nota (decisión tomada).** El texto original decía que las líneas las carga "el operador". Las carga cualquiera de los dos roles que gestionan órdenes, el administrador o el operador, como indica la matriz de permisos.
 
 Al agregar cada línea, el sistema **copia** la descripción y el precio desde el catálogo hacia el detalle de la orden. No guarda solo la referencia al servicio.
 
@@ -156,7 +188,7 @@ Se calcula el subtotal de cada línea y el total presupuestado en la cabecera.
 
 El precio copiado no se edita en la línea. Cada servicio figura una sola vez por orden: para presupuestar más unidades se cambia la cantidad de su línea.
 
-El paso a `PRESUPUESTADA` es explícito (botón "Presupuestar") y exige al menos una línea cargada.
+El paso a `PRESUPUESTADA` es explícito (botón "Presupuestar") y exige al menos una línea cargada. Si la orden no tiene el diagnóstico del mecánico, el sistema lo advierte y pide confirmación antes de continuar: el diagnóstico es opcional.
 
 **Estado resultante:** `PRESUPUESTADA` · **Salida:** presupuesto impreso
 
@@ -188,6 +220,8 @@ Las horas trabajadas se cargan línea por línea y se pueden guardar en cualquie
 
 Para iniciar el trabajo la orden debe tener un mecánico asignado.
 
+Durante la revisión y el trabajo se pueden cargar fotos de lo que se encontró o se hizo, con una descripción opcional (ver 8.10).
+
 **Estado resultante:** `EN_PROCESO`
 
 ### 5.5 Cierre técnico
@@ -196,13 +230,55 @@ Se completan las observaciones del mecánico —lo que se hizo y las recomendaci
 
 Para finalizar, todas las líneas aprobadas deben tener cargadas sus horas trabajadas, y las observaciones del mecánico son obligatorias.
 
-**Estado resultante:** `FINALIZADA`
+**Estado resultante:** `FINALIZADA` · **Salida:** aviso al cliente de que el vehículo está listo (ver 5.10)
 
 ### 5.6 Entrega
 
 Se registra la fecha de entrega y se actualiza el kilometraje del vehículo con el valor de esta orden.
 
 **Estado resultante:** `ENTREGADA`
+
+### 5.7 Turnos
+
+El taller da turnos por **franjas de una hora**: de lunes a viernes de 8 a 17, los sábados de 8 a 12, y los domingos no se atiende. Cada franja admite hasta **dos vehículos**. La agenda se consulta día por día y la gestionan el administrador y el operador.
+
+Para dar un turno se busca el vehículo por patente (debe estar registrado y activo), se elige la franja y se escribe, de manera opcional, el motivo con lo que pide el cliente. Reglas:
+
+- Un vehículo tiene a lo sumo **un turno pendiente** de aquí en adelante; para darle otro primero hay que cancelar el vigente.
+- La franja se comprueba al guardar, con bloqueo en la base, para que dos puestos no superen el cupo ni le den dos turnos al mismo vehículo a la vez.
+- El sistema arma una confirmación del turno y la copia al portapapeles para enviarla por WhatsApp al teléfono del cliente.
+
+Un turno nace **pendiente** y termina de una de tres maneras:
+
+| Estado | Cómo se llega |
+|---|---|
+| `ATENDIDO` | La recepción del vehículo en el día del turno lo cierra y lo vincula a la orden creada |
+| `CANCELADO` | Se cancela desde la agenda; el lugar queda libre |
+| `AUSENTE` | Se marca desde la agenda cuando el vehículo no vino |
+
+Cancelar y marcar ausente solo valen sobre un turno pendiente. Cada turno registra el usuario que lo dio y la fecha de alta.
+
+Desde la pantalla de services por vencer se puede dar un turno para un vehículo con el motivo ya armado con sus services; el sistema propone el primer día con lugar dentro de los próximos 30 días.
+
+### 5.8 Avisos de service
+
+Cada servicio del catálogo puede tener un **intervalo de repetición en meses** y, como referencia, en kilómetros. Para cada vehículo y servicio con intervalo en meses, el sistema toma la última orden **entregada** en la que ese servicio se hizo (línea aprobada) y calcula el vencimiento sumando el intervalo a la fecha de entrega. El kilómetro del próximo service se muestra solo como referencia.
+
+La pantalla "Services por vencer" lista, para el titular actual de cada vehículo, los services **vencidos** o los que **vencen en los próximos 30 días**. No lista vehículos con una orden abierta (ya están en el taller) ni vehículos, clientes o servicios dados de baja.
+
+Para cada vehículo el sistema arma un mensaje de recordatorio con sus services y lo copia al portapapeles para enviarlo por WhatsApp. Al copiarlo registra un **aviso** por cada service nombrado, con el usuario y la fecha y hora. Un service avisado en los últimos 15 días, o cuyo vehículo ya tiene turno, se muestra en gris y al final de la lista, para no avisar dos veces. La lista se puede exportar a CSV y desde ella se puede dar el turno (ver 5.7).
+
+Pueden avisar el administrador y el operador.
+
+### 5.9 Diagnóstico del mecánico
+
+Entre la recepción y el presupuesto, el mecánico asignado revisa el vehículo y escribe su diagnóstico: qué encontró y qué hace falta reparar. Lo hace desde "Mis órdenes", donde las órdenes recepcionadas aparecen como "para diagnosticar", y solo sobre sus propias órdenes.
+
+El diagnóstico se guarda con un botón propio, sin cambiar el estado de la orden; cada guardado deja una fila en el historial ("Diagnóstico cargado" o "Diagnóstico corregido"). Es opcional: el presupuesto puede cargarse sin él (ver 5.2). El diagnóstico se imprime en la orden de trabajo.
+
+### 5.10 Aviso al cliente de vehículo listo
+
+Con la orden `FINALIZADA`, el administrador o el operador avisan al cliente que puede retirar el vehículo. El sistema arma el mensaje con el cliente, el vehículo, la patente, el número de orden, los servicios realizados y el total aprobado, lo copia al portapapeles para pegarlo en WhatsApp o leerlo por teléfono, y deja constancia en el historial de la orden ("Cliente avisado"), con el usuario y la fecha y hora. Si el cliente ya fue avisado, el sistema lo indica y pide confirmación antes de anotar un segundo aviso.
 
 ---
 
@@ -230,6 +306,10 @@ RECEPCIONADA → PRESUPUESTADA → APROBADA → EN_PROCESO → FINALIZADA → EN
 
 Cada transición inserta una fila en la tabla de historial con estado, fecha, hora y usuario responsable. Esto habilita, sin desarrollo adicional, el reporte de tiempos por etapa y la trazabilidad completa de cada orden.
 
+El historial también registra hechos que no cambian el estado, como filas con el estado vigente y una observación: el guardado del diagnóstico del mecánico, el aviso al cliente de vehículo listo y el motivo de la anulación. El reporte de tiempos por etapa considera solo los cambios de estado.
+
+Antes de aplicar cualquier transición, el sistema vuelve a leer el estado de la orden dentro de la transacción, con bloqueo de la fila, para que dos puestos no apliquen cambios incompatibles sobre la misma orden; si el estado ya cambió desde otro puesto, lo informa y recarga la orden.
+
 El indicador de edición de detalle controla algo concreto: hasta el estado `PRESUPUESTADA` se pueden agregar o quitar líneas; desde `APROBADA` en adelante el detalle se congela, porque el cliente ya aceptó ese presupuesto.
 
 ---
@@ -242,7 +322,7 @@ El modelo consta de **16 tablas**.
 
 | Entidad | Campos principales |
 |---|---|
-| **Usuario** | Nombre de usuario, hash de contraseña, nombre completo, rol, mecánico asociado (opcional), estado |
+| **Usuario** | Nombre de usuario, hash de contraseña y su sal, nombre completo, rol, mecánico asociado (opcional), estado |
 | **Cliente** | Razón social o nombre, documento, domicilio, localidad, teléfono, correo electrónico |
 | **Vehículo** | Patente (única), titular, modelo, año, color, número de motor, número de chasis, kilometraje |
 | **Marca** | Descripción |
@@ -286,6 +366,8 @@ Solo las líneas marcadas como aprobadas se ejecutan y se contabilizan en el tot
 
 El kilometraje ingresado en una orden nueva no puede ser inferior al de la última orden registrada para ese vehículo ni al kilometraje actual cargado en el vehículo.
 
+Al editar un vehículo tampoco se acepta un kilometraje menor al guardado, si el kilometraje fue modificado.
+
 ### 8.4 Cambio de titularidad del vehículo
 
 Cuando un vehículo cambia de dueño, no debe sobrescribirse el titular sin más, ya que se perdería la referencia de a quién se le presupuestó antes.
@@ -325,6 +407,31 @@ Pueden hacerlo el administrador y el operador. Cada foto registra el usuario que
 
 Una orden está demorada cuando su fecha prometida de entrega es anterior a la fecha actual y su estado no es final. Las órdenes sin fecha prometida no se consideran demoradas.
 
+### 8.10 Fotos del trabajo
+
+Además de las cinco fotos de la recepción, una orden admite fotos de lo que se encontró al revisar el vehículo y de lo que se hizo, **sin límite de cantidad** y con una descripción opcional. Pasan por el mismo proceso que las fotos de recepción (JPG o PNG, reducidas a 1280 píxeles en su lado mayor, guardadas como JPEG) y registran el usuario, la fecha y la hora de la carga.
+
+- **Cargar:** mientras la orden está `RECEPCIONADA` o `EN_PROCESO`.
+- **Quitar:** hasta `EN_PROCESO` inclusive, con confirmación. Desde `FINALIZADA` las fotos quedan como constancia del trabajo.
+
+Pueden hacerlo el administrador, el operador y el mecánico asignado sobre sus órdenes. Las fotos se imprimen en una hoja propia, sin importes (ver 10).
+
+### 8.11 Baja lógica y reactivación
+
+Clientes, vehículos, mecánicos, servicios, categorías y usuarios no se eliminan físicamente: se dan de baja y pueden reactivarse desde la misma pantalla, que permite mostrar u ocultar los registros dados de baja. Un registro dado de baja deja de ofrecerse en las pantallas de operación, pero sigue apareciendo en el historial.
+
+La baja se rechaza cuando el registro todavía está en uso:
+
+| Registro | No se da de baja si |
+|---|---|
+| Cliente | tiene vehículos activos a su nombre |
+| Vehículo | tiene órdenes abiertas |
+| Mecánico | tiene órdenes abiertas o un usuario activo asociado |
+| Categoría | tiene servicios activos |
+| Usuario | es el propio usuario que inició sesión, o es el único administrador activo |
+
+Las marcas y los modelos no tienen baja lógica: se eliminan, y la eliminación se rechaza si la marca tiene modelos o el modelo tiene vehículos cargados.
+
 ---
 
 ## 9. Pantallas
@@ -332,23 +439,36 @@ Una orden está demorada cuando su fecha prometida de entrega es anterior a la f
 | Grupo | Pantalla | Rol |
 |---|---|---|
 | **Acceso** | Inicio de sesión | Todos |
-| | Menú principal (contenedor MDI) | Todos |
-| **Datos maestros** | ABM de clientes | Admin, Operador |
+| | Menú principal (ventana única con menú lateral y panel de contenido) | Todos |
+| | Cambio de la propia contraseña | Todos |
+| **Datos maestros** | ABM de clientes, con ficha imprimible | Admin, Operador |
 | | ABM de vehículos | Admin, Operador |
+| | ABM de marcas y modelos | Admin, Operador |
 | | ABM de servicios | Admin |
 | | ABM de categorías de servicio | Admin |
 | | ABM de mecánicos | Admin |
 | | ABM de usuarios | Admin |
-| **Operación** | Recepción de vehículo | Admin, Operador |
+| **Operación** | Inicio (resumen del día) | Admin, Operador |
+| | Agenda de turnos | Admin, Operador |
+| | Recepción de vehículo, con alta rápida de cliente y vehículo | Admin, Operador |
 | | Tablero de órdenes de trabajo | Admin, Operador |
-| | Gestión de orden de trabajo | Admin, Operador; Mecánico solo en sus órdenes, sin importes, para iniciar, cargar horas y finalizar |
+| | Gestión de orden de trabajo | Admin, Operador; Mecánico solo en sus órdenes, sin importes, para diagnosticar, iniciar, cargar horas, fotos y finalizar |
+| | Anulación de orden (motivo) | Admin |
 | | Mis órdenes asignadas | Mecánico |
-| | Consulta de historial por patente | Todos |
-| **Salidas** | Menú de reportes | Admin |
+| | Consulta de historial por patente | Todos (el mecánico sin importes) |
+| | Services por vencer | Admin, Operador |
+| | Visor de fotos | Todos |
+| **Salidas** | Tableros de gestión | Admin |
 
-Aproximadamente trece formularios, un alcance abordable en el plazo de un trabajo práctico.
+> **Nota (decisión tomada).** El texto original preveía un contenedor MDI y "aproximadamente trece formularios". El sistema entregado tiene **veintidós formularios**, y las pantallas se abren dentro de un panel de la ventana principal, con un menú lateral que muestra solo las opciones del rol; se abre una pantalla a la vez, y al cambiar de pantalla el sistema pregunta antes de perder cambios sin guardar.
 
-**Sobre el cambio de estados:** conviene resolverlo con un botón por transición válida —"Presupuestar", "Registrar aprobación", "Iniciar trabajo", "Finalizar", "Entregar"— habilitado según el estado actual. Es más fácil de programar y de validar que un desplegable con todos los estados disponibles.
+**Pantalla de inicio.** El administrador y el operador comienzan en un resumen del día con cinco tarjetas: órdenes **prometidas para hoy**, **demoradas**, **listas para entregar** (finalizadas), **services vencidos** sin aviso reciente ni turno, y **turnos de hoy** pendientes. Debajo se listan las órdenes que requieren atención; cada tarjeta abre la pantalla correspondiente. Es de solo consulta.
+
+**Mis órdenes.** El mecánico ve sus órdenes agrupadas en "Para diagnosticar", "Para empezar", "En curso" y "Terminadas", con el resumen de la orden elegida (vehículo, síntoma, servicios aprobados y fotos), y desde allí abre la gestión de la orden en su modo propio.
+
+**Exportación a CSV.** El tablero de órdenes, el historial por patente, "Mis órdenes" y "Services por vencer" exportan lo que muestra su lista a un archivo CSV, con el nombre y la carpeta que elija el usuario.
+
+**Sobre el cambio de estados:** se resolvió con un botón por transición válida —"Presupuestar", "Registrar aprobación", "Iniciar trabajo", "Finalizar", "Entregar"— habilitado según el estado actual. Resultó más fácil de programar y de validar que un desplegable con todos los estados disponibles.
 
 ---
 
@@ -363,8 +483,45 @@ Aproximadamente trece formularios, un alcance abordable en el plazo de un trabaj
 | 5 | **Productividad por mecánico** | `orden_trabajo` agrupada por mecánico, con horas estimadas contra reales |
 | 6 | **Órdenes abiertas / vehículos en taller** | `orden_trabajo` filtrada por estado |
 | 7 | **Tiempos por etapa** | `ot_historial_estado` |
+| 8 | **Acta de recepción** | `orden_trabajo` + `vehiculo` + `cliente` + `ot_foto` (las cinco fotos de la recepción) |
+| 9 | **Colgante de llaves** | `orden_trabajo` + `vehiculo` + `cliente`, sin importes |
+| 10 | **Ficha del cliente** | `cliente` + sus `vehiculo` |
+| 11 | **Hoja de fotos del trabajo** | `orden_trabajo` + `ot_foto_trabajo`, sin importes |
 
-El reporte 1 es el que satisface el requisito de impresión de la consigna. Los restantes surgen del modelo sin desarrollo adicional significativo.
+El reporte 1 es el que satisface el requisito de impresión de la consigna. Los reportes 8 a 11 se agregaron durante el desarrollo.
+
+### 10.1 Dónde se obtiene cada reporte
+
+| Reporte | Pantalla | Quién lo imprime |
+|---|---|---|
+| 1 Presupuesto | Gestión de la orden (menú "Imprimir") | Admin, Operador; requiere líneas y una orden no anulada |
+| 2 Orden de trabajo | Gestión de la orden | Todos; incluye el diagnóstico si está cargado |
+| 3 Historial por patente | Historial | Todos; el mecánico sin importes |
+| 4 Servicios más solicitados | Tableros, gráfico "Servicios más pedidos" | Admin |
+| 5 Productividad por mecánico | Tableros, gráfico "Horas por mecánico" (estimadas contra reales) | Admin |
+| 6 Órdenes abiertas / vehículos en taller | Tablero de órdenes y tarjeta "Vehículos en el taller" de Tableros | Admin, Operador / Admin |
+| 7 Tiempos por etapa | Tableros, con hoja impresa | Admin |
+| 8 Acta de recepción | Gestión de la orden | Admin, Operador |
+| 9 Colgante de llaves | Gestión de la orden | Todos, en cualquier estado |
+| 10 Ficha del cliente | ABM de clientes | Admin, Operador |
+| 11 Hoja de fotos del trabajo | Gestión de la orden | Todos, si la orden tiene fotos del trabajo |
+
+Todos los documentos impresos se abren primero en una vista previa, desde la cual se imprimen. Los reportes salen de lo guardado en la base: si hay cambios sin guardar, el sistema lo advierte antes de imprimir.
+
+### 10.2 Tableros de gestión
+
+Los tableros muestran, para el período elegido (por defecto el mes en curso), seis indicadores y cinco gráficos:
+
+| Indicadores | Gráficos |
+|---|---|
+| Órdenes ingresadas | Facturación por mes (últimos seis meses, por el total aprobado de las órdenes entregadas) |
+| Vehículos en el taller (órdenes abiertas) | Servicios más pedidos (líneas aprobadas, los ocho primeros) |
+| Facturado (total aprobado de las órdenes entregadas) | Horas por mecánico (estimadas contra reales de las órdenes finalizadas) |
+| Ticket promedio | Órdenes por estado |
+| Presupuestos aprobados (porcentaje de los presupuestados) | Duración promedio por etapa |
+| Órdenes demoradas | |
+
+Los tiempos por etapa se muestran además en una grilla con cantidad de órdenes, promedio, mínimo y máximo, y se imprimen en una hoja propia.
 
 ---
 
@@ -398,6 +555,8 @@ Utilizar el paquete NuGet **`MySqlConnector`**, no `MySql.Data`. Ofrece mejor so
 
 Almacenamiento mediante hash con `BCrypt.Net-Next` (NuGet). La implementación requiere pocas líneas y evita el almacenamiento en texto plano.
 
+> **Nota (decisión tomada).** No se usa BCrypt ni ningún paquete adicional. Las contraseñas se guardan con **PBKDF2-SHA256** de la biblioteca estándar de .NET: 100.000 iteraciones, sal aleatoria de 16 bytes y hash de 32 bytes, ambos en Base64 y en columnas separadas de la tabla `usuario`. La verificación compara los hashes en tiempo constante. Es el mismo esquema de la referencia de la cátedra.
+
 ### 11.5 Transaccionalidad
 
 Deben ejecutarse dentro de una transacción, al menos:
@@ -405,6 +564,12 @@ Deben ejecutarse dentro de una transacción, al menos:
 - La creación de la orden junto con su primera fila de historial de estado
 - Todo cambio de estado junto con el registro correspondiente en el historial
 - El guardado del detalle junto con el recálculo de los totales de la cabecera
+
+En el sistema entregado también van en una transacción: la recepción con sus fotos y el cierre del turno del día; el guardado del diagnóstico con su fila de historial; el alta de un turno con la comprobación del cupo; y el cambio de estado de un turno. Las transacciones releen la fila que van a modificar con bloqueo, para resolver el trabajo simultáneo de varios puestos (ver 6).
+
+### 11.6 Registro de errores
+
+Todo error que se muestra al usuario queda además registrado en un archivo de texto en el perfil local de Windows de la estación, con fecha y hora, usuario, contexto y detalle técnico, para poder revisarlo después sin molestar al usuario con el detalle. Los recursos que faltan (iconos, fondo o música del inicio de sesión) se anotan en el mismo archivo y el sistema sigue funcionando sin ellos.
 
 ---
 
@@ -428,15 +593,16 @@ Derivables por cálculo, almacenados por rendimiento y por reproducibilidad del 
 
 ---
 
-## 13. Próximos pasos
+## 13. Estado y trabajo futuro
 
-1. Definir el motor de reportes, ya que determina la versión de framework
-2. Generar el script DDL a partir del modelo y los datos iniciales de catálogo
-3. Desarrollar la capa de acceso a datos, comenzando por la clase de conexión
-4. Desarrollar los formularios de ABM de datos maestros
-5. Implementar el flujo de orden de trabajo con sus transiciones de estado
-6. Diseñar el reporte de presupuesto
-7. Desarrollar los reportes de gestión restantes
+Los pasos previstos en la versión original de este documento están completados: el motor de reportes quedó definido (11.1), el script DDL y los datos iniciales de catálogo están generados, el código compartido se organizó en módulos (3.2), los ABM de datos maestros están desarrollados, el flujo de la orden de trabajo funciona con todas sus transiciones, el presupuesto se imprime y los reportes de gestión restantes están disponibles en los tableros (10). Además se incorporaron las funciones descritas en 5.7 a 5.10, 8.10, 8.11 y 10.2.
+
+Trabajo futuro, fuera del alcance de la entrega:
+
+- Recordatorio automático de los turnos del día siguiente, en lugar de la confirmación copiada al dar el turno
+- Reprogramación de un turno sin cancelarlo y darlo de nuevo
+- Pruebas automatizadas de las reglas de negocio; hoy la verificación es manual con los datos de demostración
+- Manual de usuario con capturas de pantalla
 
 ---
 

@@ -14,7 +14,7 @@ Branch: `feature/TM-0026` from `feature/TM-0025` (218679f). Delivery strategy: a
 ## Tasks
 
 - [ ] T1 (S1, S2, S5) README.md + doc/Docu.md — route: delegated writer (Writer trigger: parallel units with disjoint surfaces, launched together with T2) — status: pending — commit: —
-- [ ] T2 (S3, S5) taller-mecanico-especificacion.md — route: delegated writer (same reason) — status: pending — commit: —
+- [x] T2 (S3, S5) taller-mecanico-especificacion.md — route: delegated writer (same reason) — status: done (443 -> 609 lines; new 5.7-5.10, 8.10, 8.11, 10.1, 10.2, 11.6; seven "(decisión tomada)" notes; parent spot check: Turnos slots and cupo match Turnos.vb) — commit: see git log
 - [x] T3 (S4, S5) taller-mecanico.dbml — route: inline — status: done (16 tables, 25 refs, columns compared against 01_ddl_estructura.sql) — commit: see git log
 
 ## Log
