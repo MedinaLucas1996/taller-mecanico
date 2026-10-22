@@ -739,75 +739,32 @@ Public Class FrmTurnos
 
         Dim aviso As String = ""
         Dim idNuevo As Integer = 0
+        'nombre del bloqueo de la franja: los puestos que dan un turno en la misma franja pasan de a uno
+        'sin el, con la franja vacia los bloqueos de la consulta del cupo no se excluyen y los guardados chocaban
+        Dim nombreBloqueo As String = "taller_turno_" & franja.ToString("yyyyMMddHH")
         Try
             Using cn As New MySqlConnection(CADENA)
                 cn.Open()
-                Dim transaccion As MySqlTransaction = cn.BeginTransaction()
+
+                'espero a lo sumo 10 segundos a que otro puesto termine de dar un turno en esta franja
+                Using cmd As New MySqlCommand("SELECT GET_LOCK(@nombre, 10);", cn)
+                    cmd.Parameters.AddWithValue("@nombre", nombreBloqueo)
+                    Dim obtenido As Object = cmd.ExecuteScalar()
+                    If IsDBNull(obtenido) OrElse Convert.ToInt32(obtenido) <> 1 Then
+                        MessageBox.Show("Otro puesto está dando un turno en esa franja. Espere unos segundos y vuelva a intentar.")
+                        Exit Sub
+                    End If
+                End Using
+
                 Try
-                    'bloqueo el vehiculo: dos puestos no le dan dos turnos a la vez
-                    Dim activo As Object
-                    Using cmd As New MySqlCommand("SELECT activo FROM vehiculo WHERE id_vehiculo = @id_vehiculo FOR UPDATE;", cn, transaccion)
-                        cmd.Parameters.AddWithValue("@id_vehiculo", idVehiculo)
-                        activo = cmd.ExecuteScalar()
+                    GuardarTurno(cn, franja, motivo, aviso, idNuevo)
+                Finally
+                    'libero el bloqueo de la franja pase lo que pase
+                    Using cmd As New MySqlCommand("SELECT RELEASE_LOCK(@nombre);", cn)
+                        cmd.Parameters.AddWithValue("@nombre", nombreBloqueo)
+                        cmd.ExecuteScalar()
                     End Using
-                    If activo Is Nothing OrElse Not Convert.ToBoolean(activo) Then
-                        aviso = "El vehículo fue dado de baja desde otro puesto."
-                    End If
-
-                    'un vehiculo tiene a lo sumo un turno pendiente de aca en adelante
-                    If aviso = "" Then
-                        Dim consulta As String =
-                            "SELECT fecha_hora FROM turno " &
-                            "WHERE id_vehiculo = @id_vehiculo AND estado = 'PENDIENTE' AND fecha_hora >= @desde " &
-                            "ORDER BY fecha_hora LIMIT 1;"
-                        Using cmd As New MySqlCommand(consulta, cn, transaccion)
-                            cmd.Parameters.AddWithValue("@id_vehiculo", idVehiculo)
-                            'la franja en curso todavia cuenta como pendiente
-                            cmd.Parameters.AddWithValue("@desde", Date.Now.AddHours(-1))
-                            Dim otro As Object = cmd.ExecuteScalar()
-                            If otro IsNot Nothing Then
-                                aviso = "El vehículo ya tiene un turno pendiente el " &
-                                        CDate(otro).ToString("dd/MM/yyyy 'a las' HH:mm") & ". Cancélelo antes de dar otro."
-                            End If
-                        End Using
-                    End If
-
-                    'el cupo se cuenta bloqueando los turnos de la franja: dos puestos no ocupan el ultimo lugar a la vez
-                    If aviso = "" Then
-                        Dim consulta As String =
-                            "SELECT COUNT(*) FROM turno WHERE fecha_hora = @fecha_hora AND estado <> 'CANCELADO' FOR UPDATE;"
-                        Using cmd As New MySqlCommand(consulta, cn, transaccion)
-                            cmd.Parameters.AddWithValue("@fecha_hora", franja)
-                            If Convert.ToInt32(cmd.ExecuteScalar()) >= CUPO_POR_FRANJA Then
-                                aviso = "La franja de las " & franja.ToString("HH:mm") & " se llenó desde otro puesto. Elija otra hora."
-                            End If
-                        End Using
-                    End If
-
-                    If aviso = "" Then
-                        Dim consulta As String =
-                            "INSERT INTO turno (id_vehiculo, fecha_hora, motivo, id_usuario) " &
-                            "VALUES (@id_vehiculo, @fecha_hora, @motivo, @id_usuario);"
-                        Using cmd As New MySqlCommand(consulta, cn, transaccion)
-                            cmd.Parameters.AddWithValue("@id_vehiculo", idVehiculo)
-                            cmd.Parameters.AddWithValue("@fecha_hora", franja)
-                            cmd.Parameters.AddWithValue("@motivo", motivo)
-                            cmd.Parameters.AddWithValue("@id_usuario", Sesion.IdUsuario)
-                            cmd.ExecuteNonQuery()
-                            idNuevo = CInt(cmd.LastInsertedId)
-                        End Using
-                    End If
-                Catch ex As Exception
-                    transaccion.Rollback()
-                    Throw
                 End Try
-
-                'confirmo fuera del Try de arriba: si el Commit falla no se intenta deshacer una transaccion ya cerrada
-                If aviso = "" Then
-                    transaccion.Commit()
-                Else
-                    transaccion.Rollback()
-                End If
             End Using
         Catch ex As Exception
             MessageBox.Show("Error al guardar el turno: " & ex.Message)
@@ -836,6 +793,78 @@ Public Class FrmTurnos
         idTurno = idNuevo
         CargarAgenda()
         MostrarTurno(idNuevo)
+    End Sub
+
+    Sub GuardarTurno(cn As MySqlConnection, franja As Date, motivo As Object, ByRef aviso As String, ByRef idNuevo As Integer)
+        'compruebo y guardo el turno nuevo en una transaccion; si no se puede, dejo el motivo en aviso
+        'la llama btnGuardar con el bloqueo de la franja ya tomado
+        Dim transaccion As MySqlTransaction = cn.BeginTransaction()
+        Try
+            'bloqueo el vehiculo: dos puestos no le dan dos turnos a la vez
+            Dim activo As Object
+            Using cmd As New MySqlCommand("SELECT activo FROM vehiculo WHERE id_vehiculo = @id_vehiculo FOR UPDATE;", cn, transaccion)
+                cmd.Parameters.AddWithValue("@id_vehiculo", idVehiculo)
+                activo = cmd.ExecuteScalar()
+            End Using
+            If activo Is Nothing OrElse Not Convert.ToBoolean(activo) Then
+                aviso = "El vehículo fue dado de baja desde otro puesto."
+            End If
+
+            'un vehiculo tiene a lo sumo un turno pendiente de aca en adelante
+            If aviso = "" Then
+                Dim consulta As String =
+                    "SELECT fecha_hora FROM turno " &
+                    "WHERE id_vehiculo = @id_vehiculo AND estado = 'PENDIENTE' AND fecha_hora >= @desde " &
+                    "ORDER BY fecha_hora LIMIT 1;"
+                Using cmd As New MySqlCommand(consulta, cn, transaccion)
+                    cmd.Parameters.AddWithValue("@id_vehiculo", idVehiculo)
+                    'la franja en curso todavia cuenta como pendiente
+                    cmd.Parameters.AddWithValue("@desde", Date.Now.AddHours(-1))
+                    Dim otro As Object = cmd.ExecuteScalar()
+                    If otro IsNot Nothing Then
+                        aviso = "El vehículo ya tiene un turno pendiente el " &
+                                CDate(otro).ToString("dd/MM/yyyy 'a las' HH:mm") & ". Cancélelo antes de dar otro."
+                    End If
+                End Using
+            End If
+
+            'cuento el cupo con los turnos de la franja bloqueados
+            If aviso = "" Then
+                Dim consulta As String =
+                    "SELECT COUNT(*) FROM turno WHERE fecha_hora = @fecha_hora AND estado <> 'CANCELADO' FOR UPDATE;"
+                Using cmd As New MySqlCommand(consulta, cn, transaccion)
+                    cmd.Parameters.AddWithValue("@fecha_hora", franja)
+                    If Convert.ToInt32(cmd.ExecuteScalar()) >= CUPO_POR_FRANJA Then
+                        aviso = "La franja de las " & franja.ToString("HH:mm") & " se llenó desde otro puesto. Elija otra hora."
+                    End If
+                End Using
+            End If
+
+            If aviso = "" Then
+                Dim consulta As String =
+                    "INSERT INTO turno (id_vehiculo, fecha_hora, motivo, id_usuario) " &
+                    "VALUES (@id_vehiculo, @fecha_hora, @motivo, @id_usuario);"
+                Using cmd As New MySqlCommand(consulta, cn, transaccion)
+                    cmd.Parameters.AddWithValue("@id_vehiculo", idVehiculo)
+                    cmd.Parameters.AddWithValue("@fecha_hora", franja)
+                    cmd.Parameters.AddWithValue("@motivo", motivo)
+                    cmd.Parameters.AddWithValue("@id_usuario", Sesion.IdUsuario)
+                    cmd.ExecuteNonQuery()
+                    idNuevo = CInt(cmd.LastInsertedId)
+                End Using
+            End If
+        Catch ex As Exception
+            'algo fallo: deshago todo y dejo que el error llegue al mensaje de btnGuardar
+            transaccion.Rollback()
+            Throw
+        End Try
+
+        'confirmo fuera del Try de arriba: si el Commit falla no se intenta deshacer una transaccion ya cerrada
+        If aviso = "" Then
+            transaccion.Commit()
+        Else
+            transaccion.Rollback()
+        End If
     End Sub
 
     Private Sub btnCancelarTurno_Click(sender As Object, e As EventArgs) Handles btnCancelarTurno.Click
