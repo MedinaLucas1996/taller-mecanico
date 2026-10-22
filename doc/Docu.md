@@ -76,6 +76,7 @@ graph TD
             Fotos["Fotos"]
             Impresion["Impresion"]
             Exportar["Exportar"]
+            Grillas["Grillas"]
             Recordatorios["Recordatorios"]
             TurnosModulo["Turnos"]
         end
@@ -138,8 +139,11 @@ graph TD
     Usuarios --> Seguridad
     CambiarClave --> Seguridad
     Operaciones --> ConexionBD
+    Operaciones --> Grillas
     Maestros --> ConexionBD
+    Maestros --> Grillas
     Reportes --> ConexionBD
+    Reportes --> Grillas
     Operaciones -.-> Errores
     Maestros -.-> Errores
     AppEvents -.-> Errores
@@ -147,7 +151,7 @@ graph TD
     Scripts -.->|"crean y cargan"| DB
 ```
 
-Los 22 formularios son los `Frm*.vb` de `WinFormsApp1/`; los 9 módulos son `ConexionBD`, `Errores`, `Exportar`, `Fotos`, `Impresion`, `Recordatorios`, `Seguridad`, `Sesion` y `Turnos`. `ApplicationEvents.vb` es la clase parcial `MyApplication` del marco de aplicación de VB.NET, no un módulo.
+Los 22 formularios son los `Frm*.vb` de `WinFormsApp1/`; los 10 módulos son `ConexionBD`, `Errores`, `Exportar`, `Fotos`, `Grillas`, `Impresion`, `Recordatorios`, `Seguridad`, `Sesion` y `Turnos`. `ApplicationEvents.vb` es la clase parcial `MyApplication` del marco de aplicación de VB.NET, no un módulo.
 
 ### Stack técnico
 
@@ -171,6 +175,7 @@ Los 22 formularios son los `Frm*.vb` de `WinFormsApp1/`; los 9 módulos son `Con
 | `Fotos` | `CargarImagenReducida`, `ImagenABytes`, `LeerFotoComoJpeg`, `Miniatura`, `LeerIcono`: el mismo proceso de imagen para la recepción, el tablero, la gestión y Mis órdenes. |
 | `Impresion` | Rutinas de dibujo de los reportes, sin SQL (ver [Reportes](#reportes)). |
 | `Exportar` | `ExportarGrilla`: la grilla visible a un archivo CSV (UTF-8 con BOM, separado por punto y coma, solo las columnas visibles y los valores tal como se ven). |
+| `Grillas` | `ActivarDobleBufer`: activa el doble búfer de cada grilla de la pantalla (la propiedad `DoubleBuffered` es protegida y se activa por reflexión). La llaman al empezar su `Load` las diecisiete pantallas con grilla, para que no parpadeen ni se traben al desplazarse. |
 | `Recordatorios` | `ConsultaServices`: la consulta de services vencidos y por vencer, compartida por Services por vencer y la tarjeta de Inicio. |
 | `Turnos` | `FranjasDelDia`, `HORA_APERTURA` (8), `HORA_CIERRE` (17), `HORA_CIERRE_SABADO` (12), `CUPO_POR_FRANJA` (2). |
 
@@ -342,7 +347,7 @@ Los títulos de sección siguen la misma regla: "OPERACIONES" se muestra a todos
 - Tarjetas de estado: ocho tarjetas en un `TableLayoutPanel`. `CargarTarjetas` asigna a cada una un estado de `estado_ot` en el orden de `orden_flujo`, con su cantidad de órdenes. Cuentan siempre todas las órdenes, sin filtros. Un clic filtra la lista por ese estado; otro clic quita el filtro.
 - Filtros: texto contenido en la patente o en el nombre del cliente, aplicado mientras se escribe, y "Solo demoradas". "Limpiar filtros" los reinicia y quita el estado elegido.
 - Grilla: una fila por orden, la más reciente primero: número, fecha y hora de recepción, patente, vehículo, cliente de la orden (`orden_trabajo.id_cliente`, no el titular actual), mecánico ("Sin asignar"), estado (coloreado por `ColorEstado`, columna oculta con el código), fecha prometida y situación ("Demorada", con fondo rojo suave, cuando `fecha_prometida` es anterior a hoy y el estado no es final).
-- Detalle: número, estado, vehículo, cliente, mecánico, fechas y total presupuestado de la orden elegida; sus cinco fotos de recepción en miniatura, leídas de `ot_foto` recién al elegir la orden; y "Gestionar orden" (también con doble clic en la fila), que abre `FrmOrdenGestion` con `ShowDialog` y al cerrarla recarga tarjetas y grilla dejando la orden seleccionada si sigue en la lista.
+- Detalle: número, estado, vehículo, cliente, mecánico, fechas y total presupuestado de la orden elegida; sus cinco fotos de recepción en miniatura, leídas de `ot_foto` cuando el usuario se detiene en una orden: cada cambio de fila vacía las miniaturas, muestra "Cargando..." y espera 250 ms (`tmrFotos`, `CargarFotosDiferido`) antes de consultar, de modo que bajar con las flechas no lee las fotos de cada fila que pasa; y "Gestionar orden" (también con doble clic en la fila), que abre `FrmOrdenGestion` con `ShowDialog` y al cerrarla recarga tarjetas y grilla dejando la orden seleccionada si sigue en la lista.
 - Fotos después de la recepción: con la orden en un estado no final, la miniatura vacía se dibuja con borde punteado y "Cargar foto" (`Foto_Paint`) y un clic la agrega (`AgregarFoto`). Con la orden en `RECEPCIONADA`, un clic en una miniatura con foto abre `FrmFoto` con "Reemplazar foto" y "Quitar foto". Cada escritura es una transacción que bloquea la fila de la orden (`SELECT ... FOR UPDATE`) y vuelve a leer su estado; si ya no permite la acción no se guarda nada. Cada foto guarda quién la cargó y cuándo.
 - "Exportar" (`ExportarGrilla`): la grilla visible, con los filtros aplicados, a CSV con nombre sugerido y fecha del día; con la grilla vacía no se abre el diálogo.
 
@@ -378,7 +383,7 @@ Los títulos de sección siguen la misma regla: "OPERACIONES" se muestra a todos
 
 - Grupos: "En curso" (`EN_PROCESO`), "Para empezar" (`APROBADA`), "Para diagnosticar" (`RECEPCIONADA`) y "Terminadas" (`FINALIZADA` y `ENTREGADA`), con su cantidad; siempre hay uno elegido y al entrar es el primero con órdenes. Las órdenes en `PRESUPUESTADA` no se listan.
 - Lista: N.º, vehículo, fecha prometida y "Horas" (`n de m` líneas aprobadas con horas). Las demoradas van con fondo `MistyRose`. "Exportar" guarda la grilla en CSV.
-- Resumen: vehículo y kilometraje, síntoma, observaciones de recepción, servicios aprobados con cantidad y horas, las cinco fotos de recepción y las fotos del trabajo ("Fotos del trabajo (n)"), ampliables en `FrmFoto` solo para mirar.
+- Resumen: vehículo y kilometraje, síntoma, observaciones de recepción, servicios aprobados con cantidad y horas, las cinco fotos de recepción y las fotos del trabajo ("Fotos del trabajo (n)"), ampliables en `FrmFoto` solo para mirar. Al elegir una orden en la lista, los datos de la fila se ven en el acto y los servicios y las fotos se leen cuando el mecánico se detiene: el resumen muestra "Cargando..." y espera 250 ms (`tmrResumen`), así bajar con las flechas no consulta la base en cada orden que pasa.
 - Botón: "Cargar diagnóstico", "Iniciar trabajo", "Cargar horas y finalizar" o "Ver orden" según el estado (también con doble clic); abre `FrmOrdenGestion` en modo mecánico y, al volver, pasa al grupo donde quedó la orden y recarga.
 
 ### Historial por patente
@@ -388,6 +393,7 @@ Los títulos de sección siguen la misma regla: "OPERACIONES" se muestra a todos
 - Lista: búsqueda en vivo por patente (`LIKE @filtro`), también de vehículos dados de baja (al final, en gris, con "Baja").
 - Detalle: `pnlVehiculo` con patente, marca y modelo, año, color, titular actual, documento, teléfono y kilometraje; `tlpHistorial` reparte el alto entre la grilla de órdenes (todas, en cualquier estado, la más reciente primero: N.º, ingreso, estado, km, mecánico y, salvo para el mecánico, total aprobado o presupuestado) y la de servicios de la orden elegida (servicio, cantidad, aprobado, horas y, salvo para el mecánico, subtotal), y al pie "El cliente dijo" y "Observaciones del mecánico". Un vehículo sin órdenes muestra "Este vehículo todavía no tiene órdenes de trabajo.".
 - Las grillas no se ordenan por columna (`SortMode = NotSortable`). "Exportar" guarda la grilla de órdenes en CSV; "Imprimir" abre el historial del vehículo (ver [Reportes](#reportes)).
+- Carga en cascada con espera: al elegir un vehículo se ven en el acto sus datos y "Cargando las órdenes del vehículo..."; sus órdenes se leen recién tras 250 ms sin cambiar de fila (`tmrOrdenes`), y mientras tanto "Exportar" queda deshabilitado porque la grilla todavía está vacía ("Imprimir" lee de la base y sigue disponible). Al elegir otra orden, sus servicios se leen tras otra espera de 250 ms (`tmrServicios`) y la grilla de servicios queda vacía hasta entonces, sin mostrar los de la orden anterior.
 
 ### Turnos
 

@@ -23,6 +23,7 @@ Partial Class FrmMisOrdenes
     <System.Diagnostics.DebuggerStepThrough()> _
     Private Sub InitializeComponent()
         components = New ComponentModel.Container()
+        tmrResumen = New Timer(components)
         Dim DataGridViewCellStyle1 As DataGridViewCellStyle = New DataGridViewCellStyle()
         lblTitulo = New Label()
         lblSubtitulo = New Label()
@@ -744,6 +745,10 @@ Partial Class FrmMisOrdenes
         btnExportar.TextImageRelation = TextImageRelation.ImageBeforeText
         btnExportar.UseVisualStyleBackColor = False
         '
+        ' tmrResumen
+        '
+        tmrResumen.Interval = 250
+        '
         ' FrmMisOrdenes
         '
         AutoScaleDimensions = New SizeF(8F, 20F)
@@ -829,4 +834,5 @@ Partial Class FrmMisOrdenes
     Friend WithEvents picTablero As PictureBox
     Friend WithEvents btnAbrir As Button
     Friend WithEvents btnExportar As Button
+    Friend WithEvents tmrResumen As Timer
 End Class

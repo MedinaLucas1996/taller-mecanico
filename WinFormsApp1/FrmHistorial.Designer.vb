@@ -22,6 +22,9 @@ Partial Class FrmHistorial
     'No lo modifique con el editor de código.
     <System.Diagnostics.DebuggerStepThrough()> _
     Private Sub InitializeComponent()
+        components = New ComponentModel.Container()
+        tmrOrdenes = New Timer(components)
+        tmrServicios = New Timer(components)
         Dim DataGridViewCellStyle1 As DataGridViewCellStyle = New DataGridViewCellStyle()
         Dim DataGridViewCellStyle2 As DataGridViewCellStyle = New DataGridViewCellStyle()
         Dim DataGridViewCellStyle3 As DataGridViewCellStyle = New DataGridViewCellStyle()
@@ -533,6 +536,14 @@ Partial Class FrmHistorial
         ppdVistaPrevia.UseAntiAlias = True
         ppdVistaPrevia.Visible = False
         '
+        ' tmrOrdenes
+        '
+        tmrOrdenes.Interval = 250
+        '
+        ' tmrServicios
+        '
+        tmrServicios.Interval = 250
+        '
         ' FrmHistorial
         '
         AutoScaleDimensions = New SizeF(8F, 20F)
@@ -598,4 +609,6 @@ Partial Class FrmHistorial
     Friend WithEvents btnImprimir As Button
     Friend WithEvents prdHistorial As Printing.PrintDocument
     Friend WithEvents ppdVistaPrevia As PrintPreviewDialog
+    Friend WithEvents tmrOrdenes As Timer
+    Friend WithEvents tmrServicios As Timer
 End Class

@@ -22,6 +22,8 @@ Partial Class FrmOrdenes
     'No lo modifique con el editor de código.
     <System.Diagnostics.DebuggerStepThrough()> _
     Private Sub InitializeComponent()
+        components = New ComponentModel.Container()
+        tmrFotos = New Timer(components)
         lblTitulo = New Label()
         lblSubtitulo = New Label()
         tlpEstados = New TableLayoutPanel()
@@ -939,6 +941,10 @@ Partial Class FrmOrdenes
         dlgFoto.Filter = "Imágenes (*.jpg;*.jpeg;*.png)|*.jpg;*.jpeg;*.png"
         dlgFoto.Title = "Seleccionar foto"
         '
+        ' tmrFotos
+        '
+        tmrFotos.Interval = 250
+        '
         ' FrmOrdenes
         '
         AutoScaleDimensions = New SizeF(8F, 20F)
@@ -1047,4 +1053,5 @@ Partial Class FrmOrdenes
     Friend WithEvents btnGestionar As Button
     Friend WithEvents dlgFoto As OpenFileDialog
     Friend WithEvents btnExportar As Button
+    Friend WithEvents tmrFotos As Timer
 End Class

@@ -204,6 +204,9 @@ Public Class FrmInicio
     End Sub
 
     Private Sub FrmInicio_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        'las grillas se dibujan con doble bufer para que no parpadeen ni se traben al desplazarse
+        ActivarDobleBufer(Me)
+
         'saludo al usuario que ingreso y muestro la fecha de hoy en castellano
         Dim cultura As New Globalization.CultureInfo("es-AR")
         lblSubtitulo.Text = "Hola, " & Sesion.NombreCompleto & " · " &

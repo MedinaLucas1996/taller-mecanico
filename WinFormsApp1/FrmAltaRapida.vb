@@ -157,6 +157,9 @@ Public Class FrmAltaRapida
     End Function
 
     Private Sub FrmAltaRapida_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        'las grillas se dibujan con doble bufer para que no parpadeen ni se traben al desplazarse
+        ActivarDobleBufer(Me)
+
         'registran clientes y vehiculos el administrador y el operador, igual que en la recepcion
         If Sesion.Rol <> ROL_ADMINISTRADOR AndAlso Sesion.Rol <> ROL_OPERADOR Then
             MessageBox.Show("Solo el administrador y el operador pueden registrar clientes y vehículos.")

@@ -951,6 +951,9 @@ Public Class FrmOrdenGestion
     End Sub
 
     Private Sub FrmOrdenGestion_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        'las grillas se dibujan con doble bufer para que no parpadeen ni se traben al desplazarse
+        ActivarDobleBufer(Me)
+
         'el administrador y el operador gestionan las ordenes; el mecanico entra en un modo propio,
         'solo para sus ordenes; el modo se decide aca, una sola vez
         If Sesion.Rol = ROL_MECANICO Then

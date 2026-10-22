@@ -460,6 +460,9 @@ Public Class FrmRecepcion
     End Sub
 
     Private Sub FrmRecepcion_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        'las grillas se dibujan con doble bufer para que no parpadeen ni se traben al desplazarse
+        ActivarDobleBufer(Me)
+
         'solo el administrador y el operador recepcionan vehiculos (el menu ya oculta el boton)
         If Sesion.Rol <> ROL_ADMINISTRADOR AndAlso Sesion.Rol <> ROL_OPERADOR Then
             MessageBox.Show("Solo el administrador y el operador pueden recepcionar vehículos.")

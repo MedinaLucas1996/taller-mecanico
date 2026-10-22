@@ -489,8 +489,37 @@ Public Class FrmOrdenes
         CargarFotos(idOrdenSeleccionada)
     End Sub
 
+    Sub CargarFotosDiferido()
+        'al elegir una orden en la grilla espero un momento antes de traer sus fotos de la base:
+        'si el usuario sigue bajando con las flechas, solo se cargan las de la orden donde se detiene
+        'mientras tanto vacio los cuadros, para no mostrar las fotos de la orden anterior
+        VaciarCuadro(picFrente, lblSinFrente, True)
+        VaciarCuadro(picTrasera, lblSinTrasera, True)
+        VaciarCuadro(picLateralIzq, lblSinLateralIzq, True)
+        VaciarCuadro(picLateralDer, lblSinLateralDer, True)
+        VaciarCuadro(picTablero, lblSinTablero, True)
+        lblSinFrente.Text = "Cargando..."
+        lblSinTrasera.Text = "Cargando..."
+        lblSinLateralIzq.Text = "Cargando..."
+        lblSinLateralDer.Text = "Cargando..."
+        lblSinTablero.Text = "Cargando..."
+
+        'vuelvo a contar el tiempo desde el ultimo cambio de fila
+        tmrFotos.Stop()
+        tmrFotos.Start()
+    End Sub
+
+    Private Sub tmrFotos_Tick(sender As Object, e As EventArgs) Handles tmrFotos.Tick
+        'el usuario se detuvo en una orden: ahora si traigo sus fotos
+        tmrFotos.Stop()
+        If idOrdenSeleccionada <> 0 Then CargarFotos(idOrdenSeleccionada)
+    End Sub
+
     Sub CargarFotos(idOrden As Integer)
         'cargo las fotos de recepcion de la orden en las cinco miniaturas
+
+        'si habia una carga diferida pendiente, esta la reemplaza
+        tmrFotos.Stop()
 
         'vacio los cinco cuadros, los que no tengan foto quedan con el aviso "Sin foto"
         VaciarCuadro(picFrente, lblSinFrente, True)
@@ -531,6 +560,9 @@ Public Class FrmOrdenes
     End Sub
 
     Private Sub FrmOrdenes_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        'las grillas se dibujan con doble bufer para que no parpadeen ni se traben al desplazarse
+        ActivarDobleBufer(Me)
+
         'junto las tarjetas y sus etiquetas en el orden en que se ven, para recorrerlas con un For
         tarjetas = {pnlEstado1, pnlEstado2, pnlEstado3, pnlEstado4, pnlEstado5, pnlEstado6, pnlEstado7, pnlEstado8}
         etiquetasCantidad = {lblCant1, lblCant2, lblCant3, lblCant4, lblCant5, lblCant6, lblCant7, lblCant8}
@@ -664,7 +696,7 @@ Public Class FrmOrdenes
 
         idOrdenSeleccionada = idOrden
         MostrarDatosOrden(fila)
-        CargarFotos(idOrden)
+        CargarFotosDiferido()
     End Sub
 
     Private Sub dgvOrdenes_CellClick(sender As Object, e As DataGridViewCellEventArgs) Handles dgvOrdenes.CellClick
@@ -682,7 +714,7 @@ Public Class FrmOrdenes
         fila.Selected = True
         idOrdenSeleccionada = idOrden
         MostrarDatosOrden(fila)
-        CargarFotos(idOrden)
+        CargarFotosDiferido()
     End Sub
 
     Private Sub Foto_Click(sender As Object, e As EventArgs) Handles _

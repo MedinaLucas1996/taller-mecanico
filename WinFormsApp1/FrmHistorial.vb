@@ -234,6 +234,7 @@ Public Class FrmHistorial
         If tabla.Rows.Count = 0 Then
             'vehiculo sin ordenes: en lugar de las grillas, un aviso
             tlpHistorial.Visible = False
+            lblSinOrdenes.Text = "Este vehículo todavía no tiene órdenes de trabajo."
             lblSinOrdenes.Visible = True
             Exit Sub
         End If
@@ -355,14 +356,31 @@ Public Class FrmHistorial
         'la tarjeta se muestra antes de cargar las grillas que tiene adentro
         lblAyuda.Visible = False
         pnlVehiculo.Visible = True
-        'con un vehiculo elegido ya se pueden exportar sus ordenes e imprimir su historial
-        btnExportar.Enabled = True
+        'imprimir lee el historial de la base, asi que ya se puede; exportar guarda la grilla de ordenes,
+        'que recien se llena cuando el usuario se detiene en el vehiculo
+        btnExportar.Enabled = False
         btnImprimir.Enabled = True
 
+        'espero un momento antes de traer sus ordenes: al bajar con las flechas solo se lee el vehiculo donde se detiene
+        'mientras tanto no muestro las ordenes del vehiculo anterior
+        idOrden = 0
+        tmrServicios.Stop()
+        tlpHistorial.Visible = False
+        lblSinOrdenes.Text = "Cargando las órdenes del vehículo..."
+        lblSinOrdenes.Visible = True
+        tmrOrdenes.Stop()
+        tmrOrdenes.Start()
+    End Sub
+
+    Private Sub tmrOrdenes_Tick(sender As Object, e As EventArgs) Handles tmrOrdenes.Tick
+        'el usuario se detuvo en un vehiculo: ahora si traigo sus ordenes
+        tmrOrdenes.Stop()
+        If idVehiculo = 0 Then Exit Sub
+        btnExportar.Enabled = True
         CargarOrdenes()
     End Sub
 
-    Sub MostrarOrden(fila As DataGridViewRow)
+    Sub MostrarOrden(fila As DataGridViewRow, Optional diferido As Boolean = False)
         'muestro debajo los servicios, lo que dijo el cliente y las observaciones del mecanico de la orden de la fila
         idOrden = CInt(fila.Cells("id_orden_trabajo").Value)
 
@@ -373,10 +391,28 @@ Public Class FrmHistorial
         If observaciones = "" Then observaciones = "Sin observaciones."
         txtObservaciones.Text = observaciones
 
+        If diferido Then
+            'elegida en la grilla: espero un momento antes de traer sus servicios, sin mostrar los de la orden anterior
+            dgvServicios.DataSource = Nothing
+            tmrServicios.Stop()
+            tmrServicios.Start()
+        Else
+            tmrServicios.Stop()
+            CargarServicios()
+        End If
+    End Sub
+
+    Private Sub tmrServicios_Tick(sender As Object, e As EventArgs) Handles tmrServicios.Tick
+        'el usuario se detuvo en una orden: ahora si traigo sus servicios
+        tmrServicios.Stop()
+        If idOrden = 0 Then Exit Sub
         CargarServicios()
     End Sub
 
     Private Sub FrmHistorial_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        'las grillas se dibujan con doble bufer para que no parpadeen ni se traben al desplazarse
+        ActivarDobleBufer(Me)
+
         'iconos, si alguno falta ese control queda sin icono y el sistema sigue
         picBuscar.Image = LeerIcono("buscar-oscuro.png")
         picVehiculo.Image = LeerIcono("vehiculo-oscuro.png")
@@ -473,7 +509,7 @@ Public Class FrmHistorial
 
         Dim fila As DataGridViewRow = dgvOrdenes.SelectedRows(0)
         If CInt(fila.Cells("id_orden_trabajo").Value) = idOrden Then Exit Sub
-        MostrarOrden(fila)
+        MostrarOrden(fila, True)
     End Sub
 
     Private Sub dgvOrdenes_CellClick(sender As Object, e As DataGridViewCellEventArgs) Handles dgvOrdenes.CellClick
@@ -483,7 +519,7 @@ Public Class FrmHistorial
 
         Dim fila As DataGridViewRow = dgvOrdenes.Rows(e.RowIndex)
         If CInt(fila.Cells("id_orden_trabajo").Value) = idOrden Then Exit Sub
-        MostrarOrden(fila)
+        MostrarOrden(fila, True)
     End Sub
 
     '----- historial del vehiculo impreso -----
