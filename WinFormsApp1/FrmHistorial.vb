@@ -545,7 +545,7 @@ Public Class FrmHistorial
         Dim consultaOrdenes As String =
             "SELECT ot.id_orden_trabajo, ot.nro_orden, ot.fecha_recepcion, e.descripcion AS estado, ot.km_ingreso, " &
             "COALESCE(m.nombre_completo, 'Sin asignar') AS mecanico, ot.fecha_entrega, " &
-            "ot.sintoma_reportado, ot.observaciones_mecanico "
+            "ot.sintoma_reportado, ot.diagnostico, ot.observaciones_mecanico "
         If Not esMecanico Then consultaOrdenes = consultaOrdenes & ", ot.total_aprobado "
         consultaOrdenes = consultaOrdenes &
             "FROM orden_trabajo AS ot " &
@@ -700,10 +700,14 @@ Public Class FrmHistorial
 
         Select Case paso Mod PARTES_POR_ORDEN
             Case PARTE_CABECERA
-                'franja con el numero y el estado de la orden, y lo que dijo el cliente
+                'franja con el numero y el estado de la orden, lo que dijo el cliente y el diagnostico si se cargo
                 Dim titulo As String = "Orden N.º " & orden("nro_orden").ToString() & " · " & orden("estado").ToString()
                 Dim yFin As Integer = DibujarTituloCaja(g, titulo, x, y, ancho, dibujar)
-                yFin = DibujarDato(g, "Síntoma", orden("sintoma_reportado").ToString(), x + 8, yFin, ancho - 16, ANCHO_ETIQUETA_ORDEN, dibujar) + 6
+                yFin = DibujarDato(g, "Síntoma", orden("sintoma_reportado").ToString(), x + 8, yFin, ancho - 16, ANCHO_ETIQUETA_ORDEN, dibujar)
+                If orden("diagnostico").ToString().Trim <> "" Then
+                    yFin = DibujarDato(g, "Diagnóstico", orden("diagnostico").ToString().Trim, x + 8, yFin, ancho - 16, ANCHO_ETIQUETA_ORDEN, dibujar)
+                End If
+                yFin = yFin + 6
                 'al medir reservo lugar para el comienzo de los servicios, asi la franja no queda sola al pie de la hoja
                 If Not dibujar Then Return yFin + 80
                 Return yFin

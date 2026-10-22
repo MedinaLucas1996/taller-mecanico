@@ -26,6 +26,8 @@ Public Class FrmOrdenGestion
     Private cargando As Boolean = False
     'queda en True cuando hay cantidades, horas u observaciones escritas y todavia sin guardar
     Private avanceSinGuardar As Boolean = False
+    'queda en True cuando el mecanico escribio el diagnostico y todavia no lo guardo
+    Private diagnosticoSinGuardar As Boolean = False
 
     'fuente del primer renglon de cada fila del historial
     Private fuenteNegrita As Font
@@ -106,6 +108,7 @@ Public Class FrmOrdenGestion
         btnAnular.Image = LeerIcono("anular-rojo.png")
         btnImprimir.Image = LeerIcono("reportes.png")
         btnAvisar.Image = LeerIcono("cliente-oscuro.png")
+        btnGuardarDiagnostico.Image = LeerIcono("guardar-oscuro.png")
 
         picMecanico.Image = iconoMecanico
         picKm.Image = LeerIcono("km-oscuro.png")
@@ -363,6 +366,14 @@ Public Class FrmOrdenGestion
         txtNotasTecnicas.ReadOnly = (codigoEstado <> "EN_PROCESO")
         lblTotalAprobado.Visible = (codigoEstado <> "RECEPCIONADA")
 
+        'el diagnostico del mecanico se lee encima de las lineas mientras se arma el presupuesto,
+        'y mientras el cliente lo decide si esta cargado; aca es solo de lectura, lo escribe el mecanico
+        pnlDiagnostico.Visible = (codigoEstado = "RECEPCIONADA" OrElse
+                                  (codigoEstado = "PRESUPUESTADA" AndAlso txtDiagnostico.Text.Trim <> ""))
+        txtDiagnostico.ReadOnly = True
+        txtDiagnostico.PlaceholderText = "El mecánico todavía no cargó el diagnóstico."
+        btnGuardarDiagnostico.Visible = False
+
         'el mecanico se cambia mientras el estado no sea final, despues solo se lee
         cboMecanico.Visible = Not esEstadoFinal
         btnGuardarMecanico.Visible = Not esEstadoFinal
@@ -476,8 +487,12 @@ Public Class FrmOrdenGestion
         btnAvisar.Visible = False
 
         If codigoEstado = "RECEPCIONADA" Then
-            lblEtapaTitulo.Text = "Esperando el presupuesto"
-            lblEtapaAyuda.Text = "La orden todavía no tiene el presupuesto armado. Vas a poder iniciar el trabajo cuando el cliente lo apruebe."
+            'antes del presupuesto el mecanico revisa el vehiculo y escribe su diagnostico
+            lblEtapaTitulo.Text = "Diagnóstico del vehículo"
+            lblEtapaAyuda.Text = "Revisá el vehículo y escribí lo que encontraste. La recepción arma el presupuesto con tu diagnóstico."
+            txtDiagnostico.ReadOnly = False
+            txtDiagnostico.PlaceholderText = "Qué se encontró al revisar el vehículo y qué hace falta reparar."
+            btnGuardarDiagnostico.Visible = True
         End If
 
         If codigoEstado = "PRESUPUESTADA" Then
@@ -570,7 +585,7 @@ Public Class FrmOrdenGestion
                 Dim consulta As String =
                     "SELECT ot.nro_orden, ot.fecha_recepcion, ot.fecha_prometida, ot.km_ingreso, " &
                     "ot.fecha_finalizacion, ot.fecha_entrega, " &
-                    "ot.sintoma_reportado, ot.observaciones_recepcion, ot.observaciones_mecanico, " &
+                    "ot.sintoma_reportado, ot.observaciones_recepcion, ot.observaciones_mecanico, ot.diagnostico, " &
                     "ot.id_mecanico, ot.total_presupuestado, ot.total_aprobado, v.patente, " &
                     "CONCAT(ma.descripcion, ' ', mo.descripcion) AS vehiculo, " &
                     "c.razon_social AS cliente, " &
@@ -634,6 +649,9 @@ Public Class FrmOrdenGestion
                             'observaciones del mecanico: se guardan con el avance y al finalizar
                             txtNotasTecnicas.Text = lector("observaciones_mecanico").ToString()
 
+                            'diagnostico del mecanico: es opcional y se escribe antes del presupuesto
+                            txtDiagnostico.Text = lector("diagnostico").ToString()
+
                             'totales guardados en la cabecera de la orden
                             lblTotalPresupuestado.Text = "Total presupuestado: " & CDec(lector("total_presupuestado")).ToString("C2")
                             lblTotalAprobado.Text = "Total aprobado: " & CDec(lector("total_aprobado")).ToString("C2")
@@ -672,6 +690,7 @@ Public Class FrmOrdenGestion
 
         'lo que se ve es lo que esta guardado
         avanceSinGuardar = False
+        diagnosticoSinGuardar = False
         cargando = False
     End Sub
 
@@ -706,6 +725,7 @@ Public Class FrmOrdenGestion
                         "No se guardó ningún dato.")
         'lo escrito no se puede guardar, no tiene sentido preguntar por el al cerrar
         avanceSinGuardar = False
+        diagnosticoSinGuardar = False
         Me.Close()
     End Sub
 
@@ -931,6 +951,19 @@ Public Class FrmOrdenGestion
     End Sub
 
     Private Sub FrmOrdenGestion_FormClosing(sender As Object, e As FormClosingEventArgs) Handles MyBase.FormClosing
+        'si hay un diagnostico escrito sin guardar, aviso antes de cerrar para no perderlo
+        If diagnosticoSinGuardar Then
+            Dim respuestaDiagnostico As DialogResult = MessageBox.Show(
+                "Hay un diagnóstico escrito sin guardar." & vbCrLf &
+                "¿Cerrar igual? Para conservarlo, elija No y use ""Guardar diagnóstico"".",
+                "Diagnóstico sin guardar",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning)
+
+            If respuestaDiagnostico = DialogResult.No Then e.Cancel = True
+            Exit Sub
+        End If
+
         'si hay avance del trabajo sin guardar, aviso antes de cerrar para no perderlo
         If Not avanceSinGuardar Then Exit Sub
 
@@ -1050,6 +1083,12 @@ Public Class FrmOrdenGestion
         'las observaciones escritas con el trabajo en proceso cuentan como avance sin guardar
         If cargando Then Exit Sub
         If codigoEstado = "EN_PROCESO" Then avanceSinGuardar = True
+    End Sub
+
+    Private Sub txtDiagnostico_TextChanged(sender As Object, e As EventArgs) Handles txtDiagnostico.TextChanged
+        'lo que el mecanico escribe en el diagnostico queda sin guardar hasta usar su boton
+        If cargando Then Exit Sub
+        If modoMecanico AndAlso codigoEstado = "RECEPCIONADA" Then diagnosticoSinGuardar = True
     End Sub
 
     Private Sub dgvHistorial_DataBindingComplete(sender As Object, e As DataGridViewBindingCompleteEventArgs) Handles dgvHistorial.DataBindingComplete
@@ -1214,6 +1253,111 @@ Public Class FrmOrdenGestion
         End If
 
         'vuelvo a cargar la orden con su estado actual
+        CargarOrden()
+    End Sub
+
+    Private Sub btnGuardarDiagnostico_Click(sender As Object, e As EventArgs) Handles btnGuardarDiagnostico.Click
+        'guardo el diagnostico que escribio el mecanico; la orden sigue recepcionada
+        'el boton solo lo ve el mecanico de la orden, igual lo compruebo
+        If Not modoMecanico Then Exit Sub
+
+        Dim diagnostico As String = txtDiagnostico.Text.Trim
+        If diagnostico = "" Then
+            MessageBox.Show("Escriba el diagnóstico antes de guardarlo")
+            txtDiagnostico.Focus()
+            Exit Sub
+        End If
+
+        Dim aviso As String = ""
+        'queda en True cuando la orden dejo de ser del mecanico que la tiene abierta
+        Dim ordenAjena As Boolean = False
+
+        Try
+            Using cn As New MySqlConnection(CADENA)
+                cn.Open()
+
+                'el diagnostico y su fila de historial se guardan juntos o ninguno
+                Dim transaccion As MySqlTransaction = cn.BeginTransaction()
+                Try
+                    'leo el estado, lo que deja bloqueada la fila de la orden
+                    Dim codigoActual As String = LeerCodigoEstado(cn, transaccion)
+
+                    'un mecanico solo diagnostica sus ordenes: lo compruebo con la fila ya bloqueada
+                    If Not OrdenEsDelMecanico(cn, transaccion) Then
+                        ordenAjena = True
+                        aviso = "ajena"
+                    ElseIf codigoActual <> "RECEPCIONADA" Then
+                        aviso = "La orden ya no está recepcionada: el diagnóstico ya no se puede cambiar."
+                    End If
+
+                    'leo el diagnostico guardado para saber si es el primero o una correccion
+                    Dim anterior As String = ""
+                    Dim consulta As String
+                    If aviso = "" Then
+                        consulta = "SELECT diagnostico FROM orden_trabajo WHERE id_orden_trabajo = @id_orden_trabajo;"
+                        Using cmd As New MySqlCommand(consulta, cn, transaccion)
+                            cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
+                            Dim resultado As Object = cmd.ExecuteScalar()
+                            If resultado IsNot Nothing AndAlso Not IsDBNull(resultado) Then anterior = resultado.ToString().Trim
+                        End Using
+
+                        If anterior = diagnostico Then aviso = "El diagnóstico no tiene cambios para guardar."
+                    End If
+
+                    If aviso = "" Then
+                        consulta = "UPDATE orden_trabajo SET diagnostico = @diagnostico " &
+                                   "WHERE id_orden_trabajo = @id_orden_trabajo;"
+                        Using cmd As New MySqlCommand(consulta, cn, transaccion)
+                            cmd.Parameters.AddWithValue("@diagnostico", diagnostico)
+                            cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
+                            cmd.ExecuteNonQuery()
+                        End Using
+
+                        'dejo constancia en el historial con el estado actual de la orden, que no cambia
+                        Dim observacion As String = "Diagnóstico cargado"
+                        If anterior <> "" Then observacion = "Diagnóstico corregido"
+                        consulta =
+                            "INSERT INTO ot_historial_estado (id_orden_trabajo, id_estado_ot, id_usuario, observacion) " &
+                            "SELECT id_orden_trabajo, id_estado_ot, @id_usuario, @observacion FROM orden_trabajo " &
+                            "WHERE id_orden_trabajo = @id_orden_trabajo;"
+                        Using cmd As New MySqlCommand(consulta, cn, transaccion)
+                            cmd.Parameters.AddWithValue("@id_usuario", Sesion.IdUsuario)
+                            cmd.Parameters.AddWithValue("@observacion", observacion)
+                            cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
+                            cmd.ExecuteNonQuery()
+                        End Using
+                    End If
+                Catch ex As Exception
+                    'algo fallo antes de confirmar: deshago todo y dejo que el error llegue al mensaje de abajo
+                    transaccion.Rollback()
+                    Throw
+                End Try
+
+                'confirmo fuera del Try de arriba: si el Commit falla no se intenta deshacer una transaccion ya cerrada
+                If aviso = "" Then
+                    transaccion.Commit()
+                Else
+                    transaccion.Rollback()
+                End If
+            End Using
+        Catch ex As Exception
+            MessageBox.Show("No se pudo guardar el diagnóstico y no se guardó ningún dato." & vbCrLf &
+                            "Detalle: " & ex.Message)
+            Exit Sub
+        End Try
+
+        If ordenAjena Then
+            CerrarPorOrdenAjena()
+            Exit Sub
+        End If
+
+        If aviso <> "" Then
+            MessageBox.Show(aviso)
+        Else
+            MessageBox.Show("Diagnóstico guardado.")
+        End If
+
+        'vuelvo a cargar la orden con lo que quedo guardado
         CargarOrden()
     End Sub
 
@@ -1496,6 +1640,35 @@ Public Class FrmOrdenGestion
 
         'accion de la recepcion: un mecanico no la hace aunque llegue hasta aca
         If RechazaMecanico() Then Exit Sub
+
+        'el diagnostico del mecanico es opcional: si falta, aviso y dejo seguir
+        'lo leo de la base, el mecanico pudo guardarlo despues de abrir esta ventana
+        Dim diagnosticoGuardado As String = ""
+        Try
+            Using cn As New MySqlConnection(CADENA)
+                cn.Open()
+                Dim consulta As String = "SELECT diagnostico FROM orden_trabajo WHERE id_orden_trabajo = @id_orden_trabajo;"
+                Using cmd As New MySqlCommand(consulta, cn)
+                    cmd.Parameters.AddWithValue("@id_orden_trabajo", IdOrdenTrabajo)
+                    Dim resultado As Object = cmd.ExecuteScalar()
+                    If resultado IsNot Nothing AndAlso Not IsDBNull(resultado) Then diagnosticoGuardado = resultado.ToString().Trim
+                End Using
+            End Using
+        Catch ex As Exception
+            MessageBox.Show("Error al leer el diagnóstico de la orden: " & ex.Message)
+            Exit Sub
+        End Try
+
+        If diagnosticoGuardado = "" Then
+            Dim respuesta As DialogResult = MessageBox.Show(
+                "La orden no tiene el diagnóstico del mecánico." & vbCrLf &
+                "¿Presupuestar igual?",
+                "Sin diagnóstico",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning)
+
+            If respuesta = DialogResult.No Then Exit Sub
+        End If
 
         Dim aviso As String = ""
 
@@ -2369,13 +2542,20 @@ Public Class FrmOrdenGestion
     End Sub
 
     Function ConfirmarAvanceSinGuardar() As Boolean
-        'el reporte sale de lo guardado en la base: si hay avance sin guardar, aviso que no va a aparecer
-        If Not avanceSinGuardar Then Return True
+        'el reporte sale de lo guardado en la base: si hay avance o diagnostico sin guardar, aviso que no va a aparecer
+        If Not avanceSinGuardar AndAlso Not diagnosticoSinGuardar Then Return True
+
+        Dim mensaje As String = "Hay cantidades, horas u observaciones sin guardar y no van a salir en el reporte."
+        Dim titulo As String = "Avance sin guardar"
+        If diagnosticoSinGuardar Then
+            mensaje = "Hay un diagnóstico escrito sin guardar y no va a salir en el reporte."
+            titulo = "Diagnóstico sin guardar"
+        End If
 
         Dim respuesta As DialogResult = MessageBox.Show(
-            "Hay cantidades, horas u observaciones sin guardar y no van a salir en el reporte." & vbCrLf &
+            mensaje & vbCrLf &
             "¿Imprimir igual?",
-            "Avance sin guardar",
+            titulo,
             MessageBoxButtons.YesNo,
             MessageBoxIcon.Warning)
         Return (respuesta = DialogResult.Yes)
@@ -2497,7 +2677,7 @@ Public Class FrmOrdenGestion
             consultaCabecera =
                 "SELECT ot.nro_orden, ot.fecha_recepcion, ot.fecha_prometida, ot.km_ingreso, ot.nivel_combustible, " &
                 "ot.fecha_finalizacion, ot.fecha_entrega, " &
-                "ot.sintoma_reportado, ot.observaciones_recepcion, ot.observaciones_mecanico, " &
+                "ot.sintoma_reportado, ot.observaciones_recepcion, ot.observaciones_mecanico, ot.diagnostico, " &
                 "v.patente, CONCAT(ma.descripcion, ' ', mo.descripcion) AS vehiculo, v.anio, v.color, " &
                 "c.razon_social AS cliente, c.documento, c.telefono, " &
                 "COALESCE(m.nombre_completo, 'Sin asignar') AS mecanico, " &
@@ -2519,7 +2699,7 @@ Public Class FrmOrdenGestion
             consultaCabecera =
                 "SELECT ot.nro_orden, ot.fecha_recepcion, ot.fecha_prometida, ot.km_ingreso, ot.nivel_combustible, " &
                 "ot.fecha_finalizacion, ot.fecha_entrega, " &
-                "ot.sintoma_reportado, ot.observaciones_recepcion, ot.observaciones_mecanico, " &
+                "ot.sintoma_reportado, ot.observaciones_recepcion, ot.observaciones_mecanico, ot.diagnostico, " &
                 "ot.total_presupuestado, ot.total_aprobado, " &
                 "v.patente, CONCAT(ma.descripcion, ' ', mo.descripcion) AS vehiculo, v.anio, v.color, " &
                 "c.razon_social AS cliente, c.documento, c.telefono, " &
@@ -2790,6 +2970,10 @@ Public Class FrmOrdenGestion
                 y = DibujarDato(g, "Entrega prometida", prometida, x, y, ancho, ANCHO_ETIQUETA, dibujar)
                 y = DibujarDato(g, "Síntoma reportado", fila("sintoma_reportado").ToString(), x, y, ancho, ANCHO_ETIQUETA, dibujar)
                 y = DibujarDato(g, "Observaciones", fila("observaciones_recepcion").ToString(), x, y, ancho, ANCHO_ETIQUETA, dibujar)
+                'la orden de trabajo suma el diagnostico del mecanico si esta cargado; el acta registra solo la recepcion
+                If reporteImpreso = REPORTE_ORDEN AndAlso fila("diagnostico").ToString().Trim <> "" Then
+                    y = DibujarDato(g, "Diagnóstico", fila("diagnostico").ToString().Trim, x, y, ancho, ANCHO_ETIQUETA, dibujar)
+                End If
                 Return y + 12
 
             Case SECCION_TOTALES
@@ -2842,6 +3026,10 @@ Public Class FrmOrdenGestion
                 'presupuesto: lo que pidio el cliente al dejar el vehiculo
                 y = DibujarTituloSeccion(g, "Motivo de la consulta", x, y, ancho, dibujar)
                 y = DibujarDato(g, "Síntoma reportado", fila("sintoma_reportado").ToString(), x, y, ancho, 175, dibujar)
+                'y lo que encontro el mecanico al revisarlo, si lo cargo
+                If fila("diagnostico").ToString().Trim <> "" Then
+                    y = DibujarDato(g, "Diagnóstico", fila("diagnostico").ToString().Trim, x, y, ancho, 175, dibujar)
+                End If
                 Return y + 12
 
             Case SECCION_VALIDEZ

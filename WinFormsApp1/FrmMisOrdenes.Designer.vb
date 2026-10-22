@@ -35,6 +35,9 @@ Partial Class FrmMisOrdenes
         pnlGrupo3 = New Panel()
         lblNomGrupo3 = New Label()
         lblCantGrupo3 = New Label()
+        pnlGrupo4 = New Panel()
+        lblNomGrupo4 = New Label()
+        lblCantGrupo4 = New Label()
         pnlLista = New Panel()
         dgvOrdenes = New DataGridView()
         pnlResumen = New Panel()
@@ -69,6 +72,7 @@ Partial Class FrmMisOrdenes
         pnlGrupo1.SuspendLayout()
         pnlGrupo2.SuspendLayout()
         pnlGrupo3.SuspendLayout()
+        pnlGrupo4.SuspendLayout()
         pnlLista.SuspendLayout()
         pnlResumen.SuspendLayout()
         pnlOrden.SuspendLayout()
@@ -107,13 +111,15 @@ Partial Class FrmMisOrdenes
         ' tlpGrupos
         '
         tlpGrupos.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
-        tlpGrupos.ColumnCount = 3
-        tlpGrupos.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 33.3333321F))
-        tlpGrupos.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 33.3333321F))
-        tlpGrupos.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 33.3333321F))
+        tlpGrupos.ColumnCount = 4
+        tlpGrupos.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 25F))
+        tlpGrupos.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 25F))
+        tlpGrupos.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 25F))
+        tlpGrupos.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 25F))
         tlpGrupos.Controls.Add(pnlGrupo1, 0, 0)
         tlpGrupos.Controls.Add(pnlGrupo2, 1, 0)
-        tlpGrupos.Controls.Add(pnlGrupo3, 2, 0)
+        tlpGrupos.Controls.Add(pnlGrupo4, 2, 0)
+        tlpGrupos.Controls.Add(pnlGrupo3, 3, 0)
         tlpGrupos.Location = New Point(30, 104)
         tlpGrupos.Name = "tlpGrupos"
         tlpGrupos.RowCount = 1
@@ -228,6 +234,42 @@ Partial Class FrmMisOrdenes
         lblCantGrupo3.TabIndex = 0
         lblCantGrupo3.Text = "0"
         lblCantGrupo3.TextAlign = ContentAlignment.BottomCenter
+        '
+        ' pnlGrupo4
+        '
+        pnlGrupo4.BackColor = Color.White
+        pnlGrupo4.Controls.Add(lblNomGrupo4)
+        pnlGrupo4.Controls.Add(lblCantGrupo4)
+        pnlGrupo4.Cursor = Cursors.Hand
+        pnlGrupo4.Dock = DockStyle.Fill
+        pnlGrupo4.Location = New Point(0, 0)
+        pnlGrupo4.Margin = New Padding(0, 0, 6, 0)
+        pnlGrupo4.Name = "pnlGrupo4"
+        pnlGrupo4.Size = New Size(196, 76)
+        pnlGrupo4.TabIndex = 3
+        '
+        ' lblNomGrupo4
+        '
+        lblNomGrupo4.Dock = DockStyle.Fill
+        lblNomGrupo4.Font = New Font("Segoe UI", 8.25F)
+        lblNomGrupo4.ForeColor = Color.DimGray
+        lblNomGrupo4.Location = New Point(0, 46)
+        lblNomGrupo4.Name = "lblNomGrupo4"
+        lblNomGrupo4.Size = New Size(196, 30)
+        lblNomGrupo4.TabIndex = 1
+        lblNomGrupo4.Text = "Para diagnosticar"
+        lblNomGrupo4.TextAlign = ContentAlignment.TopCenter
+        '
+        ' lblCantGrupo4
+        '
+        lblCantGrupo4.Dock = DockStyle.Top
+        lblCantGrupo4.Font = New Font("Segoe UI", 16F, FontStyle.Bold)
+        lblCantGrupo4.Location = New Point(0, 0)
+        lblCantGrupo4.Name = "lblCantGrupo4"
+        lblCantGrupo4.Size = New Size(196, 46)
+        lblCantGrupo4.TabIndex = 0
+        lblCantGrupo4.Text = "0"
+        lblCantGrupo4.TextAlign = ContentAlignment.BottomCenter
         '
         ' pnlLista
         '
@@ -671,6 +713,7 @@ Partial Class FrmMisOrdenes
         pnlGrupo1.ResumeLayout(False)
         pnlGrupo2.ResumeLayout(False)
         pnlGrupo3.ResumeLayout(False)
+        pnlGrupo4.ResumeLayout(False)
         pnlLista.ResumeLayout(False)
         pnlResumen.ResumeLayout(False)
         pnlOrden.ResumeLayout(False)
@@ -701,6 +744,9 @@ Partial Class FrmMisOrdenes
     Friend WithEvents pnlGrupo3 As Panel
     Friend WithEvents lblNomGrupo3 As Label
     Friend WithEvents lblCantGrupo3 As Label
+    Friend WithEvents pnlGrupo4 As Panel
+    Friend WithEvents lblNomGrupo4 As Label
+    Friend WithEvents lblCantGrupo4 As Label
     Friend WithEvents pnlLista As Panel
     Friend WithEvents dgvOrdenes As DataGridView
     Friend WithEvents pnlResumen As Panel

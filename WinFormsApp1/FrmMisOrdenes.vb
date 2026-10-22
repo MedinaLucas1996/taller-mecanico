@@ -3,10 +3,10 @@ Imports MySqlConnector
 
 Public Class FrmMisOrdenes
 
-    'grupo elegido en las tarjetas de arriba: 1 en curso, 2 para empezar, 3 terminadas; siempre hay uno
+    'grupo elegido en las tarjetas de arriba: 1 en curso, 2 para empezar, 3 terminadas, 4 para diagnosticar; siempre hay uno
     Private grupoElegido As Integer = 1
     'cantidad de ordenes del mecanico en cada grupo (el lugar 0 no se usa)
-    Private cantidades(3) As Integer
+    Private cantidades(4) As Integer
 
     'orden que se ve en la tarjeta del resumen, queda en 0 mientras no haya una (el ID no se muestra)
     Private idOrden As Integer = 0
@@ -28,9 +28,11 @@ Public Class FrmMisOrdenes
     Private iconoIniciar As Image
     Private iconoFinalizar As Image
     Private iconoAbrir As Image
+    Private iconoDiagnosticar As Image
 
     Function ColorEstado(codigo As String) As Color
         'color de fondo de cada estado, los mismos que usa el tablero de ordenes
+        If codigo = "RECEPCIONADA" Then Return Color.Lavender
         If codigo = "APROBADA" Then Return Color.LightSkyBlue
         If codigo = "EN_PROCESO" Then Return Color.Khaki
         If codigo = "FINALIZADA" Then Return Color.PaleTurquoise
@@ -43,6 +45,7 @@ Public Class FrmMisOrdenes
         If codigo = "EN_PROCESO" Then Return 1
         If codigo = "APROBADA" Then Return 2
         If codigo = "FINALIZADA" OrElse codigo = "ENTREGADA" Then Return 3
+        If codigo = "RECEPCIONADA" Then Return 4
         Return 0
     End Function
 
@@ -51,6 +54,7 @@ Public Class FrmMisOrdenes
         cantidades(1) = 0
         cantidades(2) = 0
         cantidades(3) = 0
+        cantidades(4) = 0
 
         Try
             Using cn As New MySqlConnection(CADENA)
@@ -61,7 +65,7 @@ Public Class FrmMisOrdenes
                     "FROM orden_trabajo AS ot " &
                     "JOIN estado_ot AS e ON e.id_estado_ot = ot.id_estado_ot " &
                     "WHERE ot.id_mecanico = @id_mecanico " &
-                    "AND e.codigo IN ('EN_PROCESO', 'APROBADA', 'FINALIZADA', 'ENTREGADA') " &
+                    "AND e.codigo IN ('EN_PROCESO', 'APROBADA', 'FINALIZADA', 'ENTREGADA', 'RECEPCIONADA') " &
                     "GROUP BY e.codigo;"
                 Using cmd As New MySqlCommand(consulta, cn)
                     cmd.Parameters.AddWithValue("@id_mecanico", Sesion.IdMecanico)
@@ -78,18 +82,19 @@ Public Class FrmMisOrdenes
             MessageBox.Show("Error al contar sus órdenes de trabajo: " & ex.Message)
         End Try
 
-        For i As Integer = 1 To 3
+        For i As Integer = 1 To 4
             etiquetasCantidad(i).Text = cantidades(i).ToString()
         Next
 
-        lblSubtitulo.Text = nombreMecanico & " · " & cantidades(1) & " en curso · " & cantidades(2) & " para empezar"
+        lblSubtitulo.Text = nombreMecanico & " · " & cantidades(1) & " en curso · " & cantidades(2) & " para empezar" &
+                           " · " & cantidades(4) & " para diagnosticar"
 
         PintarGrupos()
     End Sub
 
     Sub PintarGrupos()
         'resalto la tarjeta del grupo elegido y dejo las demas en blanco
-        For i As Integer = 1 To 3
+        For i As Integer = 1 To 4
             If i = grupoElegido Then
                 tarjetas(i).BackColor = Color.FromArgb(30, 39, 46)
                 etiquetasCantidad(i).ForeColor = Color.White
@@ -145,6 +150,10 @@ Public Class FrmMisOrdenes
                     'para empezar: con el mismo orden
                     consulta = consulta & "AND e.codigo = 'APROBADA' " &
                                "ORDER BY ot.fecha_prometida IS NULL, ot.fecha_prometida, ot.nro_orden;"
+                ElseIf grupoElegido = 4 Then
+                    'para diagnosticar: recien recepcionadas, todavia sin presupuesto; con el mismo orden
+                    consulta = consulta & "AND e.codigo = 'RECEPCIONADA' " &
+                               "ORDER BY ot.fecha_prometida IS NULL, ot.fecha_prometida, ot.nro_orden;"
                 Else
                     'terminadas: la mas reciente primero, por su entrega o por su finalizacion
                     consulta = consulta & "AND e.codigo IN ('FINALIZADA', 'ENTREGADA') " &
@@ -161,10 +170,10 @@ Public Class FrmMisOrdenes
                     End Using
 
                     'columna "n de m": servicios con horas cargadas sobre servicios aprobados
-                    'en "Para empezar" queda vacia, todavia no se cargo nada
+                    'en "Para empezar" y en "Para diagnosticar" queda vacia, todavia no se cargo nada
                     tabla.Columns.Add("horas", GetType(String))
                     For Each registro As DataRow In tabla.Rows
-                        If grupoElegido = 2 Then
+                        If grupoElegido = 2 OrElse grupoElegido = 4 Then
                             registro("horas") = ""
                         Else
                             registro("horas") = registro("con_horas").ToString() & " de " & registro("lineas").ToString()
@@ -374,6 +383,8 @@ Public Class FrmMisOrdenes
         End Try
 
         If texto = "" Then texto = "La orden no tiene servicios aprobados."
+        'una orden para diagnosticar todavia no tiene presupuesto: primero va el diagnostico
+        If codigoEstadoOrden = "RECEPCIONADA" Then texto = "Todavía no tiene presupuesto: primero revisá el vehículo y cargá tu diagnóstico."
         txtTrabajo.Text = texto
     End Sub
 
@@ -417,6 +428,9 @@ Public Class FrmMisOrdenes
         ElseIf codigoEstadoOrden = "EN_PROCESO" Then
             btnAbrir.Text = " Cargar horas y finalizar"
             btnAbrir.Image = iconoFinalizar
+        ElseIf codigoEstadoOrden = "RECEPCIONADA" Then
+            btnAbrir.Text = " Cargar diagnóstico"
+            btnAbrir.Image = iconoDiagnosticar
         Else
             btnAbrir.Text = " Ver orden"
             btnAbrir.Image = iconoAbrir
@@ -456,14 +470,15 @@ Public Class FrmMisOrdenes
 
     Private Sub FrmMisOrdenes_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         'junto las tarjetas y sus etiquetas para recorrerlas con un For (el lugar 0 no se usa)
-        tarjetas = {Nothing, pnlGrupo1, pnlGrupo2, pnlGrupo3}
-        etiquetasCantidad = {Nothing, lblCantGrupo1, lblCantGrupo2, lblCantGrupo3}
-        etiquetasNombre = {Nothing, lblNomGrupo1, lblNomGrupo2, lblNomGrupo3}
+        tarjetas = {Nothing, pnlGrupo1, pnlGrupo2, pnlGrupo3, pnlGrupo4}
+        etiquetasCantidad = {Nothing, lblCantGrupo1, lblCantGrupo2, lblCantGrupo3, lblCantGrupo4}
+        etiquetasNombre = {Nothing, lblNomGrupo1, lblNomGrupo2, lblNomGrupo3, lblNomGrupo4}
 
         'iconos, si alguno falta ese control queda sin icono y el sistema sigue
         iconoIniciar = LeerIcono("iniciar.png")
         iconoFinalizar = LeerIcono("finalizar.png")
         iconoAbrir = LeerIcono("abrir.png")
+        iconoDiagnosticar = LeerIcono("editar-oscuro.png")
         picVehiculo.Image = LeerIcono("vehiculo-oscuro.png")
         picSintoma.Image = LeerIcono("sintoma-oscuro.png")
         btnExportar.Image = LeerIcono("exportar.png")
@@ -506,13 +521,15 @@ Public Class FrmMisOrdenes
             MessageBox.Show("Error al leer los datos del mecánico: " & ex.Message)
         End Try
 
-        'cuento los grupos y entro por el primero que tenga ordenes: en curso, para empezar o terminadas
+        'cuento los grupos y entro por el primero que tenga ordenes: en curso, para empezar, para diagnosticar o terminadas
         MostrarAyuda()
         CargarGrupos()
         If cantidades(1) > 0 Then
             grupoElegido = 1
         ElseIf cantidades(2) > 0 Then
             grupoElegido = 2
+        ElseIf cantidades(4) > 0 Then
+            grupoElegido = 4
         Else
             grupoElegido = 3
         End If
@@ -542,7 +559,8 @@ Public Class FrmMisOrdenes
     Private Sub Grupo_Click(sender As Object, e As EventArgs) Handles _
         pnlGrupo1.Click, lblCantGrupo1.Click, lblNomGrupo1.Click,
         pnlGrupo2.Click, lblCantGrupo2.Click, lblNomGrupo2.Click,
-        pnlGrupo3.Click, lblCantGrupo3.Click, lblNomGrupo3.Click
+        pnlGrupo3.Click, lblCantGrupo3.Click, lblNomGrupo3.Click,
+        pnlGrupo4.Click, lblCantGrupo4.Click, lblNomGrupo4.Click
 
         'listo las ordenes del grupo de la tarjeta; siempre queda un grupo elegido
 
@@ -550,7 +568,7 @@ Public Class FrmMisOrdenes
         Dim origen As Control = CType(sender, Control)
         If TypeOf origen Is Label Then origen = origen.Parent
 
-        For i As Integer = 1 To 3
+        For i As Integer = 1 To 4
             If origen Is tarjetas(i) Then grupoElegido = i
         Next
 

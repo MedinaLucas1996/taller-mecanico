@@ -73,6 +73,10 @@ Partial Class FrmOrdenGestion
         lblCantidad = New Label()
         nudCantidad = New NumericUpDown()
         btnAgregar = New Button()
+        pnlDiagnostico = New Panel()
+        lblDiagnostico = New Label()
+        btnGuardarDiagnostico = New Button()
+        txtDiagnostico = New TextBox()
         pnlCabeceraEtapa = New Panel()
         lblEtapaTitulo = New Label()
         lblConteo = New Label()
@@ -134,6 +138,7 @@ Partial Class FrmOrdenGestion
         pnlAvisoMecanico.SuspendLayout()
         pnlNotas.SuspendLayout()
         pnlEditor.SuspendLayout()
+        pnlDiagnostico.SuspendLayout()
         pnlCabeceraEtapa.SuspendLayout()
         pnlDatos.SuspendLayout()
         pnlHistorial.SuspendLayout()
@@ -450,6 +455,7 @@ Partial Class FrmOrdenGestion
         pnlTrabajo.Controls.Add(pnlAvisoMecanico)
         pnlTrabajo.Controls.Add(pnlNotas)
         pnlTrabajo.Controls.Add(pnlEditor)
+        pnlTrabajo.Controls.Add(pnlDiagnostico)
         pnlTrabajo.Controls.Add(pnlCabeceraEtapa)
         pnlTrabajo.Location = New Point(24, 168)
         pnlTrabajo.Name = "pnlTrabajo"
@@ -752,6 +758,56 @@ Partial Class FrmOrdenGestion
         btnAgregar.Anchor = AnchorStyles.Top Or AnchorStyles.Right
         btnAgregar.Location = New Point(612, 5)
         btnAgregar.Size = New Size(128, 40)
+        '
+        ' pnlDiagnostico
+        '
+        pnlDiagnostico.Controls.Add(lblDiagnostico)
+        pnlDiagnostico.Controls.Add(btnGuardarDiagnostico)
+        pnlDiagnostico.Controls.Add(txtDiagnostico)
+        pnlDiagnostico.Dock = DockStyle.Top
+        pnlDiagnostico.Location = New Point(16, 78)
+        pnlDiagnostico.Name = "pnlDiagnostico"
+        pnlDiagnostico.Size = New Size(740, 128)
+        pnlDiagnostico.TabIndex = 6
+        pnlDiagnostico.Visible = False
+        '
+        ' lblDiagnostico
+        '
+        lblDiagnostico.AutoSize = True
+        lblDiagnostico.Font = New Font("Segoe UI", 9.5F, FontStyle.Bold)
+        lblDiagnostico.Location = New Point(0, 12)
+        lblDiagnostico.Name = "lblDiagnostico"
+        lblDiagnostico.Size = New Size(100, 20)
+        lblDiagnostico.TabIndex = 0
+        lblDiagnostico.Text = "Diagnóstico del mecánico"
+        '
+        ' btnGuardarDiagnostico
+        '
+        btnGuardarDiagnostico.Anchor = AnchorStyles.Top Or AnchorStyles.Right
+        btnGuardarDiagnostico.BackColor = Color.White
+        btnGuardarDiagnostico.Cursor = Cursors.Hand
+        btnGuardarDiagnostico.FlatAppearance.BorderColor = Color.Silver
+        btnGuardarDiagnostico.FlatStyle = FlatStyle.Flat
+        btnGuardarDiagnostico.Location = New Point(540, 2)
+        btnGuardarDiagnostico.Name = "btnGuardarDiagnostico"
+        btnGuardarDiagnostico.Size = New Size(200, 38)
+        btnGuardarDiagnostico.TabIndex = 2
+        btnGuardarDiagnostico.Text = " Guardar diagnóstico"
+        btnGuardarDiagnostico.TextImageRelation = TextImageRelation.ImageBeforeText
+        btnGuardarDiagnostico.UseVisualStyleBackColor = False
+        btnGuardarDiagnostico.Visible = False
+        '
+        ' txtDiagnostico
+        '
+        txtDiagnostico.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
+        txtDiagnostico.Location = New Point(0, 44)
+        txtDiagnostico.MaxLength = 2000
+        txtDiagnostico.Multiline = True
+        txtDiagnostico.Name = "txtDiagnostico"
+        txtDiagnostico.ReadOnly = True
+        txtDiagnostico.ScrollBars = ScrollBars.Vertical
+        txtDiagnostico.Size = New Size(740, 78)
+        txtDiagnostico.TabIndex = 1
         '
         ' pnlCabeceraEtapa
         '
@@ -1321,6 +1377,8 @@ Partial Class FrmOrdenGestion
         pnlNotas.PerformLayout()
         pnlEditor.ResumeLayout(False)
         pnlEditor.PerformLayout()
+        pnlDiagnostico.ResumeLayout(False)
+        pnlDiagnostico.PerformLayout()
         pnlCabeceraEtapa.ResumeLayout(False)
         pnlCabeceraEtapa.PerformLayout()
         pnlDatos.ResumeLayout(False)
@@ -1392,6 +1450,10 @@ Partial Class FrmOrdenGestion
     Friend WithEvents lblCantidad As Label
     Friend WithEvents nudCantidad As NumericUpDown
     Friend WithEvents btnAgregar As Button
+    Friend WithEvents pnlDiagnostico As Panel
+    Friend WithEvents lblDiagnostico As Label
+    Friend WithEvents btnGuardarDiagnostico As Button
+    Friend WithEvents txtDiagnostico As TextBox
     Friend WithEvents pnlCabeceraEtapa As Panel
     Friend WithEvents lblEtapaTitulo As Label
     Friend WithEvents lblConteo As Label
