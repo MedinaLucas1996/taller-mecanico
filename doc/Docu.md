@@ -383,7 +383,7 @@ Los títulos de sección siguen la misma regla: "OPERACIONES" se muestra a todos
 
 - Grupos: "En curso" (`EN_PROCESO`), "Para empezar" (`APROBADA`), "Para diagnosticar" (`RECEPCIONADA`) y "Terminadas" (`FINALIZADA` y `ENTREGADA`), con su cantidad; siempre hay uno elegido y al entrar es el primero con órdenes. Las órdenes en `PRESUPUESTADA` no se listan.
 - Lista: N.º, vehículo, fecha prometida y "Horas" (`n de m` líneas aprobadas con horas). Las demoradas van con fondo `MistyRose`. "Exportar" guarda la grilla en CSV.
-- Resumen: vehículo y kilometraje, síntoma, observaciones de recepción, servicios aprobados con cantidad y horas, las cinco fotos de recepción y las fotos del trabajo ("Fotos del trabajo (n)"), ampliables en `FrmFoto` solo para mirar.
+- Resumen: vehículo y kilometraje, síntoma, observaciones de recepción, servicios aprobados con cantidad y horas, las cinco fotos de recepción y las fotos del trabajo ("Fotos del trabajo (n)"), ampliables en `FrmFoto` solo para mirar. Al elegir una orden en la lista, los datos de la fila se ven en el acto y los servicios y las fotos se leen cuando el mecánico se detiene: el resumen muestra "Cargando..." y espera 250 ms (`tmrResumen`), así bajar con las flechas no consulta la base en cada orden que pasa.
 - Botón: "Cargar diagnóstico", "Iniciar trabajo", "Cargar horas y finalizar" o "Ver orden" según el estado (también con doble clic); abre `FrmOrdenGestion` en modo mecánico y, al volver, pasa al grupo donde quedó la orden y recarga.
 
 ### Historial por patente
@@ -393,6 +393,7 @@ Los títulos de sección siguen la misma regla: "OPERACIONES" se muestra a todos
 - Lista: búsqueda en vivo por patente (`LIKE @filtro`), también de vehículos dados de baja (al final, en gris, con "Baja").
 - Detalle: `pnlVehiculo` con patente, marca y modelo, año, color, titular actual, documento, teléfono y kilometraje; `tlpHistorial` reparte el alto entre la grilla de órdenes (todas, en cualquier estado, la más reciente primero: N.º, ingreso, estado, km, mecánico y, salvo para el mecánico, total aprobado o presupuestado) y la de servicios de la orden elegida (servicio, cantidad, aprobado, horas y, salvo para el mecánico, subtotal), y al pie "El cliente dijo" y "Observaciones del mecánico". Un vehículo sin órdenes muestra "Este vehículo todavía no tiene órdenes de trabajo.".
 - Las grillas no se ordenan por columna (`SortMode = NotSortable`). "Exportar" guarda la grilla de órdenes en CSV; "Imprimir" abre el historial del vehículo (ver [Reportes](#reportes)).
+- Carga en cascada con espera: al elegir un vehículo se ven en el acto sus datos y "Cargando las órdenes del vehículo..."; sus órdenes se leen recién tras 250 ms sin cambiar de fila (`tmrOrdenes`), y mientras tanto "Exportar" queda deshabilitado porque la grilla todavía está vacía ("Imprimir" lee de la base y sigue disponible). Al elegir otra orden, sus servicios se leen tras otra espera de 250 ms (`tmrServicios`) y la grilla de servicios queda vacía hasta entonces, sin mostrar los de la orden anterior.
 
 ### Turnos
 

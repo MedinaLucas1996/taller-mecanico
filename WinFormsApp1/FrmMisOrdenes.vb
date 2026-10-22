@@ -457,7 +457,7 @@ Public Class FrmMisOrdenes
         VaciarFotosTrabajo()
     End Sub
 
-    Sub MostrarOrden(fila As DataGridViewRow)
+    Sub MostrarOrden(fila As DataGridViewRow, Optional diferido As Boolean = False)
         'cargo en la tarjeta del resumen la orden de la fila: lo que el mecanico necesita para trabajar
         idOrden = CInt(fila.Cells("id_orden_trabajo").Value)
         codigoEstadoOrden = fila.Cells("codigo_estado").Value.ToString()
@@ -478,9 +478,26 @@ Public Class FrmMisOrdenes
         lblObsTit.Visible = (observaciones <> "")
         txtObsRecepcion.Visible = (observaciones <> "")
 
-        CargarTrabajo()
-        CargarFotos()
-        CargarFotosTrabajo()
+        If diferido Then
+            'el mecanico eligio la orden en la lista: espero un momento antes de traer sus servicios y fotos,
+            'asi al bajar con las flechas solo se lee la orden donde se detiene; mientras tanto no muestro datos viejos
+            txtTrabajo.Text = "Cargando..."
+            VaciarFotos(True)
+            lblSinFrente.Text = "Cargando..."
+            lblSinTrasera.Text = "Cargando..."
+            lblSinLateralIzq.Text = "Cargando..."
+            lblSinLateralDer.Text = "Cargando..."
+            lblSinTablero.Text = "Cargando..."
+            VaciarFotosTrabajo()
+            tmrResumen.Stop()
+            tmrResumen.Start()
+        Else
+            'una carga directa reemplaza a la que estaba esperando
+            tmrResumen.Stop()
+            CargarTrabajo()
+            CargarFotos()
+            CargarFotosTrabajo()
+        End If
 
         'el boton dice el proximo paso del mecanico; la gestion de la orden hace el resto
         If codigoEstadoOrden = "APROBADA" Then
@@ -508,7 +525,16 @@ Public Class FrmMisOrdenes
         'si ya se esta viendo esa orden no vuelvo a traer sus fotos
         If idElegido = idOrden Then Exit Sub
 
-        MostrarOrden(fila)
+        MostrarOrden(fila, True)
+    End Sub
+
+    Private Sub tmrResumen_Tick(sender As Object, e As EventArgs) Handles tmrResumen.Tick
+        'el mecanico se detuvo en una orden: ahora si traigo sus servicios y sus fotos
+        tmrResumen.Stop()
+        If idOrden = 0 Then Exit Sub
+        CargarTrabajo()
+        CargarFotos()
+        CargarFotosTrabajo()
     End Sub
 
     Function AnguloDe(pic As PictureBox) As String
