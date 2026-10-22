@@ -38,6 +38,10 @@ Public Class FrmServicesPorVencer
                         tabla.Load(lector)
                     End Using
 
+                    'la grilla se muestra antes de enlazarla: oculta no arma sus columnas, y una carga anterior
+                    'sin services la pudo dejar oculta
+                    dgvServicios.Visible = True
+
                     'al cargar la tabla la grilla dispara DataBindingComplete, que pinta las filas
                     dgvServicios.DataSource = tabla
 
@@ -112,7 +116,6 @@ Public Class FrmServicesPorVencer
             End Using
         Catch ex As Exception
             MostrarError("No se pudieron cargar los services por vencer.", ex)
-            dgvServicios.Visible = False
         End Try
     End Sub
 
@@ -201,6 +204,8 @@ Public Class FrmServicesPorVencer
 
         'al cambiar de opcion se disparan las dos: cargo una sola vez, con la que quedo marcada
         If Not CType(sender, RadioButton).Checked Then Exit Sub
+        'el diseñador marca "Vencidos" al armar el formulario: esa vez no cargo, la primera carga es la de Shown
+        If Not Me.Visible Then Exit Sub
         If Not btnCopiar.Enabled Then Exit Sub
         CargarServices()
     End Sub
