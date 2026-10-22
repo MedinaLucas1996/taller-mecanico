@@ -17,6 +17,8 @@
 // El documento imprimible del sistema es el PRESUPUESTO, que se emite a
 // partir de la orden de trabajo. El ciclo cubierto es:
 //   recepción -> presupuesto -> aprobación -> ejecución -> cierre -> entrega
+// Alrededor de ese ciclo el modelo agrega las fotos de la orden, los
+// avisos de service y la agenda de turnos (16 tablas en total).
 //
 // ESTADO DE NORMALIZACIÓN
 // El modelo cumple 1FN, 2FN y 3FN, con desnormalizaciones controladas
@@ -55,6 +57,21 @@ Enum nivel_combustible {
   MEDIO
   TRES_CUARTOS
   LLENO
+}
+
+Enum angulo_foto {
+  FRENTE
+  TRASERA
+  LATERAL_IZQUIERDO
+  LATERAL_DERECHO
+  TABLERO
+}
+
+Enum estado_turno {
+  PENDIENTE
+  ATENDIDO
+  CANCELADO
+  AUSENTE
 }
 
 
@@ -185,6 +202,8 @@ Table servicio {
   id_categoria_servicio int [not null]
   precio decimal(12,2) [not null, default: 0, note: 'Importe final del servicio']
   tiempo_estimado_horas decimal(5,2) [note: 'Alimenta el cálculo de carga de trabajo']
+  intervalo_meses smallint [note: 'Cada cuántos meses se repite el service. NULL: no genera avisos']
+  intervalo_km int [note: 'Cada cuántos km se repite. Solo referencia para el aviso']
   activo boolean [not null, default: true]
 
   indexes {
@@ -221,11 +240,13 @@ Table orden_trabajo {
   fecha_recepcion datetime [not null, default: `now()`]
   fecha_finalizacion datetime
   fecha_entrega datetime
+  fecha_prometida date [note: 'Fecha prometida de entrega. Opcional; alimenta las órdenes demoradas']
 
   km_ingreso int [not null, note: 'Validar que no sea menor al km de la última OT del vehículo']
   nivel_combustible nivel_combustible
   sintoma_reportado text [not null, note: 'Descripción del cliente, en sus propias palabras']
   observaciones_recepcion text [note: 'Estado del vehículo al ingresar']
+  diagnostico text [note: 'Lo escribe el mecánico antes del presupuesto. Opcional']
   observaciones_mecanico text [note: 'Se completa al cerrar técnicamente']
 
   total_presupuestado decimal(12,2) [not null, default: 0, note: 'Suma de todo el detalle']
@@ -288,6 +309,79 @@ Table ot_historial_estado {
 }
 
 
+// ---------------------------------------------------------------------
+// FOTOS DE LA ORDEN
+// ---------------------------------------------------------------------
+Table ot_foto {
+  id_ot_foto int [pk, increment]
+  id_orden_trabajo int [not null]
+  angulo angulo_foto [not null]
+  imagen longblob [not null, note: 'JPEG reducido a 1280 px en su lado mayor']
+  id_usuario int [not null, note: 'Usuario que cargó la foto']
+  fecha_hora datetime [not null, default: `now()`]
+
+  indexes {
+    (id_orden_trabajo, angulo) [unique]
+  }
+
+  Note: 'Fotos de recepción: una por ángulo. Se eliminan con la orden (ON DELETE CASCADE)'
+}
+
+Table ot_foto_trabajo {
+  id_ot_foto_trabajo int [pk, increment]
+  id_orden_trabajo int [not null]
+  imagen longblob [not null, note: 'JPEG reducido a 1280 px en su lado mayor']
+  descripcion varchar(100) [note: 'Qué muestra la foto. Opcional']
+  id_usuario int [not null, note: 'Usuario que cargó la foto']
+  fecha_hora datetime [not null, default: `now()`]
+
+  indexes {
+    id_orden_trabajo
+  }
+
+  Note: 'Fotos del trabajo cargadas por el mecánico durante la orden. Sin límite por orden; se eliminan con la orden'
+}
+
+
+// ---------------------------------------------------------------------
+// AVISOS DE SERVICE Y TURNOS
+// ---------------------------------------------------------------------
+Table aviso_service {
+  id_aviso_service int [pk, increment]
+  id_vehiculo int [not null]
+  id_servicio int [not null]
+  id_usuario int [not null, note: 'Usuario que copió el mensaje']
+  fecha_hora datetime [not null, default: `now()`]
+
+  indexes {
+    (id_vehiculo, id_servicio, fecha_hora)
+  }
+
+  Note: 'Registro de cada aviso de service enviado por WhatsApp. El último aviso de cada vehículo y servicio se busca por el índice'
+}
+
+Table turno {
+  id_turno int [pk, increment]
+  id_vehiculo int [not null]
+  fecha_hora datetime [not null, note: 'Inicio de la franja reservada (franjas de una hora)']
+  motivo varchar(200) [note: 'Lo que el cliente pide. Opcional']
+  estado estado_turno [not null, default: 'PENDIENTE']
+  id_orden_trabajo int [note: 'Orden creada al recepcionar el vehículo del turno']
+  id_usuario int [not null, note: 'Usuario que dio el turno']
+  fecha_alta datetime [not null, default: `now()`]
+
+  indexes {
+    fecha_hora
+    (id_vehiculo, estado)
+  }
+
+  Note: '''
+  Agenda del taller. El cupo de cada franja se cuenta por fecha_hora.
+  En MariaDB: CHECK ((estado = 'ATENDIDO') = (id_orden_trabajo IS NOT NULL))
+  '''
+}
+
+
 // =====================================================================
 // RELACIONES
 // =====================================================================
@@ -317,6 +411,20 @@ Ref: ot_historial_estado.id_orden_trabajo > orden_trabajo.id_orden_trabajo
 Ref: ot_historial_estado.id_estado_ot > estado_ot.id_estado_ot
 Ref: ot_historial_estado.id_usuario > usuario.id_usuario
 
+// --- Fotos ---
+Ref: ot_foto.id_orden_trabajo > orden_trabajo.id_orden_trabajo [delete: cascade]
+Ref: ot_foto.id_usuario > usuario.id_usuario
+Ref: ot_foto_trabajo.id_orden_trabajo > orden_trabajo.id_orden_trabajo [delete: cascade]
+Ref: ot_foto_trabajo.id_usuario > usuario.id_usuario
+
+// --- Avisos de service y turnos ---
+Ref: aviso_service.id_vehiculo > vehiculo.id_vehiculo
+Ref: aviso_service.id_servicio > servicio.id_servicio
+Ref: aviso_service.id_usuario > usuario.id_usuario
+Ref: turno.id_vehiculo > vehiculo.id_vehiculo
+Ref: turno.id_orden_trabajo > orden_trabajo.id_orden_trabajo
+Ref: turno.id_usuario > usuario.id_usuario
+
 
 // =====================================================================
 // AGRUPACIÓN VISUAL
@@ -344,4 +452,11 @@ TableGroup OrdenTrabajo {
   orden_trabajo
   ot_detalle
   ot_historial_estado
+  ot_foto
+  ot_foto_trabajo
+}
+
+TableGroup Agenda {
+  aviso_service
+  turno
 }
