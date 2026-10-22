@@ -119,8 +119,8 @@ Las fotos se guardan en la base de datos, en la tabla `ot_foto`.
 
 | Estado | Qué se hace en la ventana | Botón principal | Botón secundario |
 |---|---|---|---|
-| `RECEPCIONADA` | Armar el presupuesto: agregar servicios, cambiar cantidades, quitar líneas. | Presupuestar (exige al menos una línea) | — |
-| `PRESUPUESTADA` | Tildar las líneas que el cliente aprueba; el presupuesto todavía se puede ajustar sin perder las tildes. | Registrar aprobación (exige al menos una línea aprobada) | Rechazar |
+| `RECEPCIONADA` | Armar el presupuesto: agregar servicios, cambiar cantidades, quitar líneas. Encima de las líneas se lee el diagnóstico del mecánico, si ya lo cargó. | Presupuestar (exige al menos una línea; sin diagnóstico pregunta si se sigue igual) | — |
+| `PRESUPUESTADA` | Tildar las líneas que el cliente aprueba; el presupuesto todavía se puede ajustar sin perder las tildes. El diagnóstico sigue a la vista si está cargado. | Registrar aprobación (exige al menos una línea aprobada) | Rechazar |
 | `APROBADA` | Revisar las líneas aprobadas y el mecánico asignado; se avisa si falta. | Iniciar trabajo (exige un mecánico) | — |
 | `EN_PROCESO` | Cargar en la grilla las horas trabajadas de cada línea aprobada, y las observaciones del mecánico. | Finalizar trabajo (exige todo cargado) | Guardar avance |
 | `FINALIZADA` | Resumen de solo lectura con las líneas aprobadas y sus horas trabajadas. | Entregar vehículo | — |
@@ -130,16 +130,20 @@ Las fotos se guardan en la base de datos, en la tabla `ot_foto`.
 
 Cada cambio de estado se guarda en una transacción junto con su fila en el historial de estados: si algo falla, no se guarda nada.
 
+**Diagnóstico del mecánico**: con la orden en `RECEPCIONADA`, el mecánico asignado revisa el vehículo y escribe lo que encontró; "Guardar diagnóstico" lo guarda en `orden_trabajo.diagnostico` sin cambiar el estado y deja en el historial la fila "Diagnóstico cargado" (o "Diagnóstico corregido" si ya tenía uno). El diagnóstico es opcional: si la recepción presupuesta una orden sin diagnóstico, el sistema pregunta si quiere seguir igual, sin bloquearla. Sale en el presupuesto, en la orden de trabajo y en el historial del vehículo impresos.
+
+**Fotos del trabajo**: una franja al pie del área de trabajo muestra las fotos cargadas durante el trabajo, en miniatura y con su descripción. El mecánico asignado, el administrador y el operador agregan fotos con la orden en `RECEPCIONADA` o `EN_PROCESO` (la descripción, opcional, se escribe antes de elegir el archivo) y pueden quitar la foto elegida hasta que el trabajo se finaliza. Un doble clic la abre ampliada en `FrmFoto`. Se guardan en la tabla `ot_foto_trabajo`, sin límite por orden y con el mismo proceso que las de recepción (reducidas a 1280 píxeles, en JPEG); no se mezclan con las cinco fotos de recepción de `ot_foto`.
+
 ### Mis órdenes (pantalla del mecánico)
 
 Un usuario con rol `MECANICO` ve en el menú **Mis órdenes** (`FrmMisOrdenes`), con las órdenes de trabajo que tiene asignadas y nada más.
 
-- **Tres grupos** arriba, cada uno con su cantidad, que también filtran la lista: "En curso" (en proceso), "Para empezar" (aprobadas) y "Terminadas" (finalizadas y entregadas). Siempre hay uno elegido; al entrar es el primero que tenga órdenes.
+- **Cuatro grupos** arriba, cada uno con su cantidad, que también filtran la lista: "En curso" (en proceso), "Para empezar" (aprobadas), "Para diagnosticar" (recepcionadas, todavía sin presupuesto) y "Terminadas" (finalizadas y entregadas). Siempre hay uno elegido; al entrar es el primero que tenga órdenes, en ese orden.
 - **Lista**: número, vehículo, fecha prometida y horas cargadas ("2 de 3" servicios). Las órdenes demoradas van resaltadas, como en el tablero.
-- **Resumen** de la orden elegida: vehículo y kilometraje de ingreso, lo que dijo el cliente, las observaciones de recepción, los servicios a realizar con sus horas y las cinco fotos de recepción, que se pueden ampliar pero no cambiar.
-- **Un botón** según el caso: "Iniciar trabajo", "Cargar horas y finalizar" o "Ver orden". Abre la misma ventana de gestión de la orden, en modo mecánico. Un doble clic en la fila de la lista hace lo mismo.
+- **Resumen** de la orden elegida: vehículo y kilometraje de ingreso, lo que dijo el cliente, las observaciones de recepción, los servicios a realizar con sus horas, las cinco fotos de recepción y las fotos del trabajo, que se pueden ampliar pero no cambiar.
+- **Un botón** según el caso: "Cargar diagnóstico", "Iniciar trabajo", "Cargar horas y finalizar" o "Ver orden". Abre la misma ventana de gestión de la orden, en modo mecánico. Un doble clic en la fila de la lista hace lo mismo.
 
-En modo mecánico la gestión de la orden no muestra ningún importe (ni precios, ni subtotales, ni totales) y solo deja iniciar el trabajo, cargar las horas y las observaciones, guardar el avance y finalizar. El presupuesto, la aprobación del cliente, la entrega, la anulación y el cambio de mecánico siguen siendo de la recepción y del administrador. Un mecánico no puede abrir ni modificar una orden asignada a otro: se comprueba en la base al abrirla y otra vez al guardar.
+En modo mecánico la gestión de la orden no muestra ningún importe (ni precios, ni subtotales, ni totales) y solo deja escribir el diagnóstico (con la orden recepcionada), cargar y quitar fotos del trabajo, iniciar el trabajo, cargar las horas y las observaciones, guardar el avance y finalizar. El presupuesto, la aprobación del cliente, la entrega, la anulación y el cambio de mecánico siguen siendo de la recepción y del administrador. Un mecánico no puede abrir ni modificar una orden asignada a otro: se comprueba en la base al abrirla y otra vez al guardar.
 
 ### Reportes impresos
 
@@ -147,14 +151,15 @@ Cuatro reportes con vista previa, hechos como en clase: cada uno es un `PrintDoc
 
 | Reporte | Dónde está el botón | Qué muestra | Quién lo ve |
 |---|---|---|---|
-| Orden de trabajo | Gestión de la orden: "Imprimir" → "Orden de trabajo" | La orden en cualquier estado, con lo que tiene hasta ese momento: cliente y vehículo, recepción, servicios, totales, trabajo realizado (mecánico, horas, observaciones, fechas), motivo del rechazo o de la anulación e historial de estados. Una orden anulada lleva la marca de agua "ANULADA". | Administrador, operador y mecánico (el mecánico, sin ningún importe) |
-| Presupuesto | Gestión de la orden: "Imprimir" → "Presupuesto" | Cliente y vehículo, síntoma, líneas con precio unitario y subtotal, total presupuestado (y, si el cliente ya decidió, qué líneas aprobó y el total aprobado), validez de 15 días y lugar para la firma del cliente. Los importes son precios finales. Solo se habilita si la orden tiene líneas y no está anulada. | Administrador y operador |
+| Orden de trabajo | Gestión de la orden: "Imprimir" → "Orden de trabajo" | La orden en cualquier estado, con lo que tiene hasta ese momento: cliente y vehículo, recepción (con el diagnóstico del mecánico, si está cargado), servicios, totales, trabajo realizado (mecánico, horas, observaciones, fechas), motivo del rechazo o de la anulación e historial de estados. Una orden anulada lleva la marca de agua "ANULADA". | Administrador, operador y mecánico (el mecánico, sin ningún importe) |
+| Presupuesto | Gestión de la orden: "Imprimir" → "Presupuesto" | Cliente y vehículo, síntoma y diagnóstico del mecánico (si está cargado), líneas con precio unitario y subtotal, total presupuestado (y, si el cliente ya decidió, qué líneas aprobó y el total aprobado), validez de 15 días y lugar para la firma del cliente. Los importes son precios finales. Solo se habilita si la orden tiene líneas y no está anulada. | Administrador y operador |
 | Acta de recepción | Gestión de la orden: "Imprimir" → "Acta de recepción" | Datos de ingreso del vehículo (kilometraje, combustible, fecha prometida, síntoma, observaciones), las cinco fotos de recepción sin deformar ("Sin foto" si falta alguna) y las firmas del cliente y de quien lo recibió. | Administrador y operador |
 | Colgante de llaves | Gestión de la orden: "Imprimir" → "Colgante de llaves" | Dos etiquetas idénticas de 90 x 50 mm con marcas de corte, una para el llavero y otra para el tablero: patente en grande, número de orden, marca y modelo, cliente, fecha de recepción y entrega prometida. Sin importes. | Todos los roles, en cualquier estado |
-| Historial del vehículo | Historial por patente: "Imprimir" (con un vehículo elegido) | Datos del vehículo y de su titular actual, la tabla de todas sus órdenes en cualquier estado (la más reciente primero) y, por cada orden, el síntoma, los servicios aprobados con cantidad y horas trabajadas, y las observaciones del mecánico. Se lee de la base al imprimir; si no entra en una hoja, las tablas siguen en la siguiente con "(continuación)". | Todos los roles; el mecánico la obtiene sin importes |
+| Fotos del trabajo | Gestión de la orden: "Imprimir" → "Fotos del trabajo" (solo si la orden tiene fotos del trabajo) | Hoja aparte, no forma parte del presupuesto: seis fotos por hoja sin deformar, cada una con su número, su descripción y cuándo y quién la cargó ("Foto ilegible" si los bytes no son una imagen). Sin importes. | Todos los roles |
+| Historial del vehículo | Historial por patente: "Imprimir" (con un vehículo elegido) | Datos del vehículo y de su titular actual, la tabla de todas sus órdenes en cualquier estado (la más reciente primero) y, por cada orden, el síntoma, el diagnóstico del mecánico si está cargado, los servicios aprobados con cantidad y horas trabajadas, y las observaciones del mecánico. Se lee de la base al imprimir; si no entra en una hoja, las tablas siguen en la siguiente con "(continuación)". | Todos los roles; el mecánico la obtiene sin importes |
 | Ficha del cliente | Clientes: "Imprimir ficha" | Datos del cliente; cada vehículo a su nombre (también los dados de baja) con sus órdenes; las órdenes que trajo con vehículos que hoy son de otro titular; y un resumen con cantidad de vehículos, de órdenes y el total facturado de las órdenes entregadas. | Administrador y operador (la pantalla Clientes solo está en su menú) |
 
-Para el mecánico el menú "Imprimir" muestra solo "Orden de trabajo", y ese reporte sale sin precios, subtotales ni totales: sus consultas no traen esas columnas.
+Para el mecánico el menú "Imprimir" muestra "Orden de trabajo", "Colgante de llaves" y "Fotos del trabajo", ninguno con importes: la orden de trabajo sale sin precios, subtotales ni totales porque sus consultas no traen esas columnas.
 
 ### Tableros
 
@@ -216,7 +221,7 @@ graph TD
     end
 
     subgraph Datos["Servidor de base de datos"]
-        DB[("MariaDB<br/>taller_mecanico (13 tablas)")]
+        DB[("MariaDB<br/>taller_mecanico (14 tablas)")]
     end
 
     Login -->|"abre"| Principal
@@ -270,7 +275,7 @@ graph TD
 
    | Script | Qué hace |
    |---|---|
-   | `01_ddl_estructura.sql` | Crea la base `taller_mecanico` y las 13 tablas. **Elimina la base completa si ya existe** (`DROP DATABASE IF EXISTS`): comentar esa línea si hay datos que conservar. |
+   | `01_ddl_estructura.sql` | Crea la base `taller_mecanico` y las 14 tablas. **Elimina la base completa si ya existe** (`DROP DATABASE IF EXISTS`): comentar esa línea si hay datos que conservar. |
    | `02_dml_catalogos.sql` | Carga los catálogos necesarios para funcionar (estados de OT, categorías de servicio y el usuario administrador inicial). Se ejecuta una vez. |
    | `03_dml_prueba.sql` | Datos de prueba (mecánicos, usuarios, marcas, modelos, clientes, vehículos y servicios). **Solo desarrollo.** |
    | `04_consultas_verificacion.sql` | Consultas de verificación (cantidad de tablas, filas por tabla, etc.). Opcional. |
@@ -278,6 +283,7 @@ graph TD
    | `06_migracion_hash_pbkdf2.sql` | Migración para bases ya cargadas con una versión anterior de 01 a 03: agrega la columna `salt` y reemplaza los hashes de los usuarios semilla. **Una instalación nueva con 01 a 03 no la necesita.** |
    | `07_recepcion_fotos.sql` | Migración para bases ya creadas con una versión anterior de 01 (12 tablas): agrega la columna `orden_trabajo.fecha_prometida` y la tabla `ot_foto`. No modifica ni elimina datos y se puede ejecutar más de una vez. **Sin esta migración las pantallas de Recepción y Órdenes de trabajo no funcionan. Una instalación nueva con 01 a 03 no la necesita.** |
    | `08_datos_demo.sql` | **Opcional, para la presentación.** Carga unas 40 órdenes de trabajo de los últimos siete meses (fechas relativas al día en que se ejecuta), con clientes, vehículos y un mecánico nuevos, para que los Tableros muestren datos. Requiere 01, 02 y 03. Se puede ejecutar más de una vez: borra antes las órdenes marcadas con `[demo]` en las observaciones de recepción. Para quitarlas: `DELETE FROM orden_trabajo WHERE observaciones_recepcion LIKE '%[demo]';` |
+   | `09_diagnostico_fotos.sql` | Migración para bases ya creadas con una versión anterior de 01 (13 tablas): agrega la columna `orden_trabajo.diagnostico` y la tabla `ot_foto_trabajo`. No modifica ni elimina datos y se puede ejecutar más de una vez (una base sin `ot_foto` ejecuta antes la 07). **Sin esta migración la gestión de la orden, Mis órdenes y el historial impreso no funcionan. Una instalación nueva con 01 a 03 no la necesita.** |
 
 2. Ajustar la cadena de conexión, solo si la instalación local de MariaDB no es `localhost`, usuario `root` sin contraseña: copiar `WinFormsApp1/conexion.ejemplo.txt` como `WinFormsApp1/conexion.txt` y editar `Server`, `Port`, `User ID` y `Password=`. El archivo está ignorado por git y se copia a la carpeta de salida al compilar.
 3. Abrir `WinFormsApp1.slnx` en Visual Studio y ejecutar, o desde una terminal:
@@ -335,7 +341,7 @@ La cadena de conexión de cada puesto va en `WinFormsApp1/conexion.txt`, que est
 
 ### Migrations / inicialización
 
-No hay herramienta de migraciones. La base se crea y se inicializa ejecutando manualmente los scripts de `database/` (ver [Quick start](#quick-start-local)). El script `01_ddl_estructura.sql` recrea la base desde cero. Las bases ya cargadas se actualizan con los scripts de migración: `06_migracion_hash_pbkdf2.sql` (hash de contraseñas) y `07_recepcion_fotos.sql` (fecha prometida y fotos de recepción). `08_datos_demo.sql` es opcional: carga datos de demostración para los Tableros.
+No hay herramienta de migraciones. La base se crea y se inicializa ejecutando manualmente los scripts de `database/` (ver [Quick start](#quick-start-local)). El script `01_ddl_estructura.sql` recrea la base desde cero. Las bases ya cargadas se actualizan con los scripts de migración: `06_migracion_hash_pbkdf2.sql` (hash de contraseñas), `07_recepcion_fotos.sql` (fecha prometida y fotos de recepción) y `09_diagnostico_fotos.sql` (diagnóstico del mecánico y fotos del trabajo). `08_datos_demo.sql` es opcional: carga datos de demostración para los Tableros.
 
 ### CI/CD
 
@@ -359,10 +365,10 @@ No aplica: aplicación de escritorio WinForms. No expone endpoints.
   - Terminado: Menú por rol (`FrmPrincipal` está armado en el diseñador y muestra en `FrmPrincipal_Load` solo las opciones del rol que ingresó; ver [Menú por rol](#menú-por-rol)). Aún no se aplican permisos por rol dentro de cada pantalla, salvo en Usuarios, Mecánicos, Servicios, Categorías, Recepción, Órdenes de trabajo, Gestión de la orden y Tableros, que comprueban el rol al abrirse; en Gestión de la orden, además, solo el administrador ve el botón "Anular".
   - Terminado: Recepción (asistente de cuatro pasos: vehículo por patente, datos de ingreso, fotos por ángulo y confirmación; guarda en una transacción la orden en estado `RECEPCIONADA`, su primera fila de historial y sus fotos) y Órdenes de trabajo (tablero a todo el ancho: tarjetas con la cantidad de órdenes por estado, que también filtran la lista; filtros por texto y demoradas; grilla con el estado en color; y tarjeta de detalle de la orden seleccionada con sus fotos en miniatura, ampliables, y el botón "Gestionar orden"). Ver [Recepción y órdenes de trabajo](#recepción-y-órdenes-de-trabajo).
   - Terminado: Gestión de la orden (líneas de presupuesto con sus totales, mecánico, aprobación del cliente por línea o rechazo, inicio del trabajo, horas trabajadas por línea, cierre técnico, entrega con actualización del kilometraje y anulación con motivo, solo para el administrador; cada cambio de estado se guarda en una transacción con su fila de historial). Ver [Recepción y órdenes de trabajo](#recepción-y-órdenes-de-trabajo).
-  - Terminado: Mis órdenes (pantalla del mecánico: sus órdenes en tres grupos, resumen de trabajo con fotos y un botón que abre la gestión de la orden en modo mecánico, sin importes; ver [Mis órdenes](#mis-órdenes-pantalla-del-mecánico)).
+  - Terminado: Mis órdenes (pantalla del mecánico: sus órdenes en cuatro grupos, resumen de trabajo con fotos y un botón que abre la gestión de la orden en modo mecánico, sin importes; ver [Mis órdenes](#mis-órdenes-pantalla-del-mecánico)).
   - Terminado: Historial por patente (`FrmHistorial`, para los tres roles y de solo consulta: búsqueda por patente, también de vehículos dados de baja; datos del vehículo y de su titular actual; todas sus órdenes de trabajo, en cualquier estado y la más reciente primero; y los servicios, el síntoma y las observaciones del mecánico de la orden elegida. El mecánico ve el historial sin ningún importe: sus consultas no traen totales, precios ni subtotales).
-  - Terminado: Reportes impresos (`PrintDocument` + `PrintPreviewDialog`, como en clase; rutinas de dibujo compartidas en `Module Impresion`): orden de trabajo en cualquier estado, presupuesto y acta de recepción con sus cinco fotos desde la gestión de la orden, y ficha del cliente desde Clientes. El mecánico solo imprime la orden de trabajo, sin importes. Ver [Reportes impresos](#reportes-impresos).
-  - Pendiente en el flujo de la orden de trabajo: diagnóstico escrito por el mecánico antes del presupuesto y fotos cargadas por el mecánico.
+  - Terminado: Reportes impresos (`PrintDocument` + `PrintPreviewDialog`, como en clase; rutinas de dibujo compartidas en `Module Impresion`): orden de trabajo en cualquier estado, presupuesto, acta de recepción con sus cinco fotos y hoja de fotos del trabajo desde la gestión de la orden, y ficha del cliente desde Clientes. El mecánico imprime la orden de trabajo, el colgante y las fotos del trabajo, sin importes. Ver [Reportes impresos](#reportes-impresos).
+  - Terminado: diagnóstico del mecánico antes del presupuesto (opcional: la recepción recibe un aviso si presupuesta sin él) y fotos del trabajo cargadas durante la orden, con su propia hoja impresa. Las bases ya creadas deben ejecutar `database/09_diagnostico_fotos.sql`.
   - Terminado: Mecánicos (ABM solo para el administrador: nombre completo obligatorio, especialidad y teléfono; búsqueda por nombre o especialidad; baja lógica, rechazada si el mecánico tiene órdenes de trabajo sin cerrar; un mecánico dado de baja se reactiva con el mismo botón; no admite dos mecánicos activos con el mismo nombre).
   - Terminado: Servicios (ABM solo para el administrador: código único, descripción, categoría y precio obligatorios, tiempo estimado en horas opcional; búsqueda por código, descripción o categoría; baja lógica y reactivación con el mismo botón, rechazada si la categoría del servicio está dada de baja; cambiar el precio no altera los presupuestos ya cargados).
   - Terminado: Categorías (ABM solo para el administrador: descripción única y obligatoria; la grilla muestra la cantidad de servicios activos de cada una, con búsqueda por descripción; baja lógica, rechazada si la categoría tiene servicios activos; una categoría dada de baja se reactiva con el mismo botón).
@@ -370,7 +376,7 @@ No aplica: aplicación de escritorio WinForms. No expone endpoints.
   - Terminado: pantalla Inicio con alertas (prometidas hoy, demoradas, listas para entregar), cambio de contraseña propio, bloqueo del login tras cinco intentos fallidos, exportación a CSV de las grillas de órdenes, aviso al cliente desde la orden finalizada y colgante de llaves imprimible. Robustez: registro de errores, manejador global, cadena de conexión en `conexion.txt`.
   - Terminado: tiempos por etapa (reporte 7) en Tableros, con hoja impresa, e historial del vehículo impreso desde Historial por patente. Con esto están hechos los siete reportes de la especificación.
   - Decisión cerrada: hash de contraseñas con PBKDF2 + SHA256, igual que la referencia de la cátedra (reemplaza la mención de BCrypt de la especificación). Las bases ya cargadas deben ejecutar `database/06_migracion_hash_pbkdf2.sql`.
-  - Base de datos: 13 tablas. A las 12 del modelo original se suma `ot_foto` (fotos de recepción) y `orden_trabajo` tiene la columna `fecha_prometida`. Las bases ya creadas deben ejecutar `database/07_recepcion_fotos.sql`.
+  - Base de datos: 14 tablas. A las 12 del modelo original se suman `ot_foto` (fotos de recepción) y `ot_foto_trabajo` (fotos del trabajo), y `orden_trabajo` tiene las columnas `fecha_prometida` y `diagnostico`. Las bases ya creadas deben ejecutar `database/07_recepcion_fotos.sql` y `database/09_diagnostico_fotos.sql`.
 
 <!-- @tsg-docs:auto-end -->
 
