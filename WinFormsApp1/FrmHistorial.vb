@@ -495,13 +495,15 @@ Public Class FrmHistorial
     Private fechaHoja As DateTime
 
     'bloques de la hoja en el orden en que se imprimen
-    'un numero >= 0 es una parte de una orden: la orden es paso \ 3 (su fila en ordenesHoja) y la parte es paso Mod 3
+    'un numero >= 0 es una parte de una orden: la orden es paso \ PARTES_POR_ORDEN (su fila en ordenesHoja) y la parte es paso Mod PARTES_POR_ORDEN
     Const PASO_VEHICULO As Integer = -1
     Const PASO_TITULAR As Integer = -2
     Const PASO_ORDENES As Integer = -3
     Const PARTE_CABECERA As Integer = 0
     Const PARTE_SERVICIOS As Integer = 1
     Const PARTE_OBSERVACIONES As Integer = 2
+    'cantidad de partes de cada orden; si se agrega una parte, este numero sube con ella
+    Const PARTES_POR_ORDEN As Integer = 3
     Private pasosHoja As New List(Of Integer)
 
     'por donde va la impresion: hoja, bloque y fila de la tabla; se reinician en BeginPrint
@@ -602,10 +604,10 @@ Public Class FrmHistorial
         pasosHoja.Add(PASO_ORDENES)
 
         For i As Integer = 0 To ordenesHoja.Rows.Count - 1
-            pasosHoja.Add(i * 3 + PARTE_CABECERA)
-            pasosHoja.Add(i * 3 + PARTE_SERVICIOS)
+            pasosHoja.Add(i * PARTES_POR_ORDEN + PARTE_CABECERA)
+            pasosHoja.Add(i * PARTES_POR_ORDEN + PARTE_SERVICIOS)
             'las observaciones del mecanico salen solo cuando estan cargadas
-            If ordenesHoja.Rows(i)("observaciones_mecanico").ToString().Trim <> "" Then pasosHoja.Add(i * 3 + PARTE_OBSERVACIONES)
+            If ordenesHoja.Rows(i)("observaciones_mecanico").ToString().Trim <> "" Then pasosHoja.Add(i * PARTES_POR_ORDEN + PARTE_OBSERVACIONES)
         Next
     End Sub
 
@@ -657,9 +659,9 @@ Public Class FrmHistorial
             If paso = PASO_ORDENES AndAlso ordenesHoja.Rows.Count > 0 Then
                 'tabla de ordenes: se puede partir entre hojas
                 termino = ImprimirTablaOrdenes(g, x, y, ancho, limite, y = inicioHoja)
-            ElseIf paso >= 0 AndAlso paso Mod 3 = PARTE_SERVICIOS AndAlso ServiciosDeOrden(paso \ 3).Length > 0 Then
+            ElseIf paso >= 0 AndAlso paso Mod PARTES_POR_ORDEN = PARTE_SERVICIOS AndAlso ServiciosDeOrden(paso \ PARTES_POR_ORDEN).Length > 0 Then
                 'servicios de una orden: tabla que tambien se puede partir
-                termino = ImprimirServiciosOrden(g, paso \ 3, x, y, ancho, limite, y = inicioHoja)
+                termino = ImprimirServiciosOrden(g, paso \ PARTES_POR_ORDEN, x, y, ancho, limite, y = inicioHoja)
             Else
                 'los demas bloques no se parten: si no entran pasan enteros a la hoja siguiente
                 Dim fin As Integer = DibujarBloqueHistorial(g, paso, x, y, ancho, False)
@@ -694,9 +696,9 @@ Public Class FrmHistorial
                 Return DibujarParrafo(g, "Sin órdenes de trabajo registradas.", x, y, ancho, dibujar) + 14
         End Select
 
-        Dim orden As DataRow = ordenesHoja.Rows(paso \ 3)
+        Dim orden As DataRow = ordenesHoja.Rows(paso \ PARTES_POR_ORDEN)
 
-        Select Case paso Mod 3
+        Select Case paso Mod PARTES_POR_ORDEN
             Case PARTE_CABECERA
                 'franja con el numero y el estado de la orden, y lo que dijo el cliente
                 Dim titulo As String = "Orden N.º " & orden("nro_orden").ToString() & " · " & orden("estado").ToString()
@@ -788,7 +790,12 @@ Public Class FrmHistorial
                                        TextoFecha(orden("fecha_entrega"), "dd/MM/yyyy")}
             If Not esMecanico Then
                 ReDim Preserve valores(6)
-                valores(6) = CDec(orden("total_aprobado")).ToString("C2")
+                'una orden sin aprobar todavia no tiene total: se imprime un guion en lugar de cortar la hoja
+                If IsDBNull(orden("total_aprobado")) Then
+                    valores(6) = "-"
+                Else
+                    valores(6) = CDec(orden("total_aprobado")).ToString("C2")
+                End If
             End If
             filas.Add(valores)
         Next
