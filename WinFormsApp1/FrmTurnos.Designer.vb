@@ -404,7 +404,7 @@ Partial Class FrmTurnos
         lblDetalle.Font = New Font("Segoe UI", 10F)
         lblDetalle.Location = New Point(16, 84)
         lblDetalle.Name = "lblDetalle"
-        lblDetalle.Size = New Size(298, 270)
+        lblDetalle.Size = New Size(298, 222)
         lblDetalle.TabIndex = 3
         lblDetalle.Text = "-"
         lblDetalle.Visible = False
@@ -445,7 +445,7 @@ Partial Class FrmTurnos
         '
         ' btnCancelarTurno
         '
-        btnCancelarTurno.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left
+        btnCancelarTurno.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
         btnCancelarTurno.BackColor = Color.White
         btnCancelarTurno.Cursor = Cursors.Hand
         btnCancelarTurno.FlatAppearance.BorderColor = Color.Silver
@@ -454,7 +454,7 @@ Partial Class FrmTurnos
         btnCancelarTurno.ForeColor = Color.Firebrick
         btnCancelarTurno.Location = New Point(16, 414)
         btnCancelarTurno.Name = "btnCancelarTurno"
-        btnCancelarTurno.Size = New Size(140, 40)
+        btnCancelarTurno.Size = New Size(298, 40)
         btnCancelarTurno.TabIndex = 6
         btnCancelarTurno.Text = " Cancelar turno"
         btnCancelarTurno.TextImageRelation = TextImageRelation.ImageBeforeText
@@ -468,7 +468,7 @@ Partial Class FrmTurnos
         btnConfirmacion.FlatAppearance.BorderColor = Color.Silver
         btnConfirmacion.FlatStyle = FlatStyle.Flat
         btnConfirmacion.Font = New Font("Segoe UI", 10F)
-        btnConfirmacion.Location = New Point(16, 366)
+        btnConfirmacion.Location = New Point(16, 318)
         btnConfirmacion.Name = "btnConfirmacion"
         btnConfirmacion.Size = New Size(298, 40)
         btnConfirmacion.TabIndex = 8
@@ -479,15 +479,15 @@ Partial Class FrmTurnos
         '
         ' btnAusente
         '
-        btnAusente.Anchor = AnchorStyles.Bottom Or AnchorStyles.Right
+        btnAusente.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
         btnAusente.BackColor = Color.White
         btnAusente.Cursor = Cursors.Hand
         btnAusente.FlatAppearance.BorderColor = Color.Silver
         btnAusente.FlatStyle = FlatStyle.Flat
         btnAusente.Font = New Font("Segoe UI", 10F)
-        btnAusente.Location = New Point(164, 414)
+        btnAusente.Location = New Point(16, 366)
         btnAusente.Name = "btnAusente"
-        btnAusente.Size = New Size(150, 40)
+        btnAusente.Size = New Size(298, 40)
         btnAusente.TabIndex = 7
         btnAusente.Text = "Marcar ausente"
         btnAusente.UseVisualStyleBackColor = False

@@ -507,6 +507,9 @@ Public Class FrmTurnos
         dgvAgenda.ColumnHeadersDefaultCellStyle.ForeColor = Color.DimGray
         dgvAgenda.ColumnHeadersDefaultCellStyle.Font = New Font(dgvAgenda.Font, FontStyle.Bold)
         dgvAgenda.ColumnHeadersDefaultCellStyle.Padding = New Padding(4, 6, 4, 6)
+        'el titulo de la columna de la celda actual no se pinta como seleccionado: queda igual que los demas
+        dgvAgenda.ColumnHeadersDefaultCellStyle.SelectionBackColor = Color.White
+        dgvAgenda.ColumnHeadersDefaultCellStyle.SelectionForeColor = Color.DimGray
         dgvAgenda.DefaultCellStyle.Padding = New Padding(4, 0, 4, 0)
         dgvAgenda.DefaultCellStyle.SelectionBackColor = Color.FromArgb(52, 73, 94)
 
