@@ -420,10 +420,21 @@ Public Class FrmTableros
 
     Function TextoDuracion(minutos As Double) As String
         'menos de una hora se muestra en minutos, menos de un dia en horas, si no en dias con un decimal
-        'asi una etapa corta no aparece como "0 h"
-        If minutos < 60 Then Return Math.Round(minutos).ToString("0") & " min"
-        If minutos < 1440 Then Return Math.Round(minutos / 60).ToString("0") & " h"
+        'asi una etapa corta no aparece como "0 h"; redondeo antes de elegir la unidad para no mostrar "60 min" ni "24 h"
+        Dim enMinutos As Double = Math.Round(minutos)
+        If enMinutos < 60 Then Return enMinutos.ToString("0") & " min"
+        Dim enHoras As Double = Math.Round(minutos / 60)
+        If enHoras < 24 Then Return enHoras.ToString("0") & " h"
         Return (minutos / 1440).ToString("0.0") & " días"
+    End Function
+
+    Function TextosEtapa(fila As DataRow) As String()
+        'los cinco textos de una etapa, iguales en la grilla y en la hoja impresa
+        Return {fila("descripcion").ToString(),
+                CInt(fila("ordenes")).ToString(),
+                TextoDuracion(CDbl(fila("promedio"))),
+                TextoDuracion(CDbl(fila("minimo"))),
+                TextoDuracion(CDbl(fila("maximo")))}
     End Function
 
     Sub TiemposPorEtapa()
@@ -476,8 +487,9 @@ Public Class FrmTableros
     End Sub
 
     Sub GraficoEtapas()
-        'dias promedio de cada etapa, en el orden del flujo de la orden
-        Dim titulo As String = "Días promedio por etapa"
+        'duracion promedio de cada etapa, en el orden del flujo de la orden
+        'el largo de la barra va en dias y el rotulo con la misma unidad que la grilla (min, h o dias)
+        Dim titulo As String = "Duración promedio por etapa"
         Try
             PrepararGrafico(fpEtapas)
 
@@ -499,7 +511,7 @@ Public Class FrmTableros
                     .Position = posicion,
                     .Value = dias,
                     .FillColor = ColorEstado(fila("codigo").ToString()),
-                    .Label = dias.ToString("0.0")
+                    .Label = TextoDuracion(CDbl(fila("promedio")))
                 })
                 posiciones.Add(posicion)
                 nombres.Add(fila("descripcion").ToString())
@@ -512,6 +524,7 @@ Public Class FrmTableros
             'lugar a la derecha para el numero de la barra mas larga
             fpEtapas.Plot.Axes.Margins(left:=0, right:=0.2)
             fpEtapas.Plot.Title(titulo, 13)
+            fpEtapas.Plot.Axes.Bottom.Label.Text = "días"
             fpEtapas.Plot.HideGrid()
             fpEtapas.Refresh()
         Catch ex As Exception
@@ -525,11 +538,7 @@ Public Class FrmTableros
         If tablaEtapas Is Nothing Then Exit Sub
 
         For Each fila As DataRow In tablaEtapas.Rows
-            dgvEtapas.Rows.Add(fila("descripcion").ToString(),
-                               CInt(fila("ordenes")).ToString(),
-                               TextoDuracion(CDbl(fila("promedio"))),
-                               TextoDuracion(CDbl(fila("minimo"))),
-                               TextoDuracion(CDbl(fila("maximo"))))
+            dgvEtapas.Rows.Add(TextosEtapa(fila))
         Next
         dgvEtapas.ClearSelection()
     End Sub
@@ -649,11 +658,7 @@ Public Class FrmTableros
                                                      StringAlignment.Far, StringAlignment.Far}
             Dim filas As New List(Of String())
             For Each fila As DataRow In tablaEtapas.Rows
-                filas.Add({fila("descripcion").ToString(),
-                           CInt(fila("ordenes")).ToString(),
-                           TextoDuracion(CDbl(fila("promedio"))),
-                           TextoDuracion(CDbl(fila("minimo"))),
-                           TextoDuracion(CDbl(fila("maximo")))})
+                filas.Add(TextosEtapa(fila))
             Next
             Dim filaActual As Integer = 0
             DibujarTabla(g, "Detalle por etapa", columnas, pesos, alineaciones, filas,
@@ -674,7 +679,7 @@ Public Class FrmTableros
         Const ANCHO_VALOR As Integer = 90
         Const ALTO_BARRA As Integer = 20
 
-        y = DibujarTituloSeccion(g, "Días promedio por etapa", x, y, ancho)
+        y = DibujarTituloSeccion(g, "Duración promedio por etapa", x, y, ancho)
 
         Dim mayor As Double = 0
         For Each fila As DataRow In tablaEtapas.Rows
