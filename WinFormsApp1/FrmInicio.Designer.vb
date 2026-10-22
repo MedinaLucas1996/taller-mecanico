@@ -37,6 +37,9 @@ Partial Class FrmInicio
         pnlServices = New Panel()
         lblNomServices = New Label()
         lblCantServices = New Label()
+        pnlTurnos = New Panel()
+        lblNomTurnos = New Label()
+        lblCantTurnos = New Label()
         dgvOrdenes = New DataGridView()
         lblVacio = New Label()
         btnIrOrdenes = New Button()
@@ -45,6 +48,7 @@ Partial Class FrmInicio
         pnlDemoradas.SuspendLayout()
         pnlListas.SuspendLayout()
         pnlServices.SuspendLayout()
+        pnlTurnos.SuspendLayout()
         CType(dgvOrdenes, ComponentModel.ISupportInitialize).BeginInit()
         SuspendLayout()
         '
@@ -72,15 +76,17 @@ Partial Class FrmInicio
         ' tlpTarjetas
         '
         tlpTarjetas.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
-        tlpTarjetas.ColumnCount = 4
-        tlpTarjetas.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 25F))
-        tlpTarjetas.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 25F))
-        tlpTarjetas.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 25F))
-        tlpTarjetas.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 25F))
+        tlpTarjetas.ColumnCount = 5
+        tlpTarjetas.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 20F))
+        tlpTarjetas.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 20F))
+        tlpTarjetas.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 20F))
+        tlpTarjetas.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 20F))
+        tlpTarjetas.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 20F))
         tlpTarjetas.Controls.Add(pnlHoy, 0, 0)
         tlpTarjetas.Controls.Add(pnlDemoradas, 1, 0)
         tlpTarjetas.Controls.Add(pnlListas, 2, 0)
-        tlpTarjetas.Controls.Add(pnlServices, 3, 0)
+        tlpTarjetas.Controls.Add(pnlTurnos, 3, 0)
+        tlpTarjetas.Controls.Add(pnlServices, 4, 0)
         tlpTarjetas.Location = New Point(30, 100)
         tlpTarjetas.Name = "tlpTarjetas"
         tlpTarjetas.RowCount = 1
@@ -193,6 +199,44 @@ Partial Class FrmInicio
         lblCantListas.Text = "0"
         lblCantListas.TextAlign = ContentAlignment.BottomCenter
         '
+        ' pnlTurnos
+        '
+        pnlTurnos.BackColor = Color.White
+        pnlTurnos.Controls.Add(lblNomTurnos)
+        pnlTurnos.Controls.Add(lblCantTurnos)
+        pnlTurnos.Cursor = Cursors.Hand
+        pnlTurnos.Dock = DockStyle.Fill
+        pnlTurnos.Location = New Point(486, 0)
+        pnlTurnos.Margin = New Padding(0, 0, 8, 0)
+        pnlTurnos.Name = "pnlTurnos"
+        pnlTurnos.Size = New Size(154, 90)
+        pnlTurnos.TabIndex = 4
+        '
+        ' lblNomTurnos
+        '
+        lblNomTurnos.Cursor = Cursors.Hand
+        lblNomTurnos.Dock = DockStyle.Fill
+        lblNomTurnos.Font = New Font("Segoe UI", 9.5F)
+        lblNomTurnos.ForeColor = Color.DimGray
+        lblNomTurnos.Location = New Point(0, 56)
+        lblNomTurnos.Name = "lblNomTurnos"
+        lblNomTurnos.Size = New Size(154, 34)
+        lblNomTurnos.TabIndex = 1
+        lblNomTurnos.Text = "Turnos de hoy"
+        lblNomTurnos.TextAlign = ContentAlignment.TopCenter
+        '
+        ' lblCantTurnos
+        '
+        lblCantTurnos.Cursor = Cursors.Hand
+        lblCantTurnos.Dock = DockStyle.Top
+        lblCantTurnos.Font = New Font("Segoe UI", 22F, FontStyle.Bold)
+        lblCantTurnos.Location = New Point(0, 0)
+        lblCantTurnos.Name = "lblCantTurnos"
+        lblCantTurnos.Size = New Size(154, 56)
+        lblCantTurnos.TabIndex = 0
+        lblCantTurnos.Text = "0"
+        lblCantTurnos.TextAlign = ContentAlignment.BottomCenter
+        '
         ' pnlServices
         '
         pnlServices.BackColor = Color.White
@@ -302,6 +346,7 @@ Partial Class FrmInicio
         pnlDemoradas.ResumeLayout(False)
         pnlListas.ResumeLayout(False)
         pnlServices.ResumeLayout(False)
+        pnlTurnos.ResumeLayout(False)
         CType(dgvOrdenes, ComponentModel.ISupportInitialize).EndInit()
         ResumeLayout(False)
         PerformLayout()
@@ -322,6 +367,9 @@ Partial Class FrmInicio
     Friend WithEvents pnlServices As Panel
     Friend WithEvents lblNomServices As Label
     Friend WithEvents lblCantServices As Label
+    Friend WithEvents pnlTurnos As Panel
+    Friend WithEvents lblNomTurnos As Label
+    Friend WithEvents lblCantTurnos As Label
     Friend WithEvents dgvOrdenes As DataGridView
     Friend WithEvents lblVacio As Label
     Friend WithEvents btnIrOrdenes As Button

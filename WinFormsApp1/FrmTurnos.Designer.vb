@@ -51,6 +51,7 @@ Partial Class FrmTurnos
         btnGuardar = New Button()
         btnCancelarTurno = New Button()
         btnAusente = New Button()
+        btnConfirmacion = New Button()
         pnlLista.SuspendLayout()
         CType(dgvAgenda, ComponentModel.ISupportInitialize).BeginInit()
         pnlFicha.SuspendLayout()
@@ -234,6 +235,7 @@ Partial Class FrmTurnos
         pnlRegistro.Controls.Add(btnGuardar)
         pnlRegistro.Controls.Add(btnCancelarTurno)
         pnlRegistro.Controls.Add(btnAusente)
+        pnlRegistro.Controls.Add(btnConfirmacion)
         pnlRegistro.Location = New Point(0, 0)
         pnlRegistro.Name = "pnlRegistro"
         pnlRegistro.Size = New Size(330, 470)
@@ -402,7 +404,7 @@ Partial Class FrmTurnos
         lblDetalle.Font = New Font("Segoe UI", 10F)
         lblDetalle.Location = New Point(16, 84)
         lblDetalle.Name = "lblDetalle"
-        lblDetalle.Size = New Size(298, 310)
+        lblDetalle.Size = New Size(298, 222)
         lblDetalle.TabIndex = 3
         lblDetalle.Text = "-"
         lblDetalle.Visible = False
@@ -443,34 +445,61 @@ Partial Class FrmTurnos
         '
         ' btnCancelarTurno
         '
-        btnCancelarTurno.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left
+        btnCancelarTurno.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
         btnCancelarTurno.BackColor = Color.White
         btnCancelarTurno.Cursor = Cursors.Hand
         btnCancelarTurno.FlatAppearance.BorderColor = Color.Silver
         btnCancelarTurno.FlatStyle = FlatStyle.Flat
+        btnCancelarTurno.ImageAlign = ContentAlignment.MiddleLeft
         btnCancelarTurno.Font = New Font("Segoe UI", 10F)
         btnCancelarTurno.ForeColor = Color.Firebrick
         btnCancelarTurno.Location = New Point(16, 414)
         btnCancelarTurno.Name = "btnCancelarTurno"
-        btnCancelarTurno.Size = New Size(140, 40)
+        btnCancelarTurno.Padding = New Padding(12, 0, 0, 0)
+        btnCancelarTurno.Size = New Size(298, 40)
         btnCancelarTurno.TabIndex = 6
-        btnCancelarTurno.Text = " Cancelar turno"
+        btnCancelarTurno.Text = "  Cancelar turno"
         btnCancelarTurno.TextImageRelation = TextImageRelation.ImageBeforeText
+        btnCancelarTurno.TextAlign = ContentAlignment.MiddleLeft
         btnCancelarTurno.UseVisualStyleBackColor = False
+        '
+        ' btnConfirmacion
+        '
+        btnConfirmacion.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
+        btnConfirmacion.BackColor = Color.White
+        btnConfirmacion.Cursor = Cursors.Hand
+        btnConfirmacion.FlatAppearance.BorderColor = Color.Silver
+        btnConfirmacion.FlatStyle = FlatStyle.Flat
+        btnConfirmacion.ImageAlign = ContentAlignment.MiddleLeft
+        btnConfirmacion.Font = New Font("Segoe UI", 10F)
+        btnConfirmacion.Location = New Point(16, 318)
+        btnConfirmacion.Name = "btnConfirmacion"
+        btnConfirmacion.Padding = New Padding(12, 0, 0, 0)
+        btnConfirmacion.Size = New Size(298, 40)
+        btnConfirmacion.TabIndex = 8
+        btnConfirmacion.Text = "  Confirmación por WhatsApp"
+        btnConfirmacion.TextImageRelation = TextImageRelation.ImageBeforeText
+        btnConfirmacion.TextAlign = ContentAlignment.MiddleLeft
+        btnConfirmacion.UseVisualStyleBackColor = False
+        btnConfirmacion.Visible = False
         '
         ' btnAusente
         '
-        btnAusente.Anchor = AnchorStyles.Bottom Or AnchorStyles.Right
+        btnAusente.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
         btnAusente.BackColor = Color.White
         btnAusente.Cursor = Cursors.Hand
         btnAusente.FlatAppearance.BorderColor = Color.Silver
         btnAusente.FlatStyle = FlatStyle.Flat
+        btnAusente.ImageAlign = ContentAlignment.MiddleLeft
         btnAusente.Font = New Font("Segoe UI", 10F)
-        btnAusente.Location = New Point(164, 414)
+        btnAusente.Location = New Point(16, 366)
         btnAusente.Name = "btnAusente"
-        btnAusente.Size = New Size(150, 40)
+        btnAusente.Padding = New Padding(12, 0, 0, 0)
+        btnAusente.Size = New Size(298, 40)
         btnAusente.TabIndex = 7
-        btnAusente.Text = "Marcar ausente"
+        btnAusente.Text = "  Marcar ausente"
+        btnAusente.TextImageRelation = TextImageRelation.ImageBeforeText
+        btnAusente.TextAlign = ContentAlignment.MiddleLeft
         btnAusente.UseVisualStyleBackColor = False
         '
         ' FrmTurnos
@@ -530,4 +559,5 @@ Partial Class FrmTurnos
     Friend WithEvents btnGuardar As Button
     Friend WithEvents btnCancelarTurno As Button
     Friend WithEvents btnAusente As Button
+    Friend WithEvents btnConfirmacion As Button
 End Class

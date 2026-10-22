@@ -70,15 +70,15 @@ Public Class FrmInicio
     End Function
 
     Sub CargarServices()
-        'cuento los services vencidos que todavia no se avisaron en los ultimos dias, con la misma regla
-        'que la pantalla Services por vencer
+        'cuento los services vencidos que todavia no se avisaron en los ultimos dias y cuyo vehiculo no tiene turno,
+        'con la misma regla que la pantalla Services por vencer
         'va aparte de las otras tarjetas: si la base todavia no tiene la migracion 10, el resto del inicio sigue igual
         Dim cantidad As Integer = 0
         Try
             Using cn As New MySqlConnection(CADENA)
                 cn.Open()
                 Dim consulta As String =
-                    "SELECT COUNT(*) FROM (" & ConsultaServices() & ") AS x WHERE x.avisado_reciente = 0;"
+                    "SELECT COUNT(*) FROM (" & ConsultaServices() & ") AS x WHERE x.avisado_reciente = 0 AND x.turno IS NULL;"
                 Using cmd As New MySqlCommand(consulta, cn)
                     cmd.Parameters.AddWithValue("@desde", New Date(1900, 1, 1))
                     cmd.Parameters.AddWithValue("@hasta", Date.Today)
@@ -95,6 +95,33 @@ Public Class FrmInicio
         End Try
 
         PintarCantidad(lblCantServices, cantidad, Color.Firebrick)
+    End Sub
+
+    Sub CargarTurnosDeHoy()
+        'cuento los turnos de hoy que siguen pendientes (el vehiculo todavia no llego o no se recepciono)
+        'va aparte: si la base todavia no tiene la migracion 12, el resto del inicio sigue igual
+        Dim cantidad As Integer = 0
+        Try
+            Using cn As New MySqlConnection(CADENA)
+                cn.Open()
+                Dim consulta As String =
+                    "SELECT COUNT(*) FROM turno " &
+                    "WHERE fecha_hora >= @desde AND fecha_hora < @hasta AND estado = 'PENDIENTE';"
+                Using cmd As New MySqlCommand(consulta, cn)
+                    cmd.Parameters.AddWithValue("@desde", Date.Today)
+                    cmd.Parameters.AddWithValue("@hasta", Date.Today.AddDays(1))
+                    cantidad = Convert.ToInt32(cmd.ExecuteScalar())
+                End Using
+            End Using
+        Catch ex As Exception
+            'la tarjeta queda con un guion y el detalle va al registro de errores, sin otro mensaje
+            RegistrarError("No se pudieron contar los turnos de hoy.", ex)
+            lblCantTurnos.Text = "-"
+            lblCantTurnos.ForeColor = Color.Silver
+            Exit Sub
+        End Try
+
+        PintarCantidad(lblCantTurnos, cantidad, Color.Black)
     End Sub
 
     Sub CargarOrdenes()
@@ -191,6 +218,7 @@ Public Class FrmInicio
             Exit Sub
         End If
         CargarServices()
+        CargarTurnosDeHoy()
         CargarOrdenes()
     End Sub
 
@@ -224,6 +252,13 @@ Public Class FrmInicio
 
         'la tarjeta de services abre su pantalla a traves del menu principal, igual que el boton de ordenes
         DirectCast(Me.ParentForm, FrmPrincipal).btnServicesPorVencer.PerformClick()
+    End Sub
+
+    Private Sub TarjetaTurnos_Click(sender As Object, e As EventArgs) Handles _
+        pnlTurnos.Click, lblCantTurnos.Click, lblNomTurnos.Click
+
+        'la tarjeta de turnos abre la agenda a traves del menu principal
+        DirectCast(Me.ParentForm, FrmPrincipal).btnTurnos.PerformClick()
     End Sub
 
     Private Sub FrmInicio_FormClosing(sender As Object, e As FormClosingEventArgs) Handles MyBase.FormClosing

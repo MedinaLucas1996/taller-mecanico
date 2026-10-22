@@ -275,6 +275,15 @@ Public Class FrmPrincipal
         AbrirFormulario(New FrmTurnos(), CType(sender, Button))
     End Sub
 
+    Sub AbrirTurnosPara(patente As String, motivo As String)
+        'abro Turnos con un turno nuevo ya cargado para ese vehiculo; lo usa Services por vencer
+        'la opcion Turnos del menu queda resaltada, como si la hubieran elegido
+        Dim formulario As New FrmTurnos()
+        formulario.PatenteInicial = patente
+        formulario.MotivoInicial = motivo
+        AbrirFormulario(formulario, btnTurnos)
+    End Sub
+
     Private Sub btnRecepcion_Click(sender As Object, e As EventArgs) Handles btnRecepcion.Click
         AbrirFormulario(New FrmRecepcion(), CType(sender, Button))
     End Sub
