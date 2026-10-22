@@ -1,430 +1,103 @@
-# WinFormsApp1 (Taller Mecánico)
-
-<!-- Lo delimitado por @tsg-docs:auto-start/auto-end se regenera automáticamente. Editar fuera de esos bloques. -->
-
-Aplicación de escritorio para gestionar los servicios de un taller mecánico (trabajo práctico universitario).
-
-> **Importante:** el proyecto se abre desde `WinFormsApp1.slnx` en Visual Studio. Si se abre en modo *Folder View* el diseñador de formularios queda deshabilitado. La cadena de conexión a la base de datos se configura en un archivo `conexion.txt` que no se sube al repositorio (ver [Secrets](#secrets)).
-
----
+# Taller Mecánico — Sistema de gestión
 
 ## Qué es
 
-Aplicación Windows Forms en VB.NET que administra el ciclo de atención de un taller mecánico sobre una base MariaDB: clientes, vehículos, recepción del vehículo con apertura de la orden de trabajo, consulta del estado de las órdenes, gestión de cada orden (presupuesto, aprobación del cliente, ejecución y entrega), reportes impresos y un tablero de gestión con indicadores y gráficos. Cubre únicamente la actividad de **servicios**: queda fuera la facturación, los pagos, la venta de insumos y el control de stock.
+Aplicación de escritorio Windows Forms (VB.NET, .NET 10) sobre MariaDB que administra la actividad de servicios de un taller mecánico. Es un trabajo práctico universitario y sigue a propósito el estilo de la cátedra de programación orientada a eventos: SQL dentro de los formularios, sin capa de acceso a datos. Queda fuera la facturación, los pagos, la venta de insumos y el control de stock.
 
-Estado actual: están terminadas las pantallas de **Clientes**, **Vehículos**, **Marcas y modelos**, **Servicios**, **Categorías**, **Mecánicos** y **Usuarios** (estas cuatro últimas solo visibles para el administrador), y las tres pantallas del flujo de la orden de trabajo: **Recepción**, **Órdenes de trabajo** y **Gestión de la orden** (ver [Recepción y órdenes de trabajo](#recepción-y-órdenes-de-trabajo)), el **Historial por patente**, los **reportes impresos** y los **Tableros** del administrador (ver [Tableros](#tableros)). El login muestra imagen de fondo y música y **valida usuario y contraseña** contra la tabla `usuario` (hash PBKDF2); el usuario que ingresó se muestra en la barra superior, junto a los botones "Cambiar contraseña" y "Cerrar sesión". Cualquier usuario cambia su propia contraseña desde ese botón (pide la actual, la nueva de al menos 6 caracteres y su repetición, y la guarda con salt y hash nuevos). Tras cinco intentos fallidos seguidos, el botón INGRESAR del login se deshabilita 30 segundos con una cuenta regresiva; el bloqueo vive solo en memoria y un ingreso correcto reinicia el contador. El menú principal **se filtra por rol** (ver [Menú por rol](#menú-por-rol)). El resto de las opciones del menú no tiene pantalla (ver [Estado](#estado)).
+Lo que hace, por rol:
 
-El código sigue de forma deliberada el estilo de la cátedra de programación orientada a eventos (SQL dentro de los formularios, sin capa de acceso a datos). No es una arquitectura por capas.
+- **Administrador y operador**: clientes, vehículos, marcas y modelos; turnos del taller; recepción del vehículo con fotos y apertura de la orden de trabajo; presupuesto, aprobación del cliente y entrega; avisos de service por WhatsApp; historial por patente; reportes impresos. El administrador además administra servicios, categorías, mecánicos y usuarios, y ve los Tableros.
+- **Mecánico**: sus órdenes asignadas (diagnóstico, inicio del trabajo, horas y observaciones, fotos del trabajo, finalización) y el historial, sin importes.
 
-### Menú por rol
+El sistema tiene 22 pantallas y una base de 16 tablas. El detalle de cada pantalla, el flujo de la orden y las decisiones técnicas están en [doc/Docu.md](./doc/Docu.md).
 
-El menú principal muestra a cada usuario solo las opciones de su rol. Los botones están ocultos por defecto en el diseñador y `FrmPrincipal_Load` muestra los que corresponden según `Sesion.Rol`; un rol desconocido no ve ninguna opción.
-
-El menú lateral se lee de arriba hacia abajo: primero **Operaciones** (Mis órdenes, Turnos, Recepción, Órdenes de trabajo, Historial, Services por vencer), después **Reportes** (la opción **Tableros**) y, al pie del menú, **Datos maestros** (Clientes, Vehículos, Marcas y modelos, Servicios, Categorías, Mecánicos, Usuarios). Cada opción lleva un icono. El botón que está junto al nombre del sistema contrae el menú a una columna de iconos y lo vuelve a expandir; contraído, el nombre de cada opción aparece al pasar el mouse y el panel de contenido ocupa el ancho liberado. El menú siempre arranca expandido. La opción de la pantalla abierta queda resaltada en el menú, y el título de la ventana muestra el nombre de esa pantalla.
-
-Al ingresar, el administrador y el operador ven la pantalla **Inicio** (`FrmInicio`), que también se abre desde la primera opción de OPERACIONES: un saludo con la fecha, tres tarjetas con las órdenes prometidas para hoy, las demoradas y las listas para entregar, una tarjeta con los turnos de hoy que siguen pendientes (un clic abre Turnos), una tarjeta con los services vencidos que no se avisaron en los últimos 15 días y cuyo vehículo no tiene turno (un clic abre Services por vencer), una grilla con esas órdenes (primero las demoradas) y el botón "Ir a órdenes de trabajo". Si no hay nada pendiente dice "No hay órdenes que requieran atención hoy.". El mecánico conserva el texto de bienvenida.
-
-Los iconos son archivos PNG de [Lucide](https://lucide.dev) (licencia ISC, en `WinFormsApp1/Recursos/iconos/LICENCIA-lucide.txt`). Se copian a la carpeta de salida y se leen al abrir el menú; si falta alguno, esa opción queda sin icono y la aplicación sigue funcionando.
-
-| Opción del menú | ADMINISTRADOR | OPERADOR | MECANICO |
-|---|---|---|---|
-| Mis órdenes | No | No | Sí |
-| Turnos | Sí | Sí | No |
-| Recepción | Sí | Sí | No |
-| Órdenes de trabajo | Sí | Sí | No |
-| Historial | Sí | Sí | Sí |
-| Services por vencer | Sí | Sí | No |
-| Clientes | Sí | Sí | No |
-| Vehículos | Sí | Sí | No |
-| Marcas y modelos | Sí | Sí | No |
-| Servicios | Sí | No | No |
-| Categorías | Sí | No | No |
-| Mecánicos | Sí | No | No |
-| Usuarios | Sí | No | No |
-| Tableros (sección Reportes) | Sí | No | No |
-
-Los títulos de sección siguen la misma regla: "OPERACIONES" se muestra a todos los roles, "DATOS MAESTROS" al administrador y al operador, y "REPORTES" solo al administrador.
-
-### Clientes
-
-**Clientes** (`FrmClientes`) es la pantalla modelo de los datos maestros: la lista a la izquierda y el registro a la derecha, usando toda la ventana.
-
-- **Lista**: búsqueda por nombre o documento mientras se escribe, casilla "Mostrar dados de baja" y grilla con nombre, documento, teléfono y localidad. Los clientes dados de baja se listan al final, en gris. El subtítulo cuenta lo listado.
-- **Registro**: al elegir un cliente, con el mouse o con el teclado, se cargan sus datos, una etiqueta con su estado ("Activo" o "Dado de baja") y una línea con su cantidad de vehículos y la fecha desde la que es cliente. Sin nada elegido, la tarjeta solo muestra una ayuda.
-- **Acciones según el caso**: "Nuevo cliente" (arriba a la derecha) abre un registro en blanco con "Guardar" y "Cancelar"; un cliente existente muestra "Guardar cambios" y "Dar de baja", o "Reactivar" si está dado de baja. Si hay cambios sin guardar, se pregunta antes de descartarlos, también al pasar a otra pantalla, cerrar la sesión o cerrar el programa. La tecla Escape equivale a "Cancelar". Un clic en el título de una columna ordena la lista sin cambiar el cliente abierto.
-
-- **Imprimir ficha** (arriba, a la izquierda de "Nuevo cliente"): se habilita con un cliente guardado elegido y abre la vista previa de su ficha (ver [Reportes impresos](#reportes-impresos)). Si hay cambios sin guardar, avisa que la ficha muestra solo lo guardado.
-
-El número interno del cliente no se muestra. Las reglas no cambiaron: nombre y documento obligatorios, documento único, y un cliente con vehículos activos no se da de baja.
-
-**Vehículos**, **Usuarios**, **Mecánicos**, **Servicios** y **Categorías** usan la misma pantalla: lista con búsqueda y "Mostrar dados de baja" a la izquierda, registro a la derecha, botón "Nuevo …" arriba, y las mismas preguntas antes de perder cambios. Cada una conserva sus reglas. En Vehículos, el combo de titular lista los clientes activos y, si el titular del vehículo está dado de baja, también a ese cliente, marcado como tal.
-
-**Marcas y modelos** muestra dos tarjetas: las marcas a la izquierda y los modelos de la marca elegida a la derecha. Cada una tiene su botón para agregar y, al pie, la caja del nombre con "Guardar" y "Eliminar".
-
-### Recepción y órdenes de trabajo
-
-Las tres pantallas están disponibles para el administrador y el operador.
-
-**Recepción** (`FrmRecepcion`) abre la orden de trabajo con un asistente de cuatro pasos que ocupa todo el ancho de la ventana. Se puede volver a un paso anterior sin perder lo cargado.
-
-- Una barra muestra los cuatro pasos: el actual resaltado, los completos con una marca y los que faltan atenuados. Un clic en un paso completo vuelve a él; hacia adelante solo se avanza con "Siguiente".
-- A la derecha, la tarjeta "Resumen de la recepción" está siempre a la vista y se completa a medida que se avanza: vehículo, cliente, kilometraje, combustible, mecánico, fecha prometida, cantidad de fotos y síntoma.
-- Al pie quedan siempre en el mismo lugar "Cancelar", "Anterior" y el botón principal, que dice "Siguiente" en los pasos 1 a 3 y "Confirmar recepción" en el paso 4. Si hay una recepción a medias, tanto "Cancelar" como salir de la pantalla (otra opción del menú, cerrar sesión o cerrar el programa) preguntan antes de perder lo cargado.
-- Al confirmar, la orden se guarda solo si el vehículo sigue activo y sin otra orden abierta en ese momento: si otro puesto lo recepcionó o lo dio de baja después de la búsqueda del paso 1, se avisa y no se guarda nada. Si otro puesto está confirmando una orden para el mismo vehículo en ese instante, se espera hasta 5 segundos y, si no termina, se avisa y se pide volver a buscar la patente.
-
-**Registro rápido** (`FrmAltaRapida`): cuando la patente buscada no existe, "Registrar vehículo" abre una ventana para darla de alta sin salir de la recepción.
-
-1. Titular: se busca un cliente ya registrado por documento o nombre y se lo elige de la lista, o se elige "Cliente nuevo" y se cargan nombre o razón social, documento y, si se quiere, teléfono.
-2. Vehículo: patente (viene cargada con la que se buscó), marca y modelo de las listas, y año y color opcionales. La marca y el modelo no se crean aquí: se agregan en "Marcas y modelos".
-3. "Registrar y continuar" guarda el cliente nuevo y el vehículo juntos; si algo falla no se guarda ninguno. La recepción busca esa patente y sigue como con cualquier vehículo.
-
-El cliente y el vehículo quedan registrados aunque después se cancele la recepción.
-
-| Paso | Qué se hace |
-|---|---|
-| 1. Vehículo | Se busca el vehículo por su patente exacta. Se muestran sus datos, el titular y sus órdenes anteriores. Si la patente no está registrada, el paso lo avisa y ofrece "Registrar vehículo" (ver más abajo). El vehículo debe estar activo, y no puede tener otra orden abierta. |
-| 2. Datos de ingreso | Kilometraje de ingreso (no menor al último registrado), nivel de combustible, síntoma reportado (obligatorio), observaciones de recepción, mecánico (opcional) y fecha prometida de entrega (opcional, no anterior a hoy). |
-| 3. Fotos | Una foto por ángulo: frente, trasera, lateral izquierdo, lateral derecho y tablero. Se eligen del disco (JPG o PNG), se reducen a 1280 píxeles en su lado mayor y se pueden quitar. Son opcionales. |
-| 4. Confirmación | Resumen de solo lectura. Al confirmar se avisa qué fotos faltan y se guardan, en una sola transacción, la orden con el número siguiente en estado `RECEPCIONADA`, la primera fila del historial de estados y las fotos cargadas. |
-
-**Órdenes de trabajo** (`FrmOrdenes`) es un tablero con el estado de todas las órdenes. Ocupa todo el ancho de la ventana y no modifica datos; los cambios se hacen en la gestión de la orden.
-
-| Zona | Qué muestra |
-|---|---|
-| Título | Cuántas órdenes están listadas y cuántas de ellas están demoradas. |
-| Tarjetas de estado | Una tarjeta por estado, con la cantidad de órdenes en ese estado. Cuentan siempre todas las órdenes, sin aplicar los filtros. Un clic en una tarjeta filtra la lista por ese estado; otro clic en la misma tarjeta quita el filtro. |
-| Filtros | Texto (parte de la patente o del nombre del cliente), que filtra mientras se escribe, "Solo demoradas" y "Limpiar filtros", que también quita el estado elegido. |
-| Grilla | Una fila por orden, la más reciente primero: número, fecha de recepción, patente, vehículo, cliente de la orden, mecánico, estado, fecha prometida y situación. La celda del estado lleva un color por estado. Una orden figura como **Demorada**, con la fila resaltada, cuando su fecha prometida ya pasó y su estado no es final. |
-| Detalle | Datos de la orden seleccionada (número, estado, vehículo, cliente, mecánico, fechas y total presupuestado), sus cinco fotos de recepción en miniatura y el botón "Gestionar orden". Un doble clic en una fila de la grilla también abre la gestión. Sin una orden seleccionada solo muestra una ayuda. |
-
-**Exportar a CSV**: Órdenes de trabajo, Historial por patente y Mis órdenes tienen un botón "Exportar" que guarda la grilla visible en un archivo CSV (UTF-8 con BOM, separado por punto y coma) con un nombre sugerido y la fecha del día. Se exportan solo las columnas visibles, con los valores tal como se ven en pantalla; en Órdenes de trabajo se respetan los filtros aplicados. Si la grilla está vacía, o en el historial no hay un vehículo elegido, no se abre el diálogo.
-
-Las fotos se leen de la base recién al elegir la orden. Un clic en una miniatura con foto la abre ampliada en una ventana aparte (`FrmFoto`). "Gestionar orden" abre la gestión de la orden seleccionada; al cerrarla, las tarjetas y la grilla se recargan y la orden sigue seleccionada si continúa en la lista.
-
-Las fotos también se pueden cargar después de la recepción, desde las miniaturas del detalle:
-
-| Acción | Cuándo se permite | Cómo |
-|---|---|---|
-| Agregar una foto que falta | Mientras la orden no esté en un estado final | Un clic en la miniatura vacía, que se muestra con borde punteado y "Cargar foto". |
-| Reemplazar o quitar una foto cargada | Solo con la orden en `RECEPCIONADA` | Un clic en la miniatura abre la foto ampliada, con los botones "Reemplazar foto" y "Quitar foto". |
-
-Cada foto guarda quién la cargó y cuándo, y pasa por el mismo proceso que en la recepción (JPG o PNG, reducida a 1280 píxeles, guardada como JPEG).
-
-Las fotos se guardan en la base de datos, en la tabla `ot_foto`.
-
-**Gestión de la orden** (`FrmOrdenGestion`) lleva una orden desde `RECEPCIONADA` hasta `ENTREGADA`. La ventana se organiza según la etapa en la que está la orden: muestra solo lo que hay que hacer en esa etapa y un único botón principal con el próximo paso.
-
-- Arriba, el número de orden, la patente y el vehículo, con el estado a la derecha, y una barra con las seis etapas: las cumplidas con una marca verde, la actual resaltada y las que faltan atenuadas. Una orden rechazada o anulada lo indica debajo de la barra, con su motivo.
-- A la derecha, los datos de la orden (mecánico, que se puede cambiar mientras el estado no sea final; kilometraje; síntoma; observaciones de recepción; fechas de finalización y entrega) y el historial de estados, el más reciente primero.
-- Al pie, "Imprimir" (abre el menú de reportes de la orden, ver [Reportes impresos](#reportes-impresos)), "Anular orden" (solo el administrador, en un estado no final) y el botón del próximo paso.
-- **Avisar al cliente**: con la orden en `FINALIZADA`, el administrador y el operador ven este botón al pie. Copia al portapapeles un mensaje listo para WhatsApp con el vehículo, el número de orden, los servicios realizados y el total aprobado, y deja en el historial de la orden la fila "Cliente avisado (texto copiado para WhatsApp)" sin cambiar el estado. El aviso indica el teléfono del cliente si lo tiene cargado.
-
-| Estado | Qué se hace en la ventana | Botón principal | Botón secundario |
-|---|---|---|---|
-| `RECEPCIONADA` | Armar el presupuesto: agregar servicios, cambiar cantidades, quitar líneas. Encima de las líneas se lee el diagnóstico del mecánico, si ya lo cargó. | Presupuestar (exige al menos una línea; sin diagnóstico pregunta si se sigue igual) | — |
-| `PRESUPUESTADA` | Tildar las líneas que el cliente aprueba; el presupuesto todavía se puede ajustar sin perder las tildes. El diagnóstico sigue a la vista si está cargado. | Registrar aprobación (exige al menos una línea aprobada) | Rechazar |
-| `APROBADA` | Revisar las líneas aprobadas y el mecánico asignado; se avisa si falta. | Iniciar trabajo (exige un mecánico) | — |
-| `EN_PROCESO` | Cargar en la grilla las horas trabajadas de cada línea aprobada, y las observaciones del mecánico. | Finalizar trabajo (exige todo cargado) | Guardar avance |
-| `FINALIZADA` | Resumen de solo lectura con las líneas aprobadas y sus horas trabajadas. | Entregar vehículo | — |
-| `ENTREGADA`, `RECHAZADA`, `ANULADA` | El mismo resumen, solo de consulta. | Cerrar | — |
-
-"Guardar avance" guarda lo cargado del trabajo sin cambiar el estado, para seguir después. "Anular orden" abre una ventana que pide el motivo (`FrmAnularOrden`). El precio y la descripción se copian del servicio y no se modifican en la línea; cada servicio va una sola vez por orden. La entrega sube el kilometraje del vehículo al de la orden.
-
-Cada cambio de estado se guarda en una transacción junto con su fila en el historial de estados: si algo falla, no se guarda nada.
-
-**Diagnóstico del mecánico**: con la orden en `RECEPCIONADA`, el mecánico asignado revisa el vehículo y escribe lo que encontró; "Guardar diagnóstico" lo guarda en `orden_trabajo.diagnostico` sin cambiar el estado y deja en el historial la fila "Diagnóstico cargado" (o "Diagnóstico corregido" si ya tenía uno). El diagnóstico es opcional: si la recepción presupuesta una orden sin diagnóstico, el sistema pregunta si quiere seguir igual, sin bloquearla. Sale en el presupuesto, en la orden de trabajo y en el historial del vehículo impresos.
-
-**Fotos del trabajo**: una franja al pie del área de trabajo muestra las fotos cargadas durante el trabajo, en miniatura y con su descripción. El mecánico asignado, el administrador y el operador agregan fotos con la orden en `RECEPCIONADA` o `EN_PROCESO` (la descripción, opcional, se escribe antes de elegir el archivo) y pueden quitar la foto elegida hasta que el trabajo se finaliza. Un doble clic la abre ampliada en `FrmFoto`. Se guardan en la tabla `ot_foto_trabajo`, sin límite por orden y con el mismo proceso que las de recepción (reducidas a 1280 píxeles, en JPEG); no se mezclan con las cinco fotos de recepción de `ot_foto`.
-
-### Turnos
-
-Un turno reserva un **horario del taller** para un vehículo, no un mecánico: el mecánico se sigue asignando al aprobar el presupuesto. Es para el administrador y el operador (`FrmTurnos`, opción **Turnos** del menú).
-
-- **Franjas y cupo** (constantes del `Module Turnos`): de lunes a viernes de 8 a 17 y los sábados de 8 a 12, una franja por hora, con 2 vehículos por franja. Los domingos el taller no atiende.
-- **Agenda**: un día por vez, con "<", ">", "Hoy" y un calendario. Cada franja muestra sus turnos y una fila azul "+ Dar turno (n lugares libres)"; la hora se escribe una sola vez por franja y las franjas se alternan con un fondo apenas gris. Los lugares libres se ofrecen mientras la franja no terminó. Los turnos cancelados no se listan y liberan su lugar.
-- **Dar un turno**: clic en un lugar libre (o "Nuevo turno"), patente, hora y motivo opcional. Si la patente no está registrada ofrece registrarla con el alta rápida de la recepción. Al guardar se vuelve a contar el cupo de la franja dentro de una transacción, y se rechaza si el vehículo ya tiene otro turno pendiente.
-- **Cancelar turno** y **Marcar ausente** (este, recién cuando la franja empezó): solo con el turno pendiente.
-- **Confirmación por WhatsApp**: al dar un turno pregunta si se copia la confirmación, y la tarjeta de un turno pendiente tiene el botón "Confirmación por WhatsApp". El mensaje saluda al cliente, dice día, hora, vehículo, patente y motivo, pide llegar unos minutos antes y avisar si no puede venir, y se despide. Se copia al portapapeles y no se registra en la base.
-- **Recepción**: al buscar una patente con turno hoy, muestra "Tiene turno hoy a las 10:00 (motivo)" al lado de la patente, y el motivo completa el síntoma si está vacío. Al confirmar la recepción el turno queda **atendido** y vinculado a la orden.
-
-### Services por vencer
-
-Avisa a los clientes cuando a su vehículo le toca un service que se repite, como el cambio de aceite. Es para el administrador y el operador (`FrmServicesPorVencer`, opción **Services por vencer** del menú).
-
-- **Qué servicios avisan**: los que tienen cargado "Repetir cada (meses)" en el ABM de Servicios. "Repetir cada (km)" es opcional y solo sirve de referencia, porque el sistema conoce el kilometraje del auto únicamente cuando ingresa al taller. Un servicio sin intervalo en meses no genera avisos.
-- **Cuándo vence**: se toma la última orden **entregada** del vehículo que tuvo ese servicio aprobado. Vence en la fecha de entrega más el intervalo en meses. Los vehículos con una orden abierta no se listan, porque ya están en el taller. El mensaje va al titular actual del vehículo.
-- **Lista**: un filtro entre "Vencidos" y "Vencen en los próximos 30 días", y una grilla con cliente, teléfono, patente, vehículo, service, fecha y km del último, próximo km, vencimiento y último aviso. Se puede exportar a CSV.
-- **Copiar mensaje** (o doble clic en la fila): arma un mensaje amable para WhatsApp, con saludo y despedida, con todos los services listados de ese vehículo, y lo copia al portapapeles. No abre WhatsApp: el operador lo pega en el chat del cliente.
-- **Registro**: cada copia guarda un aviso por service en la tabla `aviso_service` (vehículo, servicio, usuario, fecha y hora). Durante 15 días el service avisado aparece al final de la lista, en gris, con "Avisado el ... por ...". Si se vuelve a copiar, pregunta antes.
-- **Dar turno**: abre Turnos en el primer día con lugar, con el turno nuevo listo para guardar: la patente ya buscada y como motivo los services listados del vehículo ("Service: ..."). La columna **Turno** muestra el próximo turno pendiente del vehículo; un vehículo que ya tiene turno aparece en gris y al final, no se le da otro desde acá y no lo cuenta la tarjeta de Inicio.
-
-### Mis órdenes (pantalla del mecánico)
-
-Un usuario con rol `MECANICO` ve en el menú **Mis órdenes** (`FrmMisOrdenes`), con las órdenes de trabajo que tiene asignadas y nada más.
-
-- **Cuatro grupos** arriba, cada uno con su cantidad, que también filtran la lista: "En curso" (en proceso), "Para empezar" (aprobadas), "Para diagnosticar" (recepcionadas, todavía sin presupuesto) y "Terminadas" (finalizadas y entregadas). Siempre hay uno elegido; al entrar es el primero que tenga órdenes, en ese orden.
-- **Lista**: número, vehículo, fecha prometida y horas cargadas ("2 de 3" servicios). Las órdenes demoradas van resaltadas, como en el tablero.
-- **Resumen** de la orden elegida: vehículo y kilometraje de ingreso, lo que dijo el cliente, las observaciones de recepción, los servicios a realizar con sus horas, las cinco fotos de recepción y las fotos del trabajo, que se pueden ampliar pero no cambiar.
-- **Un botón** según el caso: "Cargar diagnóstico", "Iniciar trabajo", "Cargar horas y finalizar" o "Ver orden". Abre la misma ventana de gestión de la orden, en modo mecánico. Un doble clic en la fila de la lista hace lo mismo.
-
-En modo mecánico la gestión de la orden no muestra ningún importe (ni precios, ni subtotales, ni totales) y solo deja escribir el diagnóstico (con la orden recepcionada), cargar y quitar fotos del trabajo, iniciar el trabajo, cargar las horas y las observaciones, guardar el avance y finalizar. El presupuesto, la aprobación del cliente, la entrega, la anulación y el cambio de mecánico siguen siendo de la recepción y del administrador. Un mecánico no puede abrir ni modificar una orden asignada a otro: se comprueba en la base al abrirla y otra vez al guardar.
-
-### Reportes impresos
-
-Cuatro reportes con vista previa, hechos como en clase: cada uno es un `PrintDocument` del diseñador que se muestra en un `PrintPreviewDialog` maximizado; el botón de impresora de la vista previa imprime. Las hojas se dibujan a mano, se leen bien en blanco y negro y llevan al pie "Hoja N" y la fecha de impresión. Si el contenido no entra, sigue en otra hoja y las tablas repiten su encabezado con "(continuación)". Los reportes muestran lo guardado en la base.
-
-| Reporte | Dónde está el botón | Qué muestra | Quién lo ve |
-|---|---|---|---|
-| Orden de trabajo | Gestión de la orden: "Imprimir" → "Orden de trabajo" | La orden en cualquier estado, con lo que tiene hasta ese momento: cliente y vehículo, recepción (con el diagnóstico del mecánico, si está cargado), servicios, totales, trabajo realizado (mecánico, horas, observaciones, fechas), motivo del rechazo o de la anulación e historial de estados. Una orden anulada lleva la marca de agua "ANULADA". | Administrador, operador y mecánico (el mecánico, sin ningún importe) |
-| Presupuesto | Gestión de la orden: "Imprimir" → "Presupuesto" | Cliente y vehículo, síntoma y diagnóstico del mecánico (si está cargado), líneas con precio unitario y subtotal, total presupuestado (y, si el cliente ya decidió, qué líneas aprobó y el total aprobado), validez de 15 días y lugar para la firma del cliente. Los importes son precios finales. Solo se habilita si la orden tiene líneas y no está anulada. | Administrador y operador |
-| Acta de recepción | Gestión de la orden: "Imprimir" → "Acta de recepción" | Datos de ingreso del vehículo (kilometraje, combustible, fecha prometida, síntoma, observaciones), las cinco fotos de recepción sin deformar ("Sin foto" si falta alguna) y las firmas del cliente y de quien lo recibió. | Administrador y operador |
-| Colgante de llaves | Gestión de la orden: "Imprimir" → "Colgante de llaves" | Dos etiquetas idénticas de 90 x 50 mm con marcas de corte, una para el llavero y otra para el tablero: patente en grande, número de orden, marca y modelo, cliente, fecha de recepción y entrega prometida. Sin importes. | Todos los roles, en cualquier estado |
-| Fotos del trabajo | Gestión de la orden: "Imprimir" → "Fotos del trabajo" (solo si la orden tiene fotos del trabajo) | Hoja aparte, no forma parte del presupuesto: seis fotos por hoja sin deformar, cada una con su número, su descripción y cuándo y quién la cargó ("Foto ilegible" si los bytes no son una imagen). Sin importes. | Todos los roles |
-| Historial del vehículo | Historial por patente: "Imprimir" (con un vehículo elegido) | Datos del vehículo y de su titular actual, la tabla de todas sus órdenes en cualquier estado (la más reciente primero) y, por cada orden, el síntoma, el diagnóstico del mecánico si está cargado, los servicios aprobados con cantidad y horas trabajadas, y las observaciones del mecánico. Se lee de la base al imprimir; si no entra en una hoja, las tablas siguen en la siguiente con "(continuación)". | Todos los roles; el mecánico la obtiene sin importes |
-| Ficha del cliente | Clientes: "Imprimir ficha" | Datos del cliente; cada vehículo a su nombre (también los dados de baja) con sus órdenes; las órdenes que trajo con vehículos que hoy son de otro titular; y un resumen con cantidad de vehículos, de órdenes y el total facturado de las órdenes entregadas. | Administrador y operador (la pantalla Clientes solo está en su menú) |
-
-Para el mecánico el menú "Imprimir" muestra "Orden de trabajo", "Colgante de llaves" y "Fotos del trabajo", ninguno con importes: la orden de trabajo sale sin precios, subtotales ni totales porque sus consultas no traen esas columnas.
-
-### Tableros
-
-**Tableros** (`FrmTableros`, menú Reportes → Tableros, solo el administrador) es un tablero de gestión de solo lectura. Arriba se elige el período ("Desde" y "Hasta", por defecto del día 1 del mes actual a hoy) y "Actualizar" recalcula todo; "Hasta" incluye ese día completo. Mientras recalcula se muestra el reloj de espera, y si la base de datos no responde se avisa una sola vez.
-
-**Tiempos por etapa** (reporte 7 de la especificación): el gráfico "Duración promedio por etapa" y la grilla "Detalle por etapa" muestran, para cada estado no final (Recepcionada a Finalizada), cuántas etapas terminaron en el período y su duración promedio, mínima y máxima. Cada etapa se mide desde que la orden entra al estado hasta que pasa al siguiente; las filas seguidas del mismo estado, como el aviso al cliente, cuentan como una sola etapa, y las etapas en curso no se cuentan. La grilla muestra minutos, horas o días según la duración. "Imprimir tiempos" abre la vista previa de una hoja con la tabla, las barras y el período elegido. Los gráficos se dibujan con [ScottPlot](https://scottplot.net) 5 (`ScottPlot.WinForms` 5.1.59), como en la clase del tablero de Biblioteca2026.
-
-| Indicador | Qué cuenta |
-|---|---|
-| Órdenes ingresadas | Órdenes recepcionadas en el período (por `fecha_recepcion`). |
-| Vehículos en el taller | Órdenes que hoy no están entregadas, rechazadas ni anuladas. No depende del período. |
-| Facturado | Suma del total aprobado de las órdenes entregadas en el período (por `fecha_entrega`). |
-| Ticket promedio | Facturado dividido por la cantidad de órdenes entregadas en el período. |
-| Presupuestos aprobados | De las órdenes que pasaron a presupuestada en el período, el porcentaje que el cliente aprobó (según el historial de estados). |
-| Órdenes demoradas | Órdenes que hoy tienen la fecha prometida vencida y no están finalizadas, entregadas, rechazadas ni anuladas (en rojo si hay alguna). No depende del período. |
-
-| Gráfico | Qué muestra |
-|---|---|
-| Facturación por mes | Barras con lo facturado en cada uno de los últimos 6 meses, terminando en el mes de "Hasta". |
-| Servicios más pedidos | Barras horizontales con los 8 servicios con más cantidad en líneas aprobadas de las órdenes recibidas en el período. |
-| Horas por mecánico | Barras agrupadas con las horas estimadas (tiempo estimado del servicio por cantidad) y las horas reales cargadas, en las líneas aprobadas de las órdenes finalizadas en el período. |
-| Órdenes por estado | Torta con las órdenes recibidas en el período según su estado actual, con los mismos colores del tablero de órdenes. |
-
-Si un gráfico no tiene datos para el período muestra "Sin datos para el período" y los indicadores quedan en cero. Para la presentación, `database/08_datos_demo.sql` carga datos de demostración (ver [Run](#run)).
-
----
-
-<!-- @tsg-docs:auto-start -->
-
-## Arquitectura
-
-- **Lenguaje:** VB.NET
-- **Plataforma:** .NET 10 (`net10.0-windows`), Windows Forms, `OutputType` WinExe
-- **Patrones:** programación orientada a eventos; un único proyecto; formularios creados con el diseñador de Visual Studio y manejadores con `Handles`; SQL escrito dentro de los eventos del formulario (`Using cn` / `Using cmd`); sin clases DAO ni separación en capas
-- **Infraestructura:** cliente de escritorio de dos capas contra MariaDB (desarrollado con MariaDB 12.2, base `taller_mecanico`) mediante el paquete MySqlConnector 2.6.2; gráficos del tablero con ScottPlot.WinForms 5.1.59
-
-### Diagrama
-
-```mermaid
-graph TD
-    subgraph Cliente["Ejecutable Windows Forms (WinFormsApp1)"]
-        Login["FrmLogin<br/>(formulario de inicio)"]
-        Principal["FrmPrincipal<br/>(menú lateral y panel de contenido)"]
-        subgraph Pantallas["Pantallas terminadas"]
-            Clientes["FrmClientes"]
-            Vehiculos["FrmVehiculos"]
-            Marcas["FrmMarcasModelos"]
-            Usuarios["FrmUsuarios<br/>(solo administrador)"]
-            Recepcion["FrmRecepcion<br/>(asistente de recepción)"]
-            Ordenes["FrmOrdenes<br/>(tablero de órdenes)"]
-            Historial["FrmHistorial<br/>(historial por patente)"]
-            Avisos["FrmServicesPorVencer<br/>(avisos de service)"]
-            TurnosPantalla["FrmTurnos<br/>(agenda de turnos)"]
-            Tableros["FrmTableros<br/>(tablero de gestión, ScottPlot)"]
-        end
-        Conexion["Module ConexionBD<br/>(CADENA, de conexion.txt o por defecto)"]
-        Seguridad["Module Seguridad<br/>(hash PBKDF2)"]
-        Sesion["Module Sesion<br/>(usuario logueado)"]
-        Impresion["Module Impresion<br/>(dibujo de reportes)"]
-        Recordatorios["Module Recordatorios<br/>(regla de services vencidos)"]
-        TurnosModulo["Module Turnos<br/>(franjas y cupo)"]
-        Recursos["Recursos/<br/>(imagen y música del login)"]
-    end
-
-    subgraph Datos["Servidor de base de datos"]
-        DB[("MariaDB<br/>taller_mecanico (16 tablas)")]
-    end
-
-    Login -->|"abre"| Principal
-    Login -.->|"lee"| Recursos
-    Login -->|"verifica clave"| Seguridad
-    Login -->|"usa CADENA"| Conexion
-    Login -->|"guarda usuario"| Sesion
-    Principal -.->|"muestra usuario"| Sesion
-    Principal -->|"abre en panel"| Clientes
-    Principal -->|"abre en panel"| Vehiculos
-    Principal -->|"abre en panel"| Marcas
-    Principal -->|"abre en panel (rol ADMINISTRADOR)"| Usuarios
-    Principal -->|"abre en panel (ADMINISTRADOR y OPERADOR)"| Recepcion
-    Principal -->|"abre en panel (ADMINISTRADOR y OPERADOR)"| Ordenes
-    Recepcion -->|"usa CADENA"| Conexion
-    Recepcion -.->|"lee rol e ID"| Sesion
-    Ordenes -->|"usa CADENA"| Conexion
-    Ordenes -.->|"lee rol"| Sesion
-    Principal -->|"abre en panel (los tres roles)"| Historial
-    Historial -->|"usa CADENA"| Conexion
-    Historial -.->|"lee rol"| Sesion
-    Principal -->|"abre en panel (ADMINISTRADOR y OPERADOR)"| Avisos
-    Avisos -->|"usa la consulta"| Recordatorios
-    Avisos -->|"usa CADENA"| Conexion
-    Avisos -.->|"lee rol e ID"| Sesion
-    Principal -->|"abre en panel (ADMINISTRADOR y OPERADOR)"| TurnosPantalla
-    TurnosPantalla -->|"usa franjas y cupo"| TurnosModulo
-    TurnosPantalla -->|"usa CADENA"| Conexion
-    TurnosPantalla -.->|"lee rol e ID"| Sesion
-    Recepcion -->|"cierra el turno de hoy"| DB
-    Principal -->|"abre en panel (rol ADMINISTRADOR)"| Tableros
-    Tableros -->|"usa CADENA"| Conexion
-    Tableros -.->|"lee rol"| Sesion
-    Clientes -->|"usa CADENA"| Conexion
-    Clientes -->|"dibuja la ficha"| Impresion
-    Vehiculos -->|"usa CADENA"| Conexion
-    Marcas -->|"usa CADENA"| Conexion
-    Usuarios -->|"usa CADENA"| Conexion
-    Usuarios -->|"hashea clave"| Seguridad
-    Usuarios -.->|"lee rol e ID"| Sesion
-    Conexion -->|"MySqlConnector"| DB
-```
-
-<!-- @tsg-docs:auto-end -->
-
----
-
-## Quick start (local)
-
-### Prerequisites
+## Requisitos
 
 - Windows (el proyecto apunta a `net10.0-windows`).
 - .NET 10 SDK.
-- Visual Studio con la carga de trabajo de desarrollo de escritorio de .NET (Windows Forms y Visual Basic).
-- MariaDB en ejecución local (el proyecto se desarrolló contra MariaDB 12.2; el script DDL indica MariaDB 10.6 o superior) y un cliente SQL para ejecutar los scripts (el repo menciona DBeaver en los comentarios de las consultas).
+- Visual Studio con la carga de trabajo de desarrollo de escritorio de .NET (Windows Forms y Visual Basic). El proyecto se abre desde `WinFormsApp1.slnx`; en modo *Folder View* el diseñador de formularios queda deshabilitado.
+- MariaDB 10.6 o superior en ejecución (el proyecto se desarrolló con MariaDB 12.2) y un cliente SQL para ejecutar los scripts (DBeaver, HeidiSQL o la consola `mariadb`).
 
-### Run
+## Instalación
 
-1. Crear la base ejecutando los scripts de `database/`. Instalación nueva: `01`, `02` y `03`, más `08` y `11` para la presentación. Los scripts `06`, `07`, `09`, `10` y `12` son migraciones para bases creadas con una versión anterior: en una base nueva no hacen falta y, si se ejecutan igual, no hacen daño.
+Ejecutar en este orden los scripts de `database/` sobre el servidor MariaDB:
 
-   | Script | Qué hace |
-   |---|---|
-   | `01_ddl_estructura.sql` | Crea la base `taller_mecanico` y las 16 tablas. **Elimina la base completa si ya existe** (`DROP DATABASE IF EXISTS`): comentar esa línea si hay datos que conservar. |
-   | `02_dml_catalogos.sql` | Carga los catálogos necesarios para funcionar (estados de OT, categorías de servicio y el usuario administrador inicial). Se ejecuta una vez. |
-   | `03_dml_prueba.sql` | **Requerido.** Carga el catálogo de marcas, modelos y servicios que la aplicación necesita para recepcionar y presupuestar, más datos de prueba (mecánicos, usuarios `operador` y `mecanico`, clientes y vehículos). Sin este script, los scripts 08 y 11 no cargan ninguna orden. |
-   | `04_consultas_verificacion.sql` | Consultas de verificación (cantidad de tablas, filas por tabla, etc.). Opcional. |
-   | `05_consultas_basicas.sql` | Consultas de práctica de solo lectura. Opcional. |
-   | `06_migracion_hash_pbkdf2.sql` | Migración para bases ya cargadas con una versión anterior de 01 a 03: agrega la columna `salt` y reemplaza los hashes de los usuarios semilla. **Una instalación nueva con 01 a 03 no la necesita.** |
-   | `07_recepcion_fotos.sql` | Migración para bases ya creadas con una versión anterior de 01 (12 tablas): agrega la columna `orden_trabajo.fecha_prometida` y la tabla `ot_foto`. No modifica ni elimina datos y se puede ejecutar más de una vez. **Sin esta migración las pantallas de Recepción y Órdenes de trabajo no funcionan. Una instalación nueva con 01 a 03 no la necesita.** |
-   | `08_datos_demo.sql` | **Opcional, para la presentación.** Carga unas 40 órdenes de trabajo de los últimos siete meses (fechas relativas al día en que se ejecuta), con clientes, vehículos y un mecánico nuevos, para que los Tableros muestren datos. Requiere 01, 02 y 03. Se puede ejecutar más de una vez: borra antes las órdenes marcadas con `[demo]` en las observaciones de recepción. Para quitarlas: `DELETE FROM orden_trabajo WHERE observaciones_recepcion LIKE '%[demo]';` |
-   | `09_diagnostico_fotos.sql` | Migración para bases ya creadas con una versión anterior de 01 (13 tablas): agrega la columna `orden_trabajo.diagnostico` y la tabla `ot_foto_trabajo`. No modifica ni elimina datos y se puede ejecutar más de una vez (una base sin `ot_foto` ejecuta antes la 07). **Sin esta migración la gestión de la orden, Mis órdenes y el historial impreso no funcionan. Una instalación nueva con 01 a 03 no la necesita.** |
-   | `10_recordatorio_service.sql` | Migración para bases ya creadas con una versión anterior de 01 (14 tablas): agrega las columnas `servicio.intervalo_meses` e `intervalo_km` y la tabla `aviso_service`. No modifica ni elimina datos y se puede ejecutar más de una vez; los servicios existentes quedan sin intervalo hasta que el administrador lo cargue. **Sin esta migración Servicios y Services por vencer no funcionan, y la tarjeta de services de Inicio muestra un guion. Una instalación nueva con 01 a 03 no la necesita.** |
-   | `11_datos_demo_avisos.sql` | **Opcional, para la presentación.** Carga seis órdenes entregadas, más viejas que las de 08, sobre los vehículos de 03, para que Services por vencer muestre vencidos, un vehículo con dos services y services que vencen pronto. Requiere 01, 02, 03 y 10. Se puede ejecutar más de una vez: borra antes sus órdenes (marca `[demo-avisos]`) y los avisos de esos vehículos. |
-   | `12_turnos.sql` | Migración para bases ya creadas con una versión anterior de 01 (15 tablas): crea la tabla `turno`. No modifica ni elimina datos y se puede ejecutar más de una vez. **Sin esta migración la pantalla Turnos no funciona; la recepción sigue funcionando, sin el aviso de turno. Una instalación nueva con 01 a 03 no la necesita.** |
+| Paso | Script | Qué hace |
+|---|---|---|
+| 1 | `01_ddl_estructura.sql` | Crea la base `taller_mecanico` y sus 16 tablas. **Elimina la base si ya existe** (`DROP DATABASE IF EXISTS`): comentar esa línea si hay datos que conservar. |
+| 2 | `02_dml_catalogos.sql` | Carga los catálogos mínimos (estados de la orden y categorías de servicio) y el usuario `admin`. |
+| 3 | `03_dml_prueba.sql` | **Requerido.** Carga marcas, modelos y servicios, más mecánicos, los usuarios `operador` y `mecanico`, clientes y vehículos de prueba. Sin él no se puede recepcionar ni presupuestar. |
+| 4 (opcional) | `08_datos_demo.sql` | Unas 40 órdenes de los últimos siete meses, con fechas relativas al día en que se ejecuta, para que los Tableros muestren datos. Requiere `01` a `03`. Se puede ejecutar más de una vez: borra antes sus propias órdenes (marcadas con `[demo]`). |
+| 5 (opcional) | `11_datos_demo_avisos.sql` | Seis órdenes entregadas sobre los vehículos de `03`, para que Services por vencer muestre services vencidos y por vencer. Requiere `01` a `03`. Se puede ejecutar más de una vez. |
 
-2. Ajustar la cadena de conexión, solo si la instalación local de MariaDB no es `localhost`, usuario `root` sin contraseña: copiar `WinFormsApp1/conexion.ejemplo.txt` como `WinFormsApp1/conexion.txt` y editar `Server`, `Port`, `User ID` y `Password=`. El archivo está ignorado por git y se copia a la carpeta de salida al compilar.
-3. Abrir `WinFormsApp1.slnx` en Visual Studio y ejecutar, o desde una terminal:
+> **Bases creadas con una versión anterior de `01`.** Los scripts `06` (contraseñas PBKDF2), `07` (fecha prometida y fotos de recepción), `09` (diagnóstico y fotos del trabajo), `10` (intervalos de service y avisos) y `12` (turnos) son migraciones: agregan lo que falta sin tocar los datos existentes y se pueden ejecutar más de una vez. Una instalación nueva con `01` a `03` no las necesita. Los scripts `04` y `05` son consultas de verificación y de práctica.
+
+## Configuración
+
+**Cadena de conexión.** Por defecto la aplicación se conecta a `localhost`, puerto 3306, usuario `root` sin contraseña, base `taller_mecanico`. Para otro servidor u otras credenciales, copiar `WinFormsApp1/conexion.ejemplo.txt` como `WinFormsApp1/conexion.txt` y editar `Server`, `Port`, `User ID` y `Password`. El archivo está en `.gitignore` (la contraseña local no se sube al repositorio), se copia a la carpeta de salida al compilar y `Module ConexionBD` lo lee al iniciar. Si existe pero no se puede leer o no tiene ninguna cadena, el login no deja entrar y pide corregirlo o eliminarlo, para que un puesto configurado no termine conectado al servidor por defecto sin querer. No se usan variables de entorno ni archivos `appsettings`.
+
+- **Registro de errores.** `Module Errores` escribe los errores no atrapados y los que muestra cada pantalla (`Errores.MostrarError`) en `%LocalAppData%\TallerMecanico\errores.log`, con fecha, usuario, contexto y detalle. Ante un error no atrapado el sistema pregunta si se sigue trabajando o se sale; si el error se repite tres veces seguidas en pocos segundos, se cierra solo. Cuando la base no responde, el mensaje dice "No se pudo conectar con la base de datos."; cuando el servidor rechaza el usuario o la contraseña, indica revisar `conexion.txt`.
+
+## Ejecución
+
+Abrir `WinFormsApp1.slnx` en Visual Studio y ejecutar (F5), o desde una terminal en la raíz del repositorio:
 
 ```bash
 dotnet run --project WinFormsApp1
 ```
 
-> No hay pruebas automatizadas que ejecutar. Los usuarios del sistema están definidos en `database/02_dml_catalogos.sql` y `database/03_dml_prueba.sql`, y el login los valida (las contraseñas de prueba figuran en los comentarios de esos scripts). Las contraseñas se guardan con PBKDF2 + SHA256 (100000 iteraciones, hash de 32 bytes, salt de 16 bytes, ambos en Base64); el salt está en la columna `usuario.salt`.
+No hay pruebas automatizadas que ejecutar.
 
----
+## Usuarios de prueba
 
-<!-- @tsg-docs:auto-start -->
+Los crean `02_dml_catalogos.sql` (`admin`) y `03_dml_prueba.sql` (`operador` y `mecanico`). La contraseña es el nombre de usuario seguido de `123`.
 
-## Configuración
-
-### Variables de entorno
-
-| Variable | Descripción | Ejemplo | Obligatoria |
+| Usuario | Contraseña | Rol | Qué ve |
 |---|---|---|---|
-| _Sin entradas detectadas — completar manualmente_ | La aplicación no lee variables de entorno (no hay usos de `GetEnvironmentVariable` en el código). | — | — |
+| `admin` | `admin123` | ADMINISTRADOR | Todo el menú: operaciones, datos maestros y Tableros. |
+| `operador` | `operador123` | OPERADOR | Operaciones, Clientes, Vehículos y Marcas y modelos. |
+| `mecanico` | `mecanico123` | MECANICO | Mis órdenes e Historial. Es el mecánico Ramón Gómez. |
 
-La única configuración es la cadena de conexión (servidor, puerto, base, usuario y contraseña). `Module ConexionBD` la lee de `conexion.txt`, junto al ejecutable, si el archivo existe; si no, usa la cadena por defecto (`localhost`, `root`, sin contraseña). El formato está en `WinFormsApp1/conexion.ejemplo.txt`.
+Cualquier usuario cambia su propia contraseña desde "Cambiar contraseña" en la barra superior (pide la actual y la nueva, de al menos 6 caracteres). Tras cinco intentos fallidos seguidos, el botón INGRESAR del login se deshabilita 30 segundos.
 
-Los errores que ninguna pantalla atrapa, y los que cada pantalla muestra cuando falla una operación (todos pasan por `Errores.MostrarError`), quedan registrados con fecha, usuario y detalle en `%LocalAppData%\TallerMecanico\errores.log`. Ante un error no atrapado, el sistema pregunta si se desea seguir trabajando o salir; si el error se repite tres veces seguidas en pocos segundos, se cierra solo, y si el registro no se pudo escribir el detalle se muestra en el mismo aviso. Cuando la base de datos no responde, el mensaje dice "No se pudo conectar con la base de datos." en lugar del detalle del driver; cuando el servidor responde pero rechaza el usuario o la contraseña, el mensaje indica revisar `conexion.txt`. Si `conexion.txt` existe pero no se puede leer o no tiene ninguna cadena, el login no deja entrar y pide corregir o eliminar el archivo, para que un puesto configurado no termine conectado al servidor por defecto sin querer; el motivo queda también en el registro.
+## Guion de demostración
 
-### appsettings por entorno
+Con `01`, `02`, `03`, `08` y `11` cargados. La patente `AB123CD` es un vehículo de `03` sin orden abierta.
 
-No aplica: aplicación de escritorio WinForms. No existen archivos `appsettings*.json` en el proyecto.
+1. **Ingresar como `admin`.** Se abre **Inicio**: tarjetas con las órdenes prometidas para hoy, las demoradas, las listas para entregar, los turnos de hoy y los services vencidos, y la grilla con las órdenes que piden atención.
+2. **Turnos.** Clic en un lugar libre de la agenda de hoy (o "Nuevo turno"): patente `AB123CD`, motivo "Ruido al frenar", "Dar turno". Aceptar copiar la confirmación por WhatsApp y mostrar el texto pegándolo en cualquier editor.
+3. **Recepción.** Buscar `AB123CD`: al lado de la patente aparece "Tiene turno hoy a las ..." y el motivo completa el síntoma. Paso 2: kilometraje no menor al último registrado, mecánico **Ramón Gómez** y una fecha prometida. Paso 3: cargar alguna foto (opcional). Paso 4: "Confirmar recepción". El turno queda atendido y vinculado a la orden.
+4. **Cerrar sesión e ingresar como `mecanico`.** En **Mis órdenes**, grupo "Para diagnosticar", abrir la orden con "Cargar diagnóstico", escribir lo que encontró y "Guardar diagnóstico".
+5. **Ingresar como `operador`.** En **Órdenes de trabajo**, elegir la orden y "Gestionar orden": el diagnóstico se lee encima de las líneas. Agregar dos o tres servicios y **Presupuestar**; "Imprimir" → "Presupuesto". Después tildar las líneas que el cliente aprueba y **Registrar aprobación**.
+6. **Ingresar como `mecanico`.** En Mis órdenes, grupo "Para empezar", "Iniciar trabajo". Luego, en "En curso", "Cargar horas y finalizar": horas por línea, observaciones del mecánico, una foto del trabajo y **Finalizar trabajo**.
+7. **Ingresar como `admin`.** En Órdenes de trabajo abrir la orden: **Avisar al cliente** (copia el mensaje para WhatsApp y deja la fila "Cliente avisado" en el historial) y **Entregar vehículo**. "Imprimir" → "Orden de trabajo", "Acta de recepción" y "Fotos del trabajo".
+8. **Historial por patente.** Buscar `AB123CD`, recorrer sus órdenes y **Imprimir** el historial del vehículo.
+9. **Services por vencer.** Con el filtro "Vencidos", **Copiar mensaje** de un vehículo (queda registrado el aviso) y **Dar turno** desde otra fila: abre Turnos en el primer día con lugar, con la patente y el motivo ya cargados.
+10. **Tableros.** Indicadores y gráficos del mes; cambiar "Desde" a seis meses atrás y **Actualizar**; "Imprimir tiempos" abre la hoja de tiempos por etapa.
+11. **Datos maestros** (opcional). En Clientes, "Imprimir ficha" de un cliente con varias órdenes; en Servicios, "Repetir cada (meses)" es el origen de los avisos de service; en Usuarios, baja lógica y reactivación con "Mostrar dados de baja".
 
----
+## Limitaciones conocidas
 
-## Implementación productiva
+- No hay pruebas automatizadas; la verificación es manual con los datos de `03` y `08`.
+- Los permisos por rol se aplican en el menú y al abrir cada pantalla; dentro de una pantalla no hay permisos por botón, salvo en Gestión de la orden (anular es solo del administrador y el mecánico tiene su propio modo sin importes).
+- Los turnos no tienen recordatorio automático ni se reprograman: se cancela el turno y se da otro. Las franjas y el cupo son constantes del código.
+- El vencimiento de los services se calcula por fecha; el kilometraje es solo una referencia, porque el sistema conoce los km del vehículo únicamente cuando ingresa al taller.
+- Las fotos se guardan dentro de la base (`LONGBLOB`): su tamaño y el de las copias de respaldo crecen con cada orden.
+- El tablero de órdenes trae todas las órdenes sin paginar y no se actualiza solo; los cambios de otro puesto se ven al cambiar un filtro.
+- El bloqueo del login tras cinco intentos vive en memoria: reiniciar la aplicación lo reinicia.
+- El historial de git conserva una contraseña de desarrollo publicada en una versión anterior; la recomendación es cambiarla en esa base.
 
-### Docker
+## Documentación
 
-No aplica: aplicación de escritorio WinForms. No hay `Dockerfile` ni `docker-compose` en el repositorio.
+- [doc/Docu.md](./doc/Docu.md): documento técnico (arquitectura, modelo de datos, pantallas, flujo de la orden de trabajo, reportes y decisiones).
+- [taller-mecanico-especificacion.md](./taller-mecanico-especificacion.md): especificación funcional.
+- [taller-mecanico.dbml](./taller-mecanico.dbml): modelo de datos en DBML.
 
-### Health checks
+Estructura del repositorio:
 
-| Endpoint | Propósito |
+| Carpeta o archivo | Contenido |
 |---|---|
-| No aplica | Aplicación de escritorio WinForms: no expone endpoints. |
-
-### Logging y observabilidad
-
-- **Logger:** `Module Errores` escribe los errores no atrapados y los mostrados con `MostrarError` en `%LocalAppData%\TallerMecanico\errores.log` (fecha, usuario, contexto y detalle). Los demás errores se muestran al usuario con `MessageBox.Show`.
-- **Sinks:** No aplica.
-- **Tracing:** No aplica: aplicación de escritorio WinForms.
-- **Métricas:** No aplica: aplicación de escritorio WinForms.
-
-### Secrets
-
-La cadena de conexión de cada puesto va en `WinFormsApp1/conexion.txt`, que está en `.gitignore`: la contraseña local no se confirma en git. `ConexionBD.vb` solo contiene la cadena por defecto sin contraseña. No se usa gestor de secretos ni variables de entorno. Quien había marcado el archivo con `git update-index --skip-worktree WinFormsApp1/ConexionBD.vb` puede revertirlo con `--no-skip-worktree` y pasar su cadena a `conexion.txt`. El historial de git conserva una contraseña de desarrollo publicada en una versión anterior: la recomendación pendiente es cambiarla en esa base.
-
-### Migrations / inicialización
-
-No hay herramienta de migraciones. La base se crea y se inicializa ejecutando manualmente los scripts de `database/` (ver [Quick start](#quick-start-local)). El script `01_ddl_estructura.sql` recrea la base desde cero. Las bases ya cargadas se actualizan con los scripts de migración: `06_migracion_hash_pbkdf2.sql` (hash de contraseñas), `07_recepcion_fotos.sql` (fecha prometida y fotos de recepción), `09_diagnostico_fotos.sql` (diagnóstico del mecánico y fotos del trabajo), `10_recordatorio_service.sql` (intervalos de service y avisos) y `12_turnos.sql` (turnos). `08_datos_demo.sql` y `11_datos_demo_avisos.sql` son opcionales: cargan datos de demostración para los Tableros y para Services por vencer.
-
-### CI/CD
-
-No implementado: no hay pipelines en el repositorio.
-
----
-
-## Endpoints expuestos
-
-No aplica: aplicación de escritorio WinForms. No expone endpoints.
-
----
-
-## Estado
-
-- **Versión:** _TODO: completar manualmente_ (el proyecto no define versión en `WinFormsApp1.vbproj`).
-- **Status:** En desarrollo (trabajo práctico universitario).
-  - Terminado: Clientes (ABM, baja lógica, búsqueda en vivo), Vehículos (ABM con combos de titular y marca/modelo en cascada, baja lógica), Marcas y modelos (maestro-detalle), Usuarios (ABM con baja lógica; contraseña guardada con PBKDF2 al crear o modificar; el rol MECANICO exige elegir un mecánico; el administrador no puede darse de baja ni cambiar su propio rol; el botón del menú solo se muestra para el rol ADMINISTRADOR).
-  - Terminado: reactivación en Clientes, Vehículos y Usuarios. La casilla "Mostrar dados de baja" lista también los registros inactivos, al final y en gris; al elegir uno, el botón de baja dice "Reactivar". Reglas: un cliente con vehículos activos no se da de baja; un vehículo con una orden de trabajo sin cerrar no se da de baja y no se reactiva si su titular está dado de baja; no se da de baja al único administrador activo; un usuario mecánico no se reactiva si su mecánico está dado de baja.
-  - Terminado: Login (imagen y música; valida usuario activo y contraseña contra `usuario`, con un mensaje único para usuario inexistente o clave incorrecta; guarda el usuario en `Sesion` y la barra superior de `FrmPrincipal` muestra nombre y rol; el botón "Cerrar sesión" de esa barra vuelve al login vacío para que ingrese otro usuario).
-  - Terminado: Menú por rol (`FrmPrincipal` está armado en el diseñador y muestra en `FrmPrincipal_Load` solo las opciones del rol que ingresó; ver [Menú por rol](#menú-por-rol)). Aún no se aplican permisos por rol dentro de cada pantalla, salvo en Usuarios, Mecánicos, Servicios, Categorías, Recepción, Órdenes de trabajo, Gestión de la orden y Tableros, que comprueban el rol al abrirse; en Gestión de la orden, además, solo el administrador ve el botón "Anular".
-  - Terminado: Recepción (asistente de cuatro pasos: vehículo por patente, datos de ingreso, fotos por ángulo y confirmación; guarda en una transacción la orden en estado `RECEPCIONADA`, su primera fila de historial y sus fotos) y Órdenes de trabajo (tablero a todo el ancho: tarjetas con la cantidad de órdenes por estado, que también filtran la lista; filtros por texto y demoradas; grilla con el estado en color; y tarjeta de detalle de la orden seleccionada con sus fotos en miniatura, ampliables, y el botón "Gestionar orden"). Ver [Recepción y órdenes de trabajo](#recepción-y-órdenes-de-trabajo).
-  - Terminado: Gestión de la orden (líneas de presupuesto con sus totales, mecánico, aprobación del cliente por línea o rechazo, inicio del trabajo, horas trabajadas por línea, cierre técnico, entrega con actualización del kilometraje y anulación con motivo, solo para el administrador; cada cambio de estado se guarda en una transacción con su fila de historial). Ver [Recepción y órdenes de trabajo](#recepción-y-órdenes-de-trabajo).
-  - Terminado: Mis órdenes (pantalla del mecánico: sus órdenes en cuatro grupos, resumen de trabajo con fotos y un botón que abre la gestión de la orden en modo mecánico, sin importes; ver [Mis órdenes](#mis-órdenes-pantalla-del-mecánico)).
-  - Terminado: Historial por patente (`FrmHistorial`, para los tres roles y de solo consulta: búsqueda por patente, también de vehículos dados de baja; datos del vehículo y de su titular actual; todas sus órdenes de trabajo, en cualquier estado y la más reciente primero; y los servicios, el síntoma y las observaciones del mecánico de la orden elegida. El mecánico ve el historial sin ningún importe: sus consultas no traen totales, precios ni subtotales).
-  - Terminado: Reportes impresos (`PrintDocument` + `PrintPreviewDialog`, como en clase; rutinas de dibujo compartidas en `Module Impresion`): orden de trabajo en cualquier estado, presupuesto, acta de recepción con sus cinco fotos y hoja de fotos del trabajo desde la gestión de la orden, y ficha del cliente desde Clientes. El mecánico imprime la orden de trabajo, el colgante y las fotos del trabajo, sin importes. Ver [Reportes impresos](#reportes-impresos).
-  - Terminado: diagnóstico del mecánico antes del presupuesto (opcional: la recepción recibe un aviso si presupuesta sin él) y fotos del trabajo cargadas durante la orden, con su propia hoja impresa. Las bases ya creadas deben ejecutar `database/09_diagnostico_fotos.sql`.
-  - Terminado: Mecánicos (ABM solo para el administrador: nombre completo obligatorio, especialidad y teléfono; búsqueda por nombre o especialidad; baja lógica, rechazada si el mecánico tiene órdenes de trabajo sin cerrar; un mecánico dado de baja se reactiva con el mismo botón; no admite dos mecánicos activos con el mismo nombre).
-  - Terminado: Servicios (ABM solo para el administrador: código único, descripción, categoría y precio obligatorios, tiempo estimado en horas opcional, intervalo de repetición en meses y en km opcional (los km exigen los meses); búsqueda por código, descripción o categoría; baja lógica y reactivación con el mismo botón, rechazada si la categoría del servicio está dada de baja; cambiar el precio no altera los presupuestos ya cargados).
-  - Terminado: Categorías (ABM solo para el administrador: descripción única y obligatoria; la grilla muestra la cantidad de servicios activos de cada una, con búsqueda por descripción; baja lógica, rechazada si la categoría tiene servicios activos; una categoría dada de baja se reactiva con el mismo botón).
-  - Terminado: Tableros (`FrmTableros`, solo para el administrador; el botón del menú "Reportes" pasó a llamarse "Tableros"): período desde/hasta, seis indicadores (órdenes ingresadas, vehículos en el taller, facturado, ticket promedio, presupuestos aprobados y órdenes demoradas) y cuatro gráficos con ScottPlot (facturación de los últimos 6 meses, servicios más pedidos, horas estimadas contra reales por mecánico y órdenes por estado). De solo lectura. Datos de demostración opcionales en `database/08_datos_demo.sql`. Ver [Tableros](#tableros).
-  - Terminado: pantalla Inicio con alertas (prometidas hoy, demoradas, listas para entregar), cambio de contraseña propio, bloqueo del login tras cinco intentos fallidos, exportación a CSV de las grillas de órdenes, aviso al cliente desde la orden finalizada y colgante de llaves imprimible. Robustez: registro de errores, manejador global, cadena de conexión en `conexion.txt`.
-  - Terminado: tiempos por etapa (reporte 7) en Tableros, con hoja impresa, e historial del vehículo impreso desde Historial por patente. Con esto están hechos los siete reportes de la especificación.
-  - Terminado: avisos de service (`FrmServicesPorVencer`, administrador y operador): services vencidos o que vencen en los próximos 30 días según el intervalo de cada servicio, mensaje para WhatsApp copiado al portapapeles y registro de cada aviso; tarjeta en Inicio. Las bases ya creadas deben ejecutar `database/10_recordatorio_service.sql`. Ver [Services por vencer](#services-por-vencer).
-  - Terminado: turnos, primera parte (`FrmTurnos`, administrador y operador): agenda diaria con franjas de una hora y cupo de 2 vehículos, dar, cancelar y marcar ausente; la recepción avisa el turno de hoy y lo deja atendido con su orden. Las bases ya creadas deben ejecutar `database/12_turnos.sql`. Ver [Turnos](#turnos).
-  - Terminado: turnos, segunda parte: "Dar turno" desde Services por vencer (con la patente y los services ya cargados), tarjeta "Turnos de hoy" en Inicio y confirmación del turno por WhatsApp. Services por vencer y su tarjeta de Inicio necesitan `database/12_turnos.sql`.
-  - Decisión cerrada: hash de contraseñas con PBKDF2 + SHA256, igual que la referencia de la cátedra (reemplaza la mención de BCrypt de la especificación). Las bases ya cargadas deben ejecutar `database/06_migracion_hash_pbkdf2.sql`.
-  - Base de datos: 16 tablas. A las 12 del modelo original se suman `ot_foto` (fotos de recepción), `ot_foto_trabajo` (fotos del trabajo), `aviso_service` (avisos de service) y `turno` (turnos); `orden_trabajo` tiene las columnas `fecha_prometida` y `diagnostico`, y `servicio` las columnas `intervalo_meses` e `intervalo_km`. Las bases ya creadas deben ejecutar `database/07_recepcion_fotos.sql`, `database/09_diagnostico_fotos.sql`, `database/10_recordatorio_service.sql` y `database/12_turnos.sql`.
-
-<!-- @tsg-docs:auto-end -->
-
----
-
-## Documentación adicional
-
-- [Docu.md](./doc/Docu.md) — referencia técnica profunda
+| `WinFormsApp1/` | El proyecto: formularios `Frm*.vb` con su `Designer`, módulos compartidos (`ConexionBD`, `Seguridad`, `Sesion`, `Errores`, `Fotos`, `Impresion`, `Exportar`, `Recordatorios`, `Turnos`) y `Recursos/` (imagen y música del login, iconos). |
+| `database/` | Los scripts SQL `01` a `12` descritos en [Instalación](#instalación). |
+| `doc/` | La documentación técnica. |
+| `WinFormsApp1.slnx` | La solución que se abre en Visual Studio. |
