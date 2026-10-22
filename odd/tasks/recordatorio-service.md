@@ -21,14 +21,17 @@ Style (mandatory): the professor's event-driven VB.NET, same rules as `odd/tasks
 
 ## Tasks
 
-- [ ] T1 S1 — inline
-- [ ] T2 S2 — inline
-- [ ] T3 S3-S6 — inline
-- [ ] T4 S7 — inline
-- [ ] T5 S8 — inline
+- [x] T1 S1 — inline — commit 3108b41 (also `03_dml_prueba.sql` intervals for 5 seed services and the optional `11_datos_demo_avisos.sql`)
+- [x] T2 S2 — inline — commit afe904a
+- [x] T3 S3-S6 — inline — commit 01bc988 (`Recordatorios.vb`, `FrmServicesPorVencer`, menu option and `avisos.png` bell icon drawn with System.Drawing from the Lucide bell geometry)
+- [x] T4 S7 — inline — commit c7bab0a
+- [x] T5 S8 — inline — closing docs commit
 
 ## Log
 
 - L1 (2026-10-22) User: "Firma del Cliente no lo quiero, los otros 2 me interesa la verdad" (service reminder and appointments; the reminder goes first).
 - Decisions (2026-10-22): interval per service, date drives and km is a reference (user accepted the recommendation); "Copiar al portapapeles nomas, ya con eso quedaria bien"; "Si, registralo" (the notice); design with the screen, Inicio card and migration 10 approved with "Dale".
 - Route: inline. The units share the due rule and the Inicio card reads the same query, so there are no disjoint units for parallel writers.
+- Decisions while building (2026-10-22): the message says "el service de <servicio>" (not "el <servicio>") so the article never clashes with the gender of the description ("la alineación"); several services go as bullet lines. The emoji is built with `Char.ConvertFromUtf32(&H1F44B)`. The Inicio card counts overdue services without a notice in the last 15 days and is labelled "Services vencidos sin avisar"; it runs in its own Try so a database without migration 10 shows "-" instead of breaking Inicio. Double click on a row copies the message. The demo data in 08 has no overdue service (all deliveries are recent), so `11_datos_demo_avisos.sql` adds six delivered orders on the seed vehicles.
+- Verification (2026-10-22): `dotnet build` to a scratch OutDir after each unit: 0 warnings, 0 errors. Throwaway MariaDB 12.2 on port 3399 in the session scratchpad (the user's database was not touched). Migration: main's 01 + 02 + 03 + 08 (14 tables) then `10` twice: no error, two new columns and the five `aviso_service` columns. New 01 + 02 + 03 + 08 + 10: 15 tables, 5 services with interval. `11` run twice: 6 orders, 7 lines, 36 history rows each time. Harness (connection string asserted to port 3399): Vencidos lists AF456GH (aceite and alineación), AD789EF, AB123CD; Próximos lists MNO456 and AG321HJ; AE987KL absent. Messages printed for each vehicle (one service, two services as bullets, "se acerca ... vence el"). After inserting a notice 2 days old (AD789EF) and one 20 days old (AB123CD): AD789EF moves last in grey, AB123CD keeps black with "Avisado el ... por ...", subtitle "1 avisados". Inicio card 4 in red. Servicios ABM: aceite shows 6 months / 10.000 km enabled, afinación unchecked and disabled, new record unchecked. Menu shows "Services por vencer" with the bell icon for OPERADOR. Screens checked at 870x630 and 1690x940 (no horizontal scroll at the minimum size after narrowing the km columns).
+- Not exercised: the real clipboard paste in WhatsApp and the MessageBox paths of "Copiar mensaje" (the harness called `ArmarMensaje` and inserted notices directly); the user must run `10` (and optionally `11`) on the local database.

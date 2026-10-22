@@ -20,9 +20,9 @@ El código sigue de forma deliberada el estilo de la cátedra de programación o
 
 El menú principal muestra a cada usuario solo las opciones de su rol. Los botones están ocultos por defecto en el diseñador y `FrmPrincipal_Load` muestra los que corresponden según `Sesion.Rol`; un rol desconocido no ve ninguna opción.
 
-El menú lateral se lee de arriba hacia abajo: primero **Operaciones** (Mis órdenes, Recepción, Órdenes de trabajo, Historial), después **Reportes** (la opción **Tableros**) y, al pie del menú, **Datos maestros** (Clientes, Vehículos, Marcas y modelos, Servicios, Categorías, Mecánicos, Usuarios). Cada opción lleva un icono. El botón que está junto al nombre del sistema contrae el menú a una columna de iconos y lo vuelve a expandir; contraído, el nombre de cada opción aparece al pasar el mouse y el panel de contenido ocupa el ancho liberado. El menú siempre arranca expandido. La opción de la pantalla abierta queda resaltada en el menú, y el título de la ventana muestra el nombre de esa pantalla.
+El menú lateral se lee de arriba hacia abajo: primero **Operaciones** (Mis órdenes, Recepción, Órdenes de trabajo, Historial, Services por vencer), después **Reportes** (la opción **Tableros**) y, al pie del menú, **Datos maestros** (Clientes, Vehículos, Marcas y modelos, Servicios, Categorías, Mecánicos, Usuarios). Cada opción lleva un icono. El botón que está junto al nombre del sistema contrae el menú a una columna de iconos y lo vuelve a expandir; contraído, el nombre de cada opción aparece al pasar el mouse y el panel de contenido ocupa el ancho liberado. El menú siempre arranca expandido. La opción de la pantalla abierta queda resaltada en el menú, y el título de la ventana muestra el nombre de esa pantalla.
 
-Al ingresar, el administrador y el operador ven la pantalla **Inicio** (`FrmInicio`), que también se abre desde la primera opción de OPERACIONES: un saludo con la fecha, tres tarjetas con las órdenes prometidas para hoy, las demoradas y las listas para entregar, una grilla con esas órdenes (primero las demoradas) y el botón "Ir a órdenes de trabajo". Si no hay nada pendiente dice "No hay órdenes que requieran atención hoy.". El mecánico conserva el texto de bienvenida.
+Al ingresar, el administrador y el operador ven la pantalla **Inicio** (`FrmInicio`), que también se abre desde la primera opción de OPERACIONES: un saludo con la fecha, tres tarjetas con las órdenes prometidas para hoy, las demoradas y las listas para entregar, una cuarta tarjeta con los services vencidos que no se avisaron en los últimos 15 días (un clic abre Services por vencer), una grilla con esas órdenes (primero las demoradas) y el botón "Ir a órdenes de trabajo". Si no hay nada pendiente dice "No hay órdenes que requieran atención hoy.". El mecánico conserva el texto de bienvenida.
 
 Los iconos son archivos PNG de [Lucide](https://lucide.dev) (licencia ISC, en `WinFormsApp1/Recursos/iconos/LICENCIA-lucide.txt`). Se copian a la carpeta de salida y se leen al abrir el menú; si falta alguno, esa opción queda sin icono y la aplicación sigue funcionando.
 
@@ -32,6 +32,7 @@ Los iconos son archivos PNG de [Lucide](https://lucide.dev) (licencia ISC, en `W
 | Recepción | Sí | Sí | No |
 | Órdenes de trabajo | Sí | Sí | No |
 | Historial | Sí | Sí | Sí |
+| Services por vencer | Sí | Sí | No |
 | Clientes | Sí | Sí | No |
 | Vehículos | Sí | Sí | No |
 | Marcas y modelos | Sí | Sí | No |
@@ -134,6 +135,16 @@ Cada cambio de estado se guarda en una transacción junto con su fila en el hist
 
 **Fotos del trabajo**: una franja al pie del área de trabajo muestra las fotos cargadas durante el trabajo, en miniatura y con su descripción. El mecánico asignado, el administrador y el operador agregan fotos con la orden en `RECEPCIONADA` o `EN_PROCESO` (la descripción, opcional, se escribe antes de elegir el archivo) y pueden quitar la foto elegida hasta que el trabajo se finaliza. Un doble clic la abre ampliada en `FrmFoto`. Se guardan en la tabla `ot_foto_trabajo`, sin límite por orden y con el mismo proceso que las de recepción (reducidas a 1280 píxeles, en JPEG); no se mezclan con las cinco fotos de recepción de `ot_foto`.
 
+### Services por vencer
+
+Avisa a los clientes cuando a su vehículo le toca un service que se repite, como el cambio de aceite. Es para el administrador y el operador (`FrmServicesPorVencer`, opción **Services por vencer** del menú).
+
+- **Qué servicios avisan**: los que tienen cargado "Repetir cada (meses)" en el ABM de Servicios. "Repetir cada (km)" es opcional y solo sirve de referencia, porque el sistema conoce el kilometraje del auto únicamente cuando ingresa al taller. Un servicio sin intervalo en meses no genera avisos.
+- **Cuándo vence**: se toma la última orden **entregada** del vehículo que tuvo ese servicio aprobado. Vence en la fecha de entrega más el intervalo en meses. Los vehículos con una orden abierta no se listan, porque ya están en el taller. El mensaje va al titular actual del vehículo.
+- **Lista**: un filtro entre "Vencidos" y "Vencen en los próximos 30 días", y una grilla con cliente, teléfono, patente, vehículo, service, fecha y km del último, próximo km, vencimiento y último aviso. Se puede exportar a CSV.
+- **Copiar mensaje** (o doble clic en la fila): arma un mensaje amable para WhatsApp, con saludo y despedida, con todos los services listados de ese vehículo, y lo copia al portapapeles. No abre WhatsApp: el operador lo pega en el chat del cliente.
+- **Registro**: cada copia guarda un aviso por service en la tabla `aviso_service` (vehículo, servicio, usuario, fecha y hora). Durante 15 días el service avisado aparece al final de la lista, en gris, con "Avisado el ... por ...". Si se vuelve a copiar, pregunta antes.
+
 ### Mis órdenes (pantalla del mecánico)
 
 Un usuario con rol `MECANICO` ve en el menú **Mis órdenes** (`FrmMisOrdenes`), con las órdenes de trabajo que tiene asignadas y nada más.
@@ -211,17 +222,19 @@ graph TD
             Recepcion["FrmRecepcion<br/>(asistente de recepción)"]
             Ordenes["FrmOrdenes<br/>(tablero de órdenes)"]
             Historial["FrmHistorial<br/>(historial por patente)"]
+            Avisos["FrmServicesPorVencer<br/>(avisos de service)"]
             Tableros["FrmTableros<br/>(tablero de gestión, ScottPlot)"]
         end
         Conexion["Module ConexionBD<br/>(CADENA, de conexion.txt o por defecto)"]
         Seguridad["Module Seguridad<br/>(hash PBKDF2)"]
         Sesion["Module Sesion<br/>(usuario logueado)"]
         Impresion["Module Impresion<br/>(dibujo de reportes)"]
+        Recordatorios["Module Recordatorios<br/>(regla de services vencidos)"]
         Recursos["Recursos/<br/>(imagen y música del login)"]
     end
 
     subgraph Datos["Servidor de base de datos"]
-        DB[("MariaDB<br/>taller_mecanico (14 tablas)")]
+        DB[("MariaDB<br/>taller_mecanico (15 tablas)")]
     end
 
     Login -->|"abre"| Principal
@@ -243,6 +256,10 @@ graph TD
     Principal -->|"abre en panel (los tres roles)"| Historial
     Historial -->|"usa CADENA"| Conexion
     Historial -.->|"lee rol"| Sesion
+    Principal -->|"abre en panel (ADMINISTRADOR y OPERADOR)"| Avisos
+    Avisos -->|"usa la consulta"| Recordatorios
+    Avisos -->|"usa CADENA"| Conexion
+    Avisos -.->|"lee rol e ID"| Sesion
     Principal -->|"abre en panel (rol ADMINISTRADOR)"| Tableros
     Tableros -->|"usa CADENA"| Conexion
     Tableros -.->|"lee rol"| Sesion
@@ -275,7 +292,7 @@ graph TD
 
    | Script | Qué hace |
    |---|---|
-   | `01_ddl_estructura.sql` | Crea la base `taller_mecanico` y las 14 tablas. **Elimina la base completa si ya existe** (`DROP DATABASE IF EXISTS`): comentar esa línea si hay datos que conservar. |
+   | `01_ddl_estructura.sql` | Crea la base `taller_mecanico` y las 15 tablas. **Elimina la base completa si ya existe** (`DROP DATABASE IF EXISTS`): comentar esa línea si hay datos que conservar. |
    | `02_dml_catalogos.sql` | Carga los catálogos necesarios para funcionar (estados de OT, categorías de servicio y el usuario administrador inicial). Se ejecuta una vez. |
    | `03_dml_prueba.sql` | Datos de prueba (mecánicos, usuarios, marcas, modelos, clientes, vehículos y servicios). **Solo desarrollo.** |
    | `04_consultas_verificacion.sql` | Consultas de verificación (cantidad de tablas, filas por tabla, etc.). Opcional. |
@@ -284,6 +301,8 @@ graph TD
    | `07_recepcion_fotos.sql` | Migración para bases ya creadas con una versión anterior de 01 (12 tablas): agrega la columna `orden_trabajo.fecha_prometida` y la tabla `ot_foto`. No modifica ni elimina datos y se puede ejecutar más de una vez. **Sin esta migración las pantallas de Recepción y Órdenes de trabajo no funcionan. Una instalación nueva con 01 a 03 no la necesita.** |
    | `08_datos_demo.sql` | **Opcional, para la presentación.** Carga unas 40 órdenes de trabajo de los últimos siete meses (fechas relativas al día en que se ejecuta), con clientes, vehículos y un mecánico nuevos, para que los Tableros muestren datos. Requiere 01, 02 y 03. Se puede ejecutar más de una vez: borra antes las órdenes marcadas con `[demo]` en las observaciones de recepción. Para quitarlas: `DELETE FROM orden_trabajo WHERE observaciones_recepcion LIKE '%[demo]';` |
    | `09_diagnostico_fotos.sql` | Migración para bases ya creadas con una versión anterior de 01 (13 tablas): agrega la columna `orden_trabajo.diagnostico` y la tabla `ot_foto_trabajo`. No modifica ni elimina datos y se puede ejecutar más de una vez (una base sin `ot_foto` ejecuta antes la 07). **Sin esta migración la gestión de la orden, Mis órdenes y el historial impreso no funcionan. Una instalación nueva con 01 a 03 no la necesita.** |
+   | `10_recordatorio_service.sql` | Migración para bases ya creadas con una versión anterior de 01 (14 tablas): agrega las columnas `servicio.intervalo_meses` e `intervalo_km` y la tabla `aviso_service`. No modifica ni elimina datos y se puede ejecutar más de una vez; los servicios existentes quedan sin intervalo hasta que el administrador lo cargue. **Sin esta migración Servicios y Services por vencer no funcionan, y la tarjeta de services de Inicio muestra un guion. Una instalación nueva con 01 a 03 no la necesita.** |
+   | `11_datos_demo_avisos.sql` | **Opcional, para la presentación.** Carga seis órdenes entregadas, más viejas que las de 08, sobre los vehículos de 03, para que Services por vencer muestre vencidos, un vehículo con dos services y services que vencen pronto. Requiere 01, 02, 03 y 10. Se puede ejecutar más de una vez: borra antes sus órdenes (marca `[demo-avisos]`) y los avisos de esos vehículos. |
 
 2. Ajustar la cadena de conexión, solo si la instalación local de MariaDB no es `localhost`, usuario `root` sin contraseña: copiar `WinFormsApp1/conexion.ejemplo.txt` como `WinFormsApp1/conexion.txt` y editar `Server`, `Port`, `User ID` y `Password=`. El archivo está ignorado por git y se copia a la carpeta de salida al compilar.
 3. Abrir `WinFormsApp1.slnx` en Visual Studio y ejecutar, o desde una terminal:
@@ -341,7 +360,7 @@ La cadena de conexión de cada puesto va en `WinFormsApp1/conexion.txt`, que est
 
 ### Migrations / inicialización
 
-No hay herramienta de migraciones. La base se crea y se inicializa ejecutando manualmente los scripts de `database/` (ver [Quick start](#quick-start-local)). El script `01_ddl_estructura.sql` recrea la base desde cero. Las bases ya cargadas se actualizan con los scripts de migración: `06_migracion_hash_pbkdf2.sql` (hash de contraseñas), `07_recepcion_fotos.sql` (fecha prometida y fotos de recepción) y `09_diagnostico_fotos.sql` (diagnóstico del mecánico y fotos del trabajo). `08_datos_demo.sql` es opcional: carga datos de demostración para los Tableros.
+No hay herramienta de migraciones. La base se crea y se inicializa ejecutando manualmente los scripts de `database/` (ver [Quick start](#quick-start-local)). El script `01_ddl_estructura.sql` recrea la base desde cero. Las bases ya cargadas se actualizan con los scripts de migración: `06_migracion_hash_pbkdf2.sql` (hash de contraseñas), `07_recepcion_fotos.sql` (fecha prometida y fotos de recepción), `09_diagnostico_fotos.sql` (diagnóstico del mecánico y fotos del trabajo) y `10_recordatorio_service.sql` (intervalos de service y avisos). `08_datos_demo.sql` y `11_datos_demo_avisos.sql` son opcionales: cargan datos de demostración para los Tableros y para Services por vencer.
 
 ### CI/CD
 
@@ -370,13 +389,14 @@ No aplica: aplicación de escritorio WinForms. No expone endpoints.
   - Terminado: Reportes impresos (`PrintDocument` + `PrintPreviewDialog`, como en clase; rutinas de dibujo compartidas en `Module Impresion`): orden de trabajo en cualquier estado, presupuesto, acta de recepción con sus cinco fotos y hoja de fotos del trabajo desde la gestión de la orden, y ficha del cliente desde Clientes. El mecánico imprime la orden de trabajo, el colgante y las fotos del trabajo, sin importes. Ver [Reportes impresos](#reportes-impresos).
   - Terminado: diagnóstico del mecánico antes del presupuesto (opcional: la recepción recibe un aviso si presupuesta sin él) y fotos del trabajo cargadas durante la orden, con su propia hoja impresa. Las bases ya creadas deben ejecutar `database/09_diagnostico_fotos.sql`.
   - Terminado: Mecánicos (ABM solo para el administrador: nombre completo obligatorio, especialidad y teléfono; búsqueda por nombre o especialidad; baja lógica, rechazada si el mecánico tiene órdenes de trabajo sin cerrar; un mecánico dado de baja se reactiva con el mismo botón; no admite dos mecánicos activos con el mismo nombre).
-  - Terminado: Servicios (ABM solo para el administrador: código único, descripción, categoría y precio obligatorios, tiempo estimado en horas opcional; búsqueda por código, descripción o categoría; baja lógica y reactivación con el mismo botón, rechazada si la categoría del servicio está dada de baja; cambiar el precio no altera los presupuestos ya cargados).
+  - Terminado: Servicios (ABM solo para el administrador: código único, descripción, categoría y precio obligatorios, tiempo estimado en horas opcional, intervalo de repetición en meses y en km opcional (los km exigen los meses); búsqueda por código, descripción o categoría; baja lógica y reactivación con el mismo botón, rechazada si la categoría del servicio está dada de baja; cambiar el precio no altera los presupuestos ya cargados).
   - Terminado: Categorías (ABM solo para el administrador: descripción única y obligatoria; la grilla muestra la cantidad de servicios activos de cada una, con búsqueda por descripción; baja lógica, rechazada si la categoría tiene servicios activos; una categoría dada de baja se reactiva con el mismo botón).
   - Terminado: Tableros (`FrmTableros`, solo para el administrador; el botón del menú "Reportes" pasó a llamarse "Tableros"): período desde/hasta, seis indicadores (órdenes ingresadas, vehículos en el taller, facturado, ticket promedio, presupuestos aprobados y órdenes demoradas) y cuatro gráficos con ScottPlot (facturación de los últimos 6 meses, servicios más pedidos, horas estimadas contra reales por mecánico y órdenes por estado). De solo lectura. Datos de demostración opcionales en `database/08_datos_demo.sql`. Ver [Tableros](#tableros).
   - Terminado: pantalla Inicio con alertas (prometidas hoy, demoradas, listas para entregar), cambio de contraseña propio, bloqueo del login tras cinco intentos fallidos, exportación a CSV de las grillas de órdenes, aviso al cliente desde la orden finalizada y colgante de llaves imprimible. Robustez: registro de errores, manejador global, cadena de conexión en `conexion.txt`.
   - Terminado: tiempos por etapa (reporte 7) en Tableros, con hoja impresa, e historial del vehículo impreso desde Historial por patente. Con esto están hechos los siete reportes de la especificación.
+  - Terminado: avisos de service (`FrmServicesPorVencer`, administrador y operador): services vencidos o que vencen en los próximos 30 días según el intervalo de cada servicio, mensaje para WhatsApp copiado al portapapeles y registro de cada aviso; tarjeta en Inicio. Las bases ya creadas deben ejecutar `database/10_recordatorio_service.sql`. Ver [Services por vencer](#services-por-vencer).
   - Decisión cerrada: hash de contraseñas con PBKDF2 + SHA256, igual que la referencia de la cátedra (reemplaza la mención de BCrypt de la especificación). Las bases ya cargadas deben ejecutar `database/06_migracion_hash_pbkdf2.sql`.
-  - Base de datos: 14 tablas. A las 12 del modelo original se suman `ot_foto` (fotos de recepción) y `ot_foto_trabajo` (fotos del trabajo), y `orden_trabajo` tiene las columnas `fecha_prometida` y `diagnostico`. Las bases ya creadas deben ejecutar `database/07_recepcion_fotos.sql` y `database/09_diagnostico_fotos.sql`.
+  - Base de datos: 15 tablas. A las 12 del modelo original se suman `ot_foto` (fotos de recepción), `ot_foto_trabajo` (fotos del trabajo) y `aviso_service` (avisos de service); `orden_trabajo` tiene las columnas `fecha_prometida` y `diagnostico`, y `servicio` las columnas `intervalo_meses` e `intervalo_km`. Las bases ya creadas deben ejecutar `database/07_recepcion_fotos.sql`, `database/09_diagnostico_fotos.sql` y `database/10_recordatorio_service.sql`.
 
 <!-- @tsg-docs:auto-end -->
 
