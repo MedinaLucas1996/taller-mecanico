@@ -2,8 +2,9 @@
 -- Sistema de Gestión para Taller Mecánico
 -- 01 - DDL: estructura de la base de datos (MariaDB >= 10.6)
 -- Fuente: taller-mecanico.dbml (12 tablas, solo servicios) más la
--- tabla ot_foto de las fotos de recepción y ot_foto_trabajo de las
--- fotos del trabajo: 14 tablas en total
+-- tabla ot_foto de las fotos de recepción, ot_foto_trabajo de las
+-- fotos del trabajo y aviso_service de los avisos de service: 15
+-- tablas en total
 --
 -- ATENCIÓN: la primera sentencia elimina la base completa.
 -- Sirve para reiniciar durante el desarrollo. Comentarla cuando
@@ -148,6 +149,8 @@ CREATE TABLE servicio (
     id_categoria_servicio  INT           NOT NULL,
     precio                 DECIMAL(12,2) NOT NULL DEFAULT 0 COMMENT 'Importe final VIGENTE',
     tiempo_estimado_horas  DECIMAL(5,2)  NULL,
+    intervalo_meses        SMALLINT      NULL COMMENT 'Cada cuántos meses se repite. NULL: no genera avisos',
+    intervalo_km           INT           NULL COMMENT 'Cada cuántos km se repite. Solo referencia',
     activo                 BOOLEAN       NOT NULL DEFAULT TRUE,
     CONSTRAINT cp_servicio PRIMARY KEY (id_servicio),
     CONSTRAINT un_servicio_codigo UNIQUE (codigo),
@@ -156,7 +159,11 @@ CREATE TABLE servicio (
         REFERENCES categoria_servicio (id_categoria_servicio)
         ON DELETE RESTRICT ON UPDATE RESTRICT,
     CONSTRAINT val_servicio_precio CHECK (precio >= 0),
-    CONSTRAINT val_servicio_tiempo CHECK (tiempo_estimado_horas IS NULL OR tiempo_estimado_horas >= 0)
+    CONSTRAINT val_servicio_tiempo CHECK (tiempo_estimado_horas IS NULL OR tiempo_estimado_horas >= 0),
+    CONSTRAINT val_servicio_intervalos CHECK (
+        (intervalo_meses IS NULL OR intervalo_meses BETWEEN 1 AND 120)
+        AND (intervalo_km IS NULL OR intervalo_km > 0)
+    )
 ) ENGINE = InnoDB;
 
 -- ---------------------------------------------------------------------
@@ -313,6 +320,30 @@ CREATE TABLE ot_foto_trabajo (
         REFERENCES orden_trabajo (id_orden_trabajo)
         ON DELETE CASCADE ON UPDATE RESTRICT,
     CONSTRAINT cf_ot_foto_trabajo_usuario FOREIGN KEY (id_usuario)
+        REFERENCES usuario (id_usuario)
+        ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB;
+
+-- ---------------------------------------------------------------------
+-- AVISOS DE SERVICE
+-- ---------------------------------------------------------------------
+
+CREATE TABLE aviso_service (
+    id_aviso_service  INT      NOT NULL AUTO_INCREMENT,
+    id_vehiculo       INT      NOT NULL,
+    id_servicio       INT      NOT NULL,
+    id_usuario        INT      NOT NULL COMMENT 'Usuario que copió el mensaje',
+    fecha_hora        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT cp_aviso_service PRIMARY KEY (id_aviso_service),
+    -- El último aviso de cada vehículo y servicio se busca por estas columnas
+    INDEX ind_aviso_service_vehiculo (id_vehiculo, id_servicio, fecha_hora),
+    CONSTRAINT cf_aviso_service_vehiculo FOREIGN KEY (id_vehiculo)
+        REFERENCES vehiculo (id_vehiculo)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT cf_aviso_service_servicio FOREIGN KEY (id_servicio)
+        REFERENCES servicio (id_servicio)
+        ON DELETE RESTRICT ON UPDATE RESTRICT,
+    CONSTRAINT cf_aviso_service_usuario FOREIGN KEY (id_usuario)
         REFERENCES usuario (id_usuario)
         ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE = InnoDB;
