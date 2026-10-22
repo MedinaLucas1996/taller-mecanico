@@ -1,6 +1,6 @@
 # Taller Mecánico — Documentación técnica
 
-Este documento describe cómo está construido el sistema: arquitectura, modelo de datos, pantallas, flujo de la orden de trabajo, reportes, decisiones técnicas y límites conocidos. La instalación, los usuarios de prueba y el guion de demostración están en el [README](../README.md); la especificación funcional, en `taller-mecanico-especificacion.md`.
+Este documento describe cómo está construido el sistema: arquitectura, modelo de datos, pantallas, flujo de la orden de trabajo, reportes, decisiones técnicas y límites conocidos. La instalación, los usuarios de prueba y el guion de demostración están en el [README](../README.md); la especificación funcional, en `taller-mecanico-especificacion.md`; el manual de usuario, con una captura de cada pantalla, en [manual-usuario.md](./manual-usuario.md).
 
 ---
 

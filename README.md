@@ -89,6 +89,7 @@ Con `01`, `02`, `03`, `08` y `11` cargados. La patente `AB123CD` es un vehículo
 
 ## Documentación
 
+- [doc/manual-usuario.md](./doc/manual-usuario.md): manual de usuario, con una captura de cada pantalla, los pasos de cada tarea y el flujo completo de una orden de trabajo.
 - [doc/Docu.md](./doc/Docu.md): documento técnico (arquitectura, modelo de datos, pantallas, flujo de la orden de trabajo, reportes y decisiones).
 - [taller-mecanico-especificacion.md](./taller-mecanico-especificacion.md): especificación funcional.
 - [taller-mecanico.dbml](./taller-mecanico.dbml): modelo de datos en DBML.
