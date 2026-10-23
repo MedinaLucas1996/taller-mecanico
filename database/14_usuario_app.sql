@@ -11,7 +11,9 @@
 -- Antes de ejecutarlo:
 --   * Reemplazar CAMBIAR_ESTA_CLAVE por una contraseña propia de al
 --     menos 12 caracteres. El script se niega a seguir con la clave de
---     ejemplo o con una más corta.
+--     ejemplo o con una más corta. Cambiarla en el editor del cliente
+--     SQL y ejecutar sin guardar el archivo: este script está en el
+--     repositorio y la clave real no se tiene que confirmar en git.
 --   * Si los puestos se conectan desde otras PC de la red, cambiar
 --     @host por la red del taller, por ejemplo '192.168.1.%'. Con
 --     'localhost' solo se conecta la aplicación instalada en el mismo
