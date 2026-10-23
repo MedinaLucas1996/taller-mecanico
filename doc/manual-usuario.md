@@ -386,7 +386,7 @@ El registro de los mecánicos del taller, solo para el administrador. La tarjeta
 2. Para modificar, elija el mecánico, cambie los datos y haga clic en **Guardar cambios**. No puede haber dos mecánicos activos con el mismo nombre.
 3. **Dar de baja** se rechaza si el mecánico tiene órdenes sin cerrar o un usuario activo del sistema (ver [Preguntas frecuentes](#5-preguntas-frecuentes)).
 
-Para que un mecánico pueda entrar al sistema y ver sus órdenes hay que crearle un usuario con rol MECANICO en [Usuarios](#usuarios).
+Para que un mecánico pueda entrar al sistema y ver sus órdenes hay que crearle un usuario con rol MECANICO en [Usuarios](#usuarios). Desde esa misma pantalla también se puede dar de alta al mecánico, con **+ Nuevo mecánico**.
 
 ### Usuarios
 
@@ -394,7 +394,7 @@ Para que un mecánico pueda entrar al sistema y ver sus órdenes hay que crearle
 
 Las cuentas con las que se ingresa al sistema, solo para el administrador. La lista nunca muestra contraseñas.
 
-1. **Nuevo usuario**: cargue el **Usuario** (único), el **Nombre completo**, el **Rol** (ADMINISTRADOR, OPERADOR o MECANICO) y la **Contraseña** (al menos 6 caracteres). Para el rol MECANICO elija además el **Mecánico** al que corresponde la cuenta. **Guardar**.
+1. **Nuevo usuario**: cargue el **Usuario** (único), el **Nombre completo**, el **Rol** (ADMINISTRADOR, OPERADOR o MECANICO) y la **Contraseña** (al menos 6 caracteres). Para el rol MECANICO elija además el **Mecánico** al que corresponde la cuenta: la lista muestra solo los mecánicos que todavía no tienen usuario. Si el mecánico no está cargado, use **+ Nuevo mecánico** debajo de la lista: se abre la pantalla Mecánicos, lo da de alta, la cierra y queda elegido. **Guardar**.
 2. Para modificar, elija el usuario y cambie los datos; si deja **Contraseña nueva** vacía, la contraseña actual se conserva. **Guardar cambios**. Así se restablece la contraseña de alguien que la olvidó.
 3. **Dar de baja** deja al usuario sin acceso sin borrar su historial; **Reactivar** se lo devuelve.
 

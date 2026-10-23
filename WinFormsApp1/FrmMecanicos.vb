@@ -8,6 +8,9 @@ Public Class FrmMecanicos
     Private creando As Boolean = False
     'indica si el registro cargado esta activo, decide si el boton da de baja o reactiva
     Private registroActivo As Boolean = True
+    'ultimo mecanico que se dio de alta en esta ventana, 0 si no se dio de alta ninguno
+    'lo lee Usuarios cuando abre esta pantalla como ventana para dejarlo elegido
+    Public IdMecanicoCreado As Integer = 0
 
     'queda en True cuando el usuario cambio algun campo y todavia no guardo
     Private hayCambios As Boolean = False
@@ -510,6 +513,7 @@ Public Class FrmMecanicos
 
                         'el mecanico nuevo queda como el que se esta viendo, con la clave que le dio la base
                         idMecanico = CInt(cmd.LastInsertedId)
+                        IdMecanicoCreado = idMecanico
                         creando = False
                         hayCambios = False
 
