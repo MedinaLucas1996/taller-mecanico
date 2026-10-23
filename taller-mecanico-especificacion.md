@@ -595,14 +595,13 @@ Derivables por cálculo, almacenados por rendimiento y por reproducibilidad del 
 
 ## 13. Estado y trabajo futuro
 
-Los pasos previstos en la versión original de este documento están completados: el motor de reportes quedó definido (11.1), el script DDL y los datos iniciales de catálogo están generados, el código compartido se organizó en módulos (3.2), los ABM de datos maestros están desarrollados, el flujo de la orden de trabajo funciona con todas sus transiciones, el presupuesto se imprime y los reportes de gestión restantes están disponibles en los tableros (10). Además se incorporaron las funciones descritas en 5.7 a 5.10, 8.10, 8.11 y 10.2.
+Los pasos previstos en la versión original de este documento están completados: el motor de reportes quedó definido (11.1), el script DDL y los datos iniciales de catálogo están generados, el código compartido se organizó en módulos (3.2), los ABM de datos maestros están desarrollados, el flujo de la orden de trabajo funciona con todas sus transiciones, el presupuesto se imprime y los reportes de gestión restantes están disponibles en los tableros (10). Además se incorporaron las funciones descritas en 5.7 a 5.10, 8.10, 8.11 y 10.2, y el manual de usuario con capturas de pantalla (`doc/manual-usuario.md`).
 
 Trabajo futuro, fuera del alcance de la entrega:
 
 - Recordatorio automático de los turnos del día siguiente, en lugar de la confirmación copiada al dar el turno
 - Reprogramación de un turno sin cancelarlo y darlo de nuevo
 - Pruebas automatizadas de las reglas de negocio; hoy la verificación es manual con los datos de demostración
-- Manual de usuario con capturas de pantalla
 
 ---
 
