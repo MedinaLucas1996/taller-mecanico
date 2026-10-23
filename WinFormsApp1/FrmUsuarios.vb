@@ -129,14 +129,19 @@ Public Class FrmUsuarios
         End Try
     End Sub
 
-    Sub CargarComboMecanicos()
-        'cargo los mecanicos activos en el combo
+    Sub CargarComboMecanicos(idUsuarioActual As Integer)
+        'cargo los mecanicos activos que todavia no tienen usuario, mas el del usuario que se esta viendo:
+        'asi un mecanico no queda asociado a dos usuarios; idUsuarioActual es 0 en un alta
         Try
             Using cn As New MySqlConnection(CADENA)
                 cn.Open()
                 Dim consulta As String =
-                    "SELECT id_mecanico, nombre_completo FROM mecanico WHERE activo = 1 ORDER BY nombre_completo;"
+                    "SELECT m.id_mecanico, m.nombre_completo FROM mecanico AS m " &
+                    "WHERE m.activo = 1 AND NOT EXISTS (SELECT 1 FROM usuario AS u " &
+                    "WHERE u.id_mecanico = m.id_mecanico AND u.id_usuario <> @id_usuario) " &
+                    "ORDER BY m.nombre_completo;"
                 Using cmd As New MySqlCommand(consulta, cn)
+                    cmd.Parameters.AddWithValue("@id_usuario", idUsuarioActual)
                     Dim tabla As New DataTable
                     Using lector As MySqlDataReader = cmd.ExecuteReader
                         tabla.Load(lector)
@@ -210,6 +215,13 @@ Public Class FrmUsuarios
         Try
             'la clave nunca se carga en el formulario
             txtPassword.Clear()
+
+            'el combo depende del usuario: lista los mecanicos libres y el suyo
+            If fila Is Nothing Then
+                CargarComboMecanicos(0)
+            Else
+                CargarComboMecanicos(CInt(fila.Cells("id_usuario").Value))
+            End If
 
             If fila Is Nothing Then
                 txtUsuario.Clear()
@@ -423,7 +435,7 @@ Public Class FrmUsuarios
         'cargo los combos al abrir el formulario; la grilla se carga al mostrarse la pantalla (ver Shown)
         cargando = True
         Try
-            CargarComboMecanicos()
+            CargarComboMecanicos(0)
             cboRol.SelectedIndex = 0
         Finally
             cargando = False
@@ -546,8 +558,10 @@ Public Class FrmUsuarios
         'el mecanico solo se elige cuando el rol es MECANICO
         If cboRol.Text = ROL_MECANICO Then
             cboMecanico.Enabled = True
+            lnkNuevoMecanico.Visible = True
         Else
             cboMecanico.Enabled = False
+            lnkNuevoMecanico.Visible = False
             'vuelvo a la opcion "Seleccione un mecánico"
             If cboMecanico.Items.Count > 0 Then cboMecanico.SelectedIndex = 0
         End If
@@ -556,6 +570,57 @@ Public Class FrmUsuarios
         If cargando Then Exit Sub
         hayCambios = True
     End Sub
+
+    Private Sub lnkNuevoMecanico_LinkClicked(sender As Object, e As LinkLabelLinkClickedEventArgs) Handles lnkNuevoMecanico.LinkClicked
+        'doy de alta el mecanico sin salir de la pantalla: abro Mecanicos como ventana y al volver lo dejo elegido
+        Dim ultimoAntes As Integer = UltimoMecanico()
+        If ultimoAntes < 0 Then Exit Sub
+
+        Using formulario As New FrmMecanicos
+            formulario.StartPosition = FormStartPosition.CenterScreen
+            formulario.ShowDialog()
+        End Using
+
+        Dim ultimoDespues As Integer = UltimoMecanico()
+        Dim elegido As Object = cboMecanico.SelectedValue
+
+        'recargo el combo sin que la recarga cuente como un cambio del usuario
+        cargando = True
+        Try
+            If creando Then
+                CargarComboMecanicos(0)
+            Else
+                CargarComboMecanicos(idUsuario)
+            End If
+            If ultimoDespues > ultimoAntes Then
+                'se dio de alta uno nuevo: queda elegido
+                cboMecanico.SelectedValue = ultimoDespues
+            ElseIf elegido IsNot Nothing Then
+                'no se agrego ninguno: vuelvo al que estaba elegido
+                cboMecanico.SelectedValue = elegido
+            End If
+        Finally
+            cargando = False
+        End Try
+
+        'si quedo elegido un mecanico distinto, hay cambios sin guardar
+        If Not Object.Equals(cboMecanico.SelectedValue, elegido) Then hayCambios = True
+    End Sub
+
+    Function UltimoMecanico() As Integer
+        'devuelvo la clave del ultimo mecanico cargado, 0 si no hay ninguno y -1 si no se pudo leer
+        Try
+            Using cn As New MySqlConnection(CADENA)
+                cn.Open()
+                Using cmd As New MySqlCommand("SELECT COALESCE(MAX(id_mecanico), 0) FROM mecanico;", cn)
+                    Return CInt(cmd.ExecuteScalar())
+                End Using
+            End Using
+        Catch ex As Exception
+            MostrarError("No se pudo leer la lista de mecánicos", ex)
+            Return -1
+        End Try
+    End Function
 
     Private Sub Campo_Changed(sender As Object, e As EventArgs) Handles _
         txtUsuario.TextChanged, txtNombreCompleto.TextChanged, cboMecanico.SelectedIndexChanged, txtPassword.TextChanged

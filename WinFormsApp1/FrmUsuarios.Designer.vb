@@ -45,6 +45,7 @@ Partial Class FrmUsuarios
         cboRol = New ComboBox()
         lblMecanico = New Label()
         cboMecanico = New ComboBox()
+        lnkNuevoMecanico = New LinkLabel()
         lblPassword = New Label()
         txtPassword = New TextBox()
         lblAyudaPassword = New Label()
@@ -248,8 +249,9 @@ Partial Class FrmUsuarios
         tlpCampos.Controls.Add(cboRol, 0, 5)
         tlpCampos.Controls.Add(lblMecanico, 1, 4)
         tlpCampos.Controls.Add(cboMecanico, 1, 5)
-        tlpCampos.Controls.Add(lblPassword, 0, 6)
-        tlpCampos.Controls.Add(txtPassword, 0, 7)
+        tlpCampos.Controls.Add(lnkNuevoMecanico, 1, 6)
+        tlpCampos.Controls.Add(lblPassword, 0, 7)
+        tlpCampos.Controls.Add(txtPassword, 0, 8)
         tlpCampos.Controls.Add(lblAyudaPassword, 0, 9)
         tlpCampos.Controls.Add(lblContexto, 0, 10)
         tlpCampos.Location = New Point(16, 78)
@@ -368,6 +370,19 @@ Partial Class FrmUsuarios
         cboMecanico.Name = "cboMecanico"
         cboMecanico.Size = New Size(203, 28)
         cboMecanico.TabIndex = 7
+        '
+        ' lnkNuevoMecanico
+        '
+        lnkNuevoMecanico.AutoSize = True
+        lnkNuevoMecanico.Font = New Font("Segoe UI", 8.25F)
+        lnkNuevoMecanico.Location = New Point(0, 0)
+        lnkNuevoMecanico.Margin = New Padding(6, 4, 0, 0)
+        lnkNuevoMecanico.Name = "lnkNuevoMecanico"
+        lnkNuevoMecanico.Size = New Size(100, 19)
+        lnkNuevoMecanico.TabIndex = 8
+        lnkNuevoMecanico.TabStop = True
+        lnkNuevoMecanico.Text = "+ Nuevo mecánico"
+        lnkNuevoMecanico.Visible = False
         '
         ' lblPassword
         '
@@ -516,6 +531,7 @@ Partial Class FrmUsuarios
     Friend WithEvents cboRol As ComboBox
     Friend WithEvents lblMecanico As Label
     Friend WithEvents cboMecanico As ComboBox
+    Friend WithEvents lnkNuevoMecanico As LinkLabel
     Friend WithEvents lblPassword As Label
     Friend WithEvents txtPassword As TextBox
     Friend WithEvents lblAyudaPassword As Label
