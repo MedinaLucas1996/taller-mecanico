@@ -112,6 +112,9 @@ Public Class FrmOrdenes
         'cargo la grilla de ordenes con los filtros elegidos, la mas nueva primero
         'si la orden que se estaba mostrando sigue en la lista, queda seleccionada
 
+        'si habia una busqueda pendiente, esta carga ya usa el texto actual
+        tmrFiltro.Stop()
+
         Dim texto As String = txtTexto.Text.Trim
 
         'mientras cargo, los cambios de seleccion de la grilla no cuentan como una eleccion del usuario
@@ -621,8 +624,15 @@ Public Class FrmOrdenes
     End Sub
 
     Private Sub txtTexto_TextChanged(sender As Object, e As EventArgs) Handles txtTexto.TextChanged
-        'vuelvo a cargar la grilla con el texto escrito
+        'no consulto en cada tecla: vuelvo a contar el tiempo desde la ultima y cargo cuando el usuario se detiene
         If cargandoOrdenes Then Exit Sub
+        tmrFiltro.Stop()
+        tmrFiltro.Start()
+    End Sub
+
+    Private Sub tmrFiltro_Tick(sender As Object, e As EventArgs) Handles tmrFiltro.Tick
+        'el usuario dejo de escribir: ahora si cargo la grilla con el texto
+        tmrFiltro.Stop()
         CargarOrdenes()
     End Sub
 

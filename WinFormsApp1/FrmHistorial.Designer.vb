@@ -25,6 +25,7 @@ Partial Class FrmHistorial
         components = New ComponentModel.Container()
         tmrOrdenes = New Timer(components)
         tmrServicios = New Timer(components)
+        tmrFiltro = New Timer(components)
         Dim DataGridViewCellStyle1 As DataGridViewCellStyle = New DataGridViewCellStyle()
         Dim DataGridViewCellStyle2 As DataGridViewCellStyle = New DataGridViewCellStyle()
         Dim DataGridViewCellStyle3 As DataGridViewCellStyle = New DataGridViewCellStyle()
@@ -544,6 +545,10 @@ Partial Class FrmHistorial
         '
         tmrServicios.Interval = 250
         '
+        ' tmrFiltro
+        '
+        tmrFiltro.Interval = 300
+        '
         ' FrmHistorial
         '
         AutoScaleDimensions = New SizeF(8F, 20F)
@@ -611,4 +616,5 @@ Partial Class FrmHistorial
     Friend WithEvents ppdVistaPrevia As PrintPreviewDialog
     Friend WithEvents tmrOrdenes As Timer
     Friend WithEvents tmrServicios As Timer
+    Friend WithEvents tmrFiltro As Timer
 End Class
