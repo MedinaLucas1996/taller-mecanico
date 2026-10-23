@@ -205,6 +205,12 @@ CREATE TABLE orden_trabajo (
     CONSTRAINT un_orden_trabajo_nro UNIQUE (nro_orden),
     INDEX ind_orden_trabajo_fecha_recepcion (fecha_recepcion),
     INDEX ind_orden_trabajo_estado (id_estado_ot),
+    -- Mis órdenes: órdenes de un mecánico por estado, ordenadas por fecha prometida
+    INDEX ind_orden_trabajo_mecanico_estado (id_mecanico, id_estado_ot, fecha_prometida),
+    -- Tableros: facturado por estado y fecha de entrega
+    INDEX ind_orden_trabajo_estado_entrega (id_estado_ot, fecha_entrega),
+    INDEX ind_orden_trabajo_prometida (fecha_prometida),
+    INDEX ind_orden_trabajo_finalizacion (fecha_finalizacion),
     CONSTRAINT cf_orden_trabajo_vehiculo FOREIGN KEY (id_vehiculo)
         REFERENCES vehiculo (id_vehiculo)
         ON DELETE RESTRICT ON UPDATE RESTRICT,
@@ -246,6 +252,8 @@ CREATE TABLE ot_detalle (
     horas_reales      DECIMAL(5,2)  NULL,
     CONSTRAINT cp_ot_detalle PRIMARY KEY (id_ot_detalle),
     INDEX ind_ot_detalle_orden (id_orden_trabajo),
+    -- Un servicio aparece una sola vez en cada orden
+    CONSTRAINT un_ot_detalle_orden_servicio UNIQUE (id_orden_trabajo, id_servicio),
     CONSTRAINT cf_ot_detalle_orden FOREIGN KEY (id_orden_trabajo)
         REFERENCES orden_trabajo (id_orden_trabajo)
         ON DELETE CASCADE ON UPDATE RESTRICT,
@@ -269,6 +277,8 @@ CREATE TABLE ot_historial_estado (
     observacion       VARCHAR(255) NULL,
     CONSTRAINT cp_ot_historial_estado PRIMARY KEY (id_ot_historial),
     INDEX ind_ot_historial_orden (id_orden_trabajo),
+    -- Tableros: cambios a un estado dentro de un período
+    INDEX ind_ot_historial_estado_fecha (id_estado_ot, fecha_hora),
     CONSTRAINT cf_ot_historial_orden FOREIGN KEY (id_orden_trabajo)
         REFERENCES orden_trabajo (id_orden_trabajo)
         ON DELETE CASCADE ON UPDATE RESTRICT,

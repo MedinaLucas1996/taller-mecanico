@@ -207,6 +207,7 @@ Una base creada con una versión anterior de `01` se actualiza con estos scripts
 | `09_diagnostico_fotos.sql` | 13 tablas | `orden_trabajo.diagnostico` y la tabla `ot_foto_trabajo`. | Gestión de la orden, Mis órdenes y el historial impreso. |
 | `10_recordatorio_service.sql` | 14 tablas | `servicio.intervalo_meses`, `servicio.intervalo_km` y la tabla `aviso_service`; los servicios existentes quedan sin intervalo hasta que el administrador lo cargue. | Servicios y Services por vencer; la tarjeta de services de Inicio muestra un guion. |
 | `12_turnos.sql` | 15 tablas | La tabla `turno`. | Turnos y Services por vencer; la recepción sigue funcionando sin el aviso de turno y la tarjeta de turnos de Inicio muestra un guion. |
+| `13_indices.sql` | 16 tablas | Índices para Mis órdenes, Inicio, Órdenes y Tableros, y el valor único que impide repetir un servicio en una orden. | Nada: la app funciona igual, pero las consultas son más lentas con muchos datos y el servicio único solo lo controla la app. |
 
 ### Relaciones principales
 
