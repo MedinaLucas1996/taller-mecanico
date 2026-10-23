@@ -65,6 +65,9 @@ Public Class FrmHistorial
 
     Sub CargarVehiculos()
         'cargo la lista de vehiculos cuya patente contiene lo escrito; tambien los dados de baja, su historial sigue valiendo
+        'si habia una busqueda pendiente, esta carga ya usa el texto actual
+        tmrFiltro.Stop()
+
         Dim filtro As String = txtFiltro.Text.Trim
 
         cargando = True
@@ -438,8 +441,15 @@ Public Class FrmHistorial
     End Sub
 
     Private Sub txtFiltro_TextChanged(sender As Object, e As EventArgs) Handles txtFiltro.TextChanged
-        'vuelvo a cargar la lista con lo escrito; la tarjeta no se toca, solo se vuelve a marcar su fila
+        'no consulto en cada tecla: vuelvo a contar el tiempo desde la ultima y cargo cuando el usuario se detiene
         If cargando Then Exit Sub
+        tmrFiltro.Stop()
+        tmrFiltro.Start()
+    End Sub
+
+    Private Sub tmrFiltro_Tick(sender As Object, e As EventArgs) Handles tmrFiltro.Tick
+        'el usuario dejo de escribir: vuelvo a cargar la lista con lo escrito; la tarjeta no se toca, solo se vuelve a marcar su fila
+        tmrFiltro.Stop()
         CargarVehiculos()
     End Sub
 

@@ -24,6 +24,7 @@ Partial Class FrmOrdenes
     Private Sub InitializeComponent()
         components = New ComponentModel.Container()
         tmrFotos = New Timer(components)
+        tmrFiltro = New Timer(components)
         lblTitulo = New Label()
         lblSubtitulo = New Label()
         tlpEstados = New TableLayoutPanel()
@@ -945,6 +946,10 @@ Partial Class FrmOrdenes
         '
         tmrFotos.Interval = 250
         '
+        ' tmrFiltro
+        '
+        tmrFiltro.Interval = 300
+        '
         ' FrmOrdenes
         '
         AutoScaleDimensions = New SizeF(8F, 20F)
@@ -1054,4 +1059,5 @@ Partial Class FrmOrdenes
     Friend WithEvents dlgFoto As OpenFileDialog
     Friend WithEvents btnExportar As Button
     Friend WithEvents tmrFotos As Timer
+    Friend WithEvents tmrFiltro As Timer
 End Class
