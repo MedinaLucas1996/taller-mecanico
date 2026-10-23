@@ -159,6 +159,8 @@ Public Class FrmLogin
                     control.ForeColor = Color.White
                 End If
             Next
+            'el aviso de bloqueo cae sobre una zona clara de la imagen: le doy una franja oscura propia para que se lea
+            lblBloqueo.BackColor = Color.FromArgb(210, 140, 20, 20)
         Catch ex As Exception
             'sin fondo el login sigue sirviendo: lo anoto en el registro y no molesto al usuario
             RegistrarError("No se pudo cargar el fondo del login", ex)
