@@ -573,15 +573,14 @@ Public Class FrmUsuarios
 
     Private Sub lnkNuevoMecanico_LinkClicked(sender As Object, e As LinkLabelLinkClickedEventArgs) Handles lnkNuevoMecanico.LinkClicked
         'doy de alta el mecanico sin salir de la pantalla: abro Mecanicos como ventana y al volver lo dejo elegido
-        Dim ultimoAntes As Integer = UltimoMecanico()
-        If ultimoAntes < 0 Then Exit Sub
-
+        'la ventana informa cual dio de alta; si dio de alta varios, queda el ultimo
+        Dim idCreado As Integer
         Using formulario As New FrmMecanicos
             formulario.StartPosition = FormStartPosition.CenterScreen
             formulario.ShowDialog()
+            idCreado = formulario.IdMecanicoCreado
         End Using
 
-        Dim ultimoDespues As Integer = UltimoMecanico()
         Dim elegido As Object = cboMecanico.SelectedValue
 
         'recargo el combo sin que la recarga cuente como un cambio del usuario
@@ -592,9 +591,9 @@ Public Class FrmUsuarios
             Else
                 CargarComboMecanicos(idUsuario)
             End If
-            If ultimoDespues > ultimoAntes Then
+            If idCreado <> 0 Then
                 'se dio de alta uno nuevo: queda elegido
-                cboMecanico.SelectedValue = ultimoDespues
+                cboMecanico.SelectedValue = idCreado
             ElseIf elegido IsNot Nothing Then
                 'no se agrego ninguno: vuelvo al que estaba elegido
                 cboMecanico.SelectedValue = elegido
@@ -603,24 +602,14 @@ Public Class FrmUsuarios
             cargando = False
         End Try
 
+        'el nuevo no aparece si en la ventana se lo dio de baja u otro usuario ya lo tomo: lo aviso
+        If idCreado <> 0 AndAlso Not Object.Equals(cboMecanico.SelectedValue, idCreado) Then
+            MessageBox.Show("El mecánico dado de alta no está disponible: puede estar dado de baja o tener ya un usuario.")
+        End If
+
         'si quedo elegido un mecanico distinto, hay cambios sin guardar
         If Not Object.Equals(cboMecanico.SelectedValue, elegido) Then hayCambios = True
     End Sub
-
-    Function UltimoMecanico() As Integer
-        'devuelvo la clave del ultimo mecanico cargado, 0 si no hay ninguno y -1 si no se pudo leer
-        Try
-            Using cn As New MySqlConnection(CADENA)
-                cn.Open()
-                Using cmd As New MySqlCommand("SELECT COALESCE(MAX(id_mecanico), 0) FROM mecanico;", cn)
-                    Return CInt(cmd.ExecuteScalar())
-                End Using
-            End Using
-        Catch ex As Exception
-            MostrarError("No se pudo leer la lista de mecánicos", ex)
-            Return -1
-        End Try
-    End Function
 
     Private Sub Campo_Changed(sender As Object, e As EventArgs) Handles _
         txtUsuario.TextChanged, txtNombreCompleto.TextChanged, cboMecanico.SelectedIndexChanged, txtPassword.TextChanged
