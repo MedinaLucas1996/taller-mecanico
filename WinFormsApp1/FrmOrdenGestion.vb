@@ -1778,6 +1778,10 @@ Public Class FrmOrdenGestion
                     transaccion.Rollback()
                 End If
             End Using
+        Catch ex As MySqlException When ex.Number = 1062
+            'error 1062: otro puesto agrego el mismo servicio a la vez (restriccion unica un_ot_detalle_orden_servicio)
+            aviso = "Ese servicio ya está en el presupuesto. " &
+                    "Seleccione la línea y use ""Actualizar cantidad""."
         Catch ex As Exception
             MostrarError("No se pudo agregar el servicio y no se guardó ningún dato.", ex)
             Exit Sub

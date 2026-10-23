@@ -1,6 +1,4 @@
-﻿Imports System.IO
-
-Public Class FrmPrincipal
+﻿Public Class FrmPrincipal
 
     'indica que el formulario se cierra por cerrar sesion y no por salir del sistema
     Private cerrandoSesion As Boolean = False
@@ -45,20 +43,6 @@ Public Class FrmPrincipal
             botonActivo.Font = fuenteOpcionActiva
         End If
     End Sub
-
-    Function LeerIcono(archivo As String) As Image
-        'leo un icono de la carpeta Recursos\iconos que esta junto al ejecutable
-        Try
-            Dim ruta As String = Path.Combine(AppContext.BaseDirectory, "Recursos", "iconos", archivo)
-            Using imagen As Image = Image.FromFile(ruta)
-                'copio el icono a un bitmap nuevo para no dejar el archivo abierto
-                Return New Bitmap(imagen)
-            End Using
-        Catch ex As Exception
-            'si el archivo falta o no se puede leer, la opcion queda sin icono y el sistema sigue
-            Return Nothing
-        End Try
-    End Function
 
     Sub AplicarMenu()
         'acomodo el menu segun este expandido o contraido

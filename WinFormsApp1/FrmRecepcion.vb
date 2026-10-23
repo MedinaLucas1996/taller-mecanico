@@ -1,4 +1,3 @@
-Imports System.IO
 Imports MySqlConnector
 
 Public Class FrmRecepcion
