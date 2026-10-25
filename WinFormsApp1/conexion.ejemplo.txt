@@ -1,16 +1,1 @@
-# Cadena de conexion local del Taller Mecanico.
-# Copiar este archivo como "conexion.txt" en esta misma carpeta (WinFormsApp1) y ajustar los valores.
-# conexion.txt no se sube al repositorio y se copia solo a la carpeta de salida al compilar.
-# Si el archivo no existe, la aplicacion usa localhost / root / sin contrasena.
-# La aplicacion usa la primera linea que no empieza con "#".
-#
-# Usuario: taller_app, creado con database/14_usuario_app.sql. Solo puede leer y modificar
-# filas de taller_mecanico; root queda para ejecutar los scripts. Password es la clave que se
-# puso en ese script.
-#
-# Servidor en el mismo equipo:
-Server=localhost;Port=3306;Database=taller_mecanico;User ID=taller_app;Password=CLAVE_DE_TALLER_APP;
-#
-# Servidor en otra PC de la red: SslMode=Required cifra la conexion y no se conecta si el
-# servidor no ofrece TLS. Reemplazar la linea de arriba por esta, con la IP del servidor:
-# Server=192.168.1.10;Port=3306;Database=taller_mecanico;User ID=taller_app;Password=CLAVE_DE_TALLER_APP;SslMode=Required;
+Server=localhost;Port=3306;Database=taller_mecanico;User ID=root;Password=;
