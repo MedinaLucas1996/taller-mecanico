@@ -72,7 +72,7 @@ Public Class FrmInicio
     Sub CargarServices()
         'cuento los services vencidos que todavia no se avisaron en los ultimos dias y cuyo vehiculo no tiene turno,
         'con la misma regla que la pantalla Services por vencer
-        'va aparte de las otras tarjetas: si la base todavia no tiene la migracion 10, el resto del inicio sigue igual
+        'va aparte de las otras tarjetas: si la base todavia no tiene la tabla aviso_service, el resto del inicio sigue igual
         Dim cantidad As Integer = 0
         Try
             Using cn As New MySqlConnection(CADENA)
@@ -99,7 +99,7 @@ Public Class FrmInicio
 
     Sub CargarTurnosDeHoy()
         'cuento los turnos de hoy que siguen pendientes (el vehiculo todavia no llego o no se recepciono)
-        'va aparte: si la base todavia no tiene la migracion 12, el resto del inicio sigue igual
+        'va aparte: si la base todavia no tiene la tabla turno, el resto del inicio sigue igual
         Dim cantidad As Integer = 0
         Try
             Using cn As New MySqlConnection(CADENA)
